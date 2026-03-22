@@ -1,0 +1,103 @@
+services:
+  # AIV Platform (FastAPI :8000)
+  platform:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aiv-platform
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      alcm-api:
+        condition: service_started
+    restart: unless-stopped
+
+  # ALCM API (FastAPI :8001)
+  alcm-api:
+    build:
+      context: ../AIV-ALCM-API
+      dockerfile: Dockerfile
+    container_name: aiv-alcm-api
+    ports:
+      - "8001:8001"
+    env_file:
+      - ../AIV-ALCM-API/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: aiv-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aiv
+      POSTGRES_PASSWORD: aiv_password
+      POSTGRES_DB: aiv_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-dbs.sh:/docker-entrypoint-initdb.d/init-dbs.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aiv -d aiv_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (Sessions & Cache)
+  redis:
+    image: redis:7-alpine
+    container_name: aiv-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO (S3-Compatible Object Storage)
+  minio:
+    image: minio/minio:latest
+    container_name: aiv-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Web Console
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # MailHog (Development Email Server)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: aiv-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
