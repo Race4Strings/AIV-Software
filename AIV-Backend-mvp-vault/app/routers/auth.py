@@ -156,6 +156,22 @@ async def signin(
         service = AuthService(db)
         user = await service.signin(data)
         
+        # Look up org name for frontend display
+        from sqlalchemy import select as sa_select
+        from ..models.organization import Organization, OrganizationUser
+        org_name = "My Organization"
+        try:
+            org_result = await db.execute(
+                sa_select(Organization.name).join(
+                    OrganizationUser, OrganizationUser.organization_id == Organization.id
+                ).where(OrganizationUser.user_id == user.id).limit(1)
+            )
+            org_row = org_result.scalar_one_or_none()
+            if org_row:
+                org_name = org_row
+        except Exception:
+            pass
+
         # Create session
         settings = get_settings()
         session_id = str(uuid.uuid4())
@@ -165,15 +181,17 @@ async def signin(
             "email": user.email,
             "user_name": user.user_name,
             "is_verified": user.is_verified,
+            "role": getattr(user, "role", "TALENT"),
+            "org_name": org_name,
         }
-        
+
         await create_session(
             redis_client,
             session_id,
             user_data,
             settings.session_expire_minutes,
         )
-        
+
         response.set_cookie(
             key="session_id",
             value=session_id,
@@ -183,7 +201,7 @@ async def signin(
             secure=settings.cookie_secure,
             path="/",
         )
-        
+
         return SigninResponse(
             state="success",
             message="Signed in successfully",

@@ -227,42 +227,78 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
     );
   }
 
-  return (
-    <div className="flex h-full flex-col">
-      {/* Header: Mode switcher + session controls */}
-      <div className="flex items-center justify-between border-b px-4 py-3">
-        <ModeSwitcher
-          currentMode={(session?.current_mode as Mode) || "ASSISTANT"}
-          onModeChange={handleModeChange}
-          disabled={isStreaming}
-        />
-        <Button variant="ghost" size="sm" onClick={createNewSession} disabled={isStreaming} aria-label="New session">
-          <Plus className="h-4 w-4 mr-1" />
-          New
-        </Button>
-      </div>
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
-      {/* Session sidebar (collapsed to pill row for now) */}
-      {sessions.length > 1 && (
-        <div className="flex gap-1 overflow-x-auto border-b px-4 py-2">
-          {sessions.slice(0, 10).map((s) => (
-            <button
-              key={s.id}
-              onClick={() => selectSession(s)}
-              className={`shrink-0 rounded-full px-3 py-1 text-xs transition-colors ${
-                s.id === session?.id
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {new Date(s.started_at).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </button>
-          ))}
+  // Derive session title from first user message or mode
+  function getSessionTitle(s: AgentSession, idx: number): string {
+    // If this is the active session and we have messages, use first user message
+    if (s.id === session?.id && messages.length > 0) {
+      const firstUser = messages.find(m => m.role === "USER");
+      if (firstUser) return firstUser.content.slice(0, 40) + (firstUser.content.length > 40 ? "..." : "");
+    }
+    const mode = (s.current_mode || "ASSISTANT").toLowerCase().replace("_", " ");
+    return `${mode} session`;
+  }
+
+  return (
+    <div className="flex h-full">
+      {/* Session sidebar */}
+      {sidebarOpen && sessions.length > 0 && (
+        <div className="w-60 shrink-0 border-r flex flex-col bg-muted/20">
+          <div className="flex items-center justify-between p-3 border-b">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Sessions</span>
+            <Button variant="ghost" size="sm" onClick={createNewSession} disabled={isStreaming} className="h-7 px-2 text-xs">
+              <Plus className="h-3.5 w-3.5 mr-1" /> New
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            {sessions.slice(0, 10).map((s, idx) => (
+              <button
+                key={s.id}
+                onClick={() => selectSession(s)}
+                className={`w-full text-left rounded-lg px-3 py-2.5 transition-colors ${
+                  s.id === session?.id
+                    ? "bg-primary/10 text-foreground border border-primary/20"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                }`}
+              >
+                <div className="text-xs font-medium truncate">{getSessionTitle(s, idx)}</div>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">{(s.current_mode || "ASSISTANT").toLowerCase().replace("_", " ")}</Badge>
+                  <span className="text-[10px] text-muted-foreground/60">
+                    {new Date(s.started_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
       )}
+
+      {/* Main chat area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header: Mode switcher + session toggle */}
+        <div className="flex items-center justify-between border-b px-4 py-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-muted transition-colors text-muted-foreground"
+              aria-label={sidebarOpen ? "Hide sessions" : "Show sessions"}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>
+            </button>
+            <ModeSwitcher
+              currentMode={(session?.current_mode as Mode) || "ASSISTANT"}
+              onModeChange={handleModeChange}
+              disabled={isStreaming}
+            />
+          </div>
+          {!sidebarOpen && (
+            <Button variant="ghost" size="sm" onClick={createNewSession} disabled={isStreaming} aria-label="New session">
+              <Plus className="h-4 w-4 mr-1" /> New
+            </Button>
+          )}
+        </div>
 
       {/* Messages */}
       <ScrollArea className="flex-1 px-4" aria-live="polite" aria-label="Conversation messages">
@@ -388,6 +424,7 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
           </Button>
         </div>
       </div>
+      </div>{/* close main chat area */}
     </div>
   );
 }
