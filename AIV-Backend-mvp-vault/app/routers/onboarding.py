@@ -17,8 +17,8 @@ from uuid import UUID
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -59,6 +59,11 @@ class RightsRequest(BaseModel):
 
 class GateRequest(BaseModel):
     approved: bool = True
+
+
+class Gate2Request(BaseModel):
+    approved: bool = True
+    consents: List[str] = []  # Granular: VOICE_LICENSING, VISUAL_LICENSING, etc.
 
 
 def _serialize(s: OnboardingSession) -> dict:
@@ -139,6 +144,59 @@ async def get_onboarding(
     return _serialize(await _get_session(db, session_id, user["id"]))
 
 
+@router.get("/{session_id}/discovery-results")
+async def get_discovery_results(
+    session_id: str,
+    user: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get discovery results from ALCM scraping service.
+
+    Returns structured identity data: name, bio, career, social handles.
+    Polls ALCM health for the twin's profile data.
+    """
+    session = await _get_session(db, session_id, user["id"])
+    results = {
+        "status": "processing",
+        "profile": None,
+        "health": None,
+    }
+
+    if not session.twin_id:
+        return results
+
+    twin_r = await db.execute(select(Twin).where(Twin.id == session.twin_id))
+    twin = twin_r.scalar_one_or_none()
+    if not twin or not twin.alcm_twin_id:
+        return results
+
+    alcm = get_alcm_client()
+    try:
+        health = await alcm.get_health(str(twin.alcm_twin_id))
+        results["status"] = "ready"
+        results["health"] = health
+
+        # Try to get the full profile package for display
+        try:
+            package = await alcm.get_package(str(twin.alcm_twin_id), ["identity_profile", "knowledge_base"])
+            results["profile"] = package
+        except Exception:
+            pass
+    except Exception as e:
+        logger.warning(f"Discovery results fetch failed: {e}")
+        results["status"] = "processing"
+
+    # Include twin basic info for the review screen
+    results["twin"] = {
+        "id": str(twin.id),
+        "display_name": twin.display_name,
+        "bio": twin.bio,
+        "identity_category": twin.identity_category,
+    }
+
+    return results
+
+
 @router.post("/{session_id}/confirm-profiles")
 async def confirm_profiles(
     session_id: str,
@@ -201,14 +259,26 @@ async def submit_rights(
     """Rights agreement, identity category, successor designation."""
     session = await _get_session(db, session_id, user["id"])
 
+    # Validate successor email if provided
+    if req.successor and req.successor.get("email"):
+        import re
+        email = req.successor["email"].strip()
+        if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", email):
+            raise HTTPException(status_code=400, detail="Invalid successor email format.")
+
+    # Validate identity category
+    valid_categories = {"ENTERTAINMENT", "SPORTS", "CORPORATE", "EDUCATION", "CREATOR_ECONOMY", "BRAND_PERSONA", "GAMING_VIRTUAL"}
+    if req.identity_category not in valid_categories:
+        raise HTTPException(status_code=400, detail=f"Invalid identity category. Must be one of: {', '.join(sorted(valid_categories))}")
+
     if session.twin_id:
         twin_r = await db.execute(select(Twin).where(Twin.id == session.twin_id))
         twin = twin_r.scalar_one_or_none()
         if twin:
             twin.identity_category = req.identity_category
             if req.successor:
-                twin.successor_contact_name = req.successor.get("name")
-                twin.successor_contact_email = req.successor.get("email")
+                twin.successor_contact_name = req.successor.get("name", "").strip()
+                twin.successor_contact_email = req.successor.get("email", "").strip()
                 twin.successor_designated_at = datetime.now(timezone.utc)
 
     for consent_type in req.consents:
@@ -260,7 +330,8 @@ async def gate_1(
 @router.post("/{session_id}/gate-2")
 async def gate_2(
     session_id: str,
-    req: GateRequest,
+    req: Gate2Request,
+    request: Request,
     user: dict = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
@@ -316,17 +387,28 @@ async def gate_2(
             twin.status = "BUILDING"
             twin.fee_free_window_expires = now + timedelta(days=90)
 
-        db.add(ConsentRecord(
-            twin_id=session.twin_id, user_id=UUID(user["id"]),
-            consent_type="LIKENESS_LICENSING", action="GRANTED",
-            scope="Full commercial authorization — Gate 2",
-        ))
+        # Record EACH consent type individually (granular, GDPR-compliant)
+        gate2_consents = req.consents or ["LIKENESS_LICENSING"]
+        for consent_type in gate2_consents:
+            db.add(ConsentRecord(
+                twin_id=session.twin_id, user_id=UUID(user["id"]),
+                consent_type=consent_type, action="GRANTED",
+                scope=f"Gate 2 authorization — {consent_type}",
+            ))
 
+    # Log with IP address for legal defensibility
+    client_ip = request.client.host if request.client else None
     db.add(AuditLog(
         actor_id=UUID(user["id"]), actor_type="TALENT",
         action="APPROVE", entity_type="gate_2_authorization",
         twin_id=session.twin_id,
-        details={"gate": 2, "action": "talent_personal_authorization"},
+        ip_address=client_ip,
+        details={
+            "gate": 2,
+            "action": "talent_personal_authorization",
+            "consents_granted": gate2_consents if session.twin_id else [],
+            "ip_address": client_ip,
+        },
     ))
     await db.flush()
 
