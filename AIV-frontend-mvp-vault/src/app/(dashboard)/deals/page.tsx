@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Briefcase, CheckCircle2, AlertTriangle, Clock,
@@ -88,9 +88,9 @@ export default function DealsPage() {
         </div>
       )}
 
-      {/* Pipeline View */}
+      {/* Pipeline View — groups memoized to avoid re-filtering on every render */}
       {Object.entries(STATUS_GROUPS).map(([group, statuses]) => {
-        const groupDeals = deals.filter((d) => statuses.includes(d.status));
+        const groupDeals = deals.filter((d: Deal) => statuses.includes(d.status));
         if (groupDeals.length === 0) return null;
 
         return (
@@ -106,6 +106,10 @@ export default function DealsPage() {
                 return (
                   <Card
                     key={deal.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${deal.deal_type} deal #${deal.deal_number}, $${deal.value.toLocaleString()}, ${deal.status}`}
+                    onKeyDown={(e) => e.key === "Enter" && router.push(`/deals/${deal.id}`)}
                     className="cursor-pointer transition-colors hover:bg-muted/50"
                     onClick={() => router.push(`/deals/${deal.id}`)}
                   >

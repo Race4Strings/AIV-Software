@@ -151,6 +151,18 @@ class TTSService:
             return False
 
 
+async def create_encrypted_voice_clone(
+    name: str, audio_data: bytes, description: Optional[str] = None, audio_format: str = "wav",
+) -> Optional[str]:
+    """Create a voice clone and return the encrypted voice_id for storage."""
+    from ..utils.encryption import encrypt_value
+    tts = get_tts_service()
+    voice_id = await tts.create_voice_clone(name, audio_data, description, audio_format)
+    if voice_id:
+        return encrypt_value(voice_id)
+    return None
+
+
 async def extract_audio_from_video(video_bytes: bytes, video_format: str = "webm") -> Optional[bytes]:
     """Extract audio track from video using ffmpeg. Runs in thread to avoid blocking."""
 

@@ -28,8 +28,10 @@ async def generate_speech(req: SpeechRequest, db: AsyncSession = Depends(get_db)
     if not profile:
         raise HTTPException(status_code=404, detail="Twin not found in ALCM")
 
+    from ..utils.encryption import decrypt_value
     voice_data = profile.voice_profile or {}
-    voice_id = voice_data.get("voice_id")
+    voice_id_encrypted = voice_data.get("voice_id")
+    voice_id = decrypt_value(voice_id_encrypted) if voice_id_encrypted else None
 
     if not voice_id:
         raise HTTPException(status_code=400, detail="No voice profile configured for this twin")
