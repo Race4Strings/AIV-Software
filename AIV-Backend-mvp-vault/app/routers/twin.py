@@ -82,7 +82,7 @@ async def list_twins(
     """List all twins belonging to the authenticated user."""
     result = await db.execute(
         select(Twin)
-        .where(Twin.user_id == UUID(user["id"]))
+        .where(Twin.talent_user_id == UUID(user["id"]))
         .order_by(Twin.created_at.desc())
     )
     twins = result.scalars().all()
@@ -97,7 +97,7 @@ async def get_twin(
 ):
     """Get a twin by ID. Must belong to the authenticated user."""
     result = await db.execute(
-        select(Twin).where(Twin.id == twin_id, Twin.user_id == UUID(user["id"]))
+        select(Twin).where(Twin.id == twin_id, Twin.talent_user_id == UUID(user["id"]))
     )
     twin = result.scalar_one_or_none()
     if not twin:
@@ -114,7 +114,7 @@ async def update_twin(
 ):
     """Update a twin. ALCM data uses deep-merge for partial updates."""
     result = await db.execute(
-        select(Twin).where(Twin.id == twin_id, Twin.user_id == UUID(user["id"]))
+        select(Twin).where(Twin.id == twin_id, Twin.talent_user_id == UUID(user["id"]))
     )
     twin = result.scalar_one_or_none()
     if not twin:
@@ -210,7 +210,7 @@ async def post_remove_twin(
 async def _delete_twin(twin_id: UUID, user: dict, db: AsyncSession):
     """Internal: delete a twin and all related records."""
     result = await db.execute(
-        select(Twin).where(Twin.id == twin_id, Twin.user_id == UUID(user["id"]))
+        select(Twin).where(Twin.id == twin_id, Twin.talent_user_id == UUID(user["id"]))
     )
     twin = result.scalar_one_or_none()
     if not twin:

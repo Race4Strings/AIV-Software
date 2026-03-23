@@ -11,6 +11,8 @@ from .routers import (
     onboarding_router, verify_router,
     agent_router, licensing_router,
     payments_router, notifications_router,
+    guardrails_router, consent_router,
+    organizations_router, packages_router,
 )
 
 from .middleware import SessionMiddleware
@@ -94,18 +96,21 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     
-    # Include routers — new Phase 2+ routers first, legacy below
-    # Core routers
+    # Include routers
     app.include_router(auth_router)
     app.include_router(upload_router)
+    app.include_router(twin_router)
+    app.include_router(onboarding_router)
     app.include_router(agent_router)
     app.include_router(licensing_router)
     app.include_router(payments_router)
     app.include_router(notifications_router)
+    app.include_router(guardrails_router)
+    app.include_router(consent_router)
+    app.include_router(organizations_router)
+    app.include_router(packages_router)
     app.include_router(verify_router)
     app.include_router(audit_router)
-    app.include_router(twin_router)
-    app.include_router(onboarding_router)
 
     @app.get("/")
     async def root():
