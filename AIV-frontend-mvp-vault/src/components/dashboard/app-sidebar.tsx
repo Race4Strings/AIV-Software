@@ -76,6 +76,14 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
 
       <SidebarContent className="overflow-x-hidden overflow-y-auto">
+        {/* Organization Name */}
+        {!isCollapsed && (
+          <div className="px-4 pt-3 pb-1">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Organization</p>
+            <p className="text-sm font-medium truncate">Rivera Management Group</p>
+          </div>
+        )}
+
         {/* Primary Navigation */}
         <SidebarGroup>
           <SidebarGroupContent>
