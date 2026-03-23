@@ -231,9 +231,25 @@ async def gate_1(
     user: dict = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
-    """Gate 1: Manager confirms twin is representative."""
+    """Gate 1: Manager confirms twin is representative.
+
+    Pre-conditions enforced:
+    - Rights agreement must be completed (consent_granted_at set)
+    - At least one consent must exist
+    """
     session = await _get_session(db, session_id, user["id"])
-    session.gate_1_manager_approved = req.approved
+
+    if not req.approved:
+        return _serialize(session)
+
+    # Validate prerequisites
+    if not session.consent_granted_at:
+        raise HTTPException(
+            status_code=400,
+            detail="Rights agreement must be completed before Gate 1 approval."
+        )
+
+    session.gate_1_manager_approved = True
     session.gate_1_approved_by = UUID(user["id"])
     session.gate_1_approved_at = datetime.now(timezone.utc)
     session.status = "GATE_APPROVAL"
@@ -256,6 +272,34 @@ async def gate_2(
     session = await _get_session(db, session_id, user["id"])
     if not req.approved:
         return _serialize(session)
+
+    # Gate 2 requires Gate 1
+    if not session.gate_1_manager_approved:
+        raise HTTPException(
+            status_code=400,
+            detail="Gate 1 (manager approval) must be completed before Gate 2."
+        )
+
+    # Check ALCM health if twin has an ALCM link (soft gate — warn but allow)
+    readiness_warnings = []
+    if session.twin_id:
+        twin_r_check = await db.execute(select(Twin).where(Twin.id == session.twin_id))
+        twin_check = twin_r_check.scalar_one_or_none()
+        if twin_check and twin_check.alcm_twin_id:
+            try:
+                alcm = get_alcm_client()
+                health = await alcm.get_health(str(twin_check.alcm_twin_id))
+                cfs = health.get("cfs", 0)
+                coverage = health.get("psychographic_coverage", 0)
+                confidence = health.get("personality_confidence", 0)
+                if cfs < 0.65:
+                    readiness_warnings.append(f"CFS is {cfs:.0%} (target: 65%)")
+                if coverage < 0.5:
+                    readiness_warnings.append(f"Coverage is {coverage:.0%} (target: 50%)")
+                if confidence < 0.5:
+                    readiness_warnings.append(f"Confidence is {confidence:.0%} (target: 50%)")
+            except Exception as e:
+                logger.warning(f"ALCM health check failed during Gate 2: {e}")
 
     now = datetime.now(timezone.utc)
     session.gate_2_talent_authorized = True
@@ -287,7 +331,10 @@ async def gate_2(
     await db.flush()
 
     logger.info(f"Gate 2 authorized for twin {session.twin_id}")
-    return _serialize(session)
+    result = _serialize(session)
+    if readiness_warnings:
+        result["readiness_warnings"] = readiness_warnings
+    return result
 
 
 # ------------------------------------------------------------------

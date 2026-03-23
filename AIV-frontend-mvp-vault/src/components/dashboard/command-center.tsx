@@ -14,6 +14,7 @@ import { fetchTwins } from "@/lib/api/twins";
 import { licensingApi, type Deal, type RevenueSummary } from "@/lib/api/licensing";
 import { fetchAuditLogs, type AuditLog } from "@/lib/api/audit";
 import { formatDistanceToNow } from "date-fns";
+import apiClient from "@/lib/api/client";
 
 const HEALTH_CONFIG: Record<string, { color: string; icon: typeof CheckCircle2; label: string }> = {
   HEALTHY: { color: "text-emerald-500", icon: CheckCircle2, label: "Healthy" },
@@ -28,6 +29,7 @@ export function CommandCenter() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [revenue, setRevenue] = useState<RevenueSummary | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [healthData, setHealthData] = useState<{ cfs?: number; psychographic_coverage?: number; personality_confidence?: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,8 +38,18 @@ export function CommandCenter() {
       licensingApi.getDeals().catch(() => []),
       licensingApi.getRevenue().catch(() => null),
       fetchAuditLogs("").catch(() => []),
-    ]).then(([twins, d, r, logs]) => {
-      if (twins.length > 0) setTwin(twins[0] as Record<string, unknown>);
+    ]).then(async ([twins, d, r, logs]) => {
+      if (twins.length > 0) {
+        const t = twins[0] as Record<string, unknown>;
+        setTwin(t);
+        // Fetch health data for progress indicator
+        if (t.id) {
+          try {
+            const healthRes = await apiClient.get(`/twins/${t.id}/health`);
+            setHealthData(healthRes.data);
+          } catch {}
+        }
+      }
       setDeals(d);
       setRevenue(r);
       setAuditLogs((logs || []).slice(0, 8));
@@ -121,6 +133,51 @@ export function CommandCenter() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Progress during BUILDING / Recommendations when ACTIVE */}
+      {isBuilding && healthData && (
+        <Card className="border-blue-500/20 bg-blue-500/5">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-6">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-500">{Math.round((healthData.psychographic_coverage || 0) * 100)}%</div>
+                <div className="text-xs text-muted-foreground mt-0.5">Coverage</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-500">{Math.round((healthData.personality_confidence || 0) * 100)}%</div>
+                <div className="text-xs text-muted-foreground mt-0.5">Confidence</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-500">{Math.round((healthData.cfs || 0) * 100)}%</div>
+                <div className="text-xs text-muted-foreground mt-0.5">CFS</div>
+              </div>
+              <div className="flex-1 text-sm text-muted-foreground">
+                <p className="font-medium text-foreground">Identity is building</p>
+                <p className="mt-0.5">Visit the Training Area to add information, upload files, and increase coverage to activate licensing.</p>
+              </div>
+              <Link href="/twin/training-area">
+                <Button size="sm" variant="outline"><Bot className="h-4 w-4 mr-1" /> Train</Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isBuilding && twin && (
+        <Card className="border-border/30">
+          <CardContent className="flex items-center gap-3 py-3">
+            <Bot className="h-5 w-5 text-primary/60" />
+            <p className="text-sm text-muted-foreground flex-1">
+              {(twin.last_training_activity as string)
+                ? `Last training activity: ${formatDistanceToNow(new Date(twin.last_training_activity as string), { addSuffix: true })}`
+                : "Your assistant recommends regular training sessions to keep your twin accurate."}
+            </p>
+            <Link href="/twin/training-area">
+              <Button size="sm" variant="ghost" className="text-xs">Open Training</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Deal Pipeline Summary + Quick Actions */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">

@@ -32,6 +32,14 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
+  const [orgName, setOrgName] = React.useState("Loading...");
+
+  React.useEffect(() => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      setOrgName(user.org_name || user.organization?.name || "My Organization");
+    } catch { setOrgName("My Organization"); }
+  }, []);
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
@@ -80,7 +88,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
         {!isCollapsed && (
           <div className="px-4 pt-3 pb-1">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Organization</p>
-            <p className="text-sm font-medium truncate">Rivera Management Group</p>
+            <p className="text-sm font-medium truncate">{orgName}</p>
           </div>
         )}
 

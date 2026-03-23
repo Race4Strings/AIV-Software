@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Loader2, Plus } from "lucide-react";
+import { Send, Loader2, Plus, Upload, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +14,31 @@ import {
   type AgentSession,
   type AgentMessage,
 } from "@/lib/api/assistant";
+import { uploadApi } from "@/lib/api/upload";
+import { apiClient } from "@/lib/api/client";
+
+const MODE_PROMPTS: Record<string, string[]> = {
+  ASSISTANT: [
+    "What's my deal pipeline status?",
+    "How does the commission structure work?",
+    "Show me my recent revenue",
+  ],
+  DIGITAL_SELF: [
+    "How would you introduce yourself?",
+    "What's your take on AI in music?",
+    "Tell me about your creative process",
+  ],
+  TRAINING: [
+    "Find my latest podcast interview",
+    "Here's a recent article about me...",
+    "Update my position on social media strategy",
+  ],
+  REFINEMENT: [
+    "I'd say that differently — more casual",
+    "My tone should be warmer here",
+    "Correct: I prefer 'collaborate' not 'partner'",
+  ],
+};
 
 type Mode = "ASSISTANT" | "DIGITAL_SELF" | "TRAINING" | "REFINEMENT";
 
@@ -36,6 +61,8 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [healthData, setHealthData] = useState<{cfs?: number; coverage?: number; confidence?: number; status?: string} | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -50,6 +77,14 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
   useEffect(() => {
     loadSessions();
   }, []);
+
+  // Load twin health for coverage indicator
+  useEffect(() => {
+    if (!twinId) return;
+    apiClient.get(`/twins/${twinId}/health`).then(res => {
+      setHealthData(res.data);
+    }).catch(() => {});
+  }, [twinId]);
 
   async function loadSessions() {
     try {
@@ -163,6 +198,20 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
     }
   }
 
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !session) return;
+    try {
+      const result = await uploadApi.uploadFile(file, "training");
+      const content = `[Uploaded file: ${file.name}]\nURL: ${result.url}`;
+      setInput(content);
+      toast.success(`Uploaded ${file.name}`);
+    } catch {
+      toast.error("Upload failed");
+    }
+    e.target.value = "";
+  }
+
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -218,13 +267,56 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
       {/* Messages */}
       <ScrollArea className="flex-1 px-4" aria-live="polite" aria-label="Conversation messages">
         {messages.length === 0 && !isStreaming && (
-          <div className="flex h-full flex-col items-center justify-center py-20 text-center">
+          <div className="flex h-full flex-col items-center justify-center py-12 text-center">
+            <Sparkles className="h-8 w-8 text-primary/40 mb-3" />
             <p className="text-lg font-medium text-muted-foreground">
               Your assistant (by AIV)
             </p>
-            <p className="mt-1 text-sm text-muted-foreground/60">
-              Ask anything about your digital twin, deals, or the platform.
+            <p className="mt-1 text-sm text-muted-foreground/60 max-w-md">
+              {session?.current_mode === "DIGITAL_SELF"
+                ? "Talk to your digital twin. Test how it responds, deepen its accuracy."
+                : session?.current_mode === "TRAINING"
+                ? "Add information — paste content, share links, upload files to train your twin."
+                : session?.current_mode === "REFINEMENT"
+                ? "Correct your twin's responses. Side-by-side comparison and fine-tuning."
+                : "Ask about deals, revenue, platform features, or get guidance."}
             </p>
+
+            {/* Coverage indicator during BUILDING */}
+            {healthData && healthData.status === "BUILDING" && (
+              <div className="mt-4 rounded-lg border border-border/50 bg-muted/30 px-4 py-3 text-left max-w-sm w-full">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Identity Coverage</p>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Psychographic</span>
+                    <span className="font-mono">{Math.round((healthData.coverage || 0) * 100)}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${(healthData.coverage || 0) * 100}%` }} />
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Confidence</span>
+                    <span className="font-mono">{Math.round((healthData.confidence || 0) * 100)}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${(healthData.confidence || 0) * 100}%` }} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Guided prompts */}
+            <div className="mt-5 flex flex-wrap justify-center gap-2 max-w-lg">
+              {(MODE_PROMPTS[session?.current_mode || "ASSISTANT"] || []).map((prompt) => (
+                <button
+                  key={prompt}
+                  onClick={() => setInput(prompt)}
+                  className="rounded-full border border-border/50 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -250,8 +342,19 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
       </ScrollArea>
 
       {/* Input */}
+      <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="audio/*,video/*,image/*,.pdf,.doc,.docx,.txt" />
       <div className="border-t p-4">
         <div className="flex items-end gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isStreaming}
+            aria-label="Upload file"
+            className="shrink-0"
+          >
+            <Upload className="h-4 w-4" />
+          </Button>
           <Textarea
             ref={textareaRef}
             value={input}
