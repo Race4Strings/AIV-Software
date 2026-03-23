@@ -7,58 +7,48 @@ from datetime import datetime
 # ============== Request Schemas ==============
 
 class TwinCreate(BaseModel):
-    """Schema for creating a new digital twin."""
-    name: str = Field(..., min_length=1, max_length=255)
+    """Schema for creating a new digital twin (slim — no ALCM data)."""
+    name: str = Field(..., min_length=1, max_length=255, description="Display name")
     public_name: Optional[str] = Field(None, max_length=255)
-    category: Optional[str] = Field(None, max_length=100)
+    category: Optional[str] = Field(None, max_length=50, description="Identity category")
     bio: Optional[str] = None
-    alcm_data: Optional[dict] = None
-    commercial_terms: Optional[dict] = None
-    governance: Optional[dict] = None
 
     class Config:
         json_schema_extra = {
             "example": {
                 "name": "John Doe",
                 "public_name": "JD Official",
-                "category": "musician",
+                "category": "ENTERTAINMENT",
                 "bio": "Grammy-winning artist and producer",
             }
         }
 
 
 class TwinUpdate(BaseModel):
-    """Schema for updating a twin. All fields optional for partial updates."""
-    name: Optional[str] = Field(None, max_length=255)
+    """Schema for updating platform-level twin fields. No ALCM data here."""
+    display_name: Optional[str] = Field(None, max_length=255)
     public_name: Optional[str] = Field(None, max_length=255)
-    category: Optional[str] = Field(None, max_length=100)
     bio: Optional[str] = None
-    alcm_data: Optional[dict] = None  # Partial — merged via deep_merge
-    commercial_terms: Optional[dict] = None
-    governance: Optional[dict] = None
+    identity_category: Optional[str] = Field(None, max_length=50)
 
 
 # ============== Response Schemas ==============
 
 class TwinResponse(BaseModel):
-    """Response schema for a twin.
-    
-    CRITICAL: voice_id is intentionally EXCLUDED — it is proprietary ALCM IP.
-    """
+    """Full twin response. No ALCM data, voice_id, or internal scores exposed."""
     id: UUID
-    user_id: UUID
-    name: str
+    talent_user_id: Optional[UUID] = None
+    organization_id: Optional[UUID] = None
+    alcm_twin_id: Optional[UUID] = None
+    display_name: Optional[str] = None
     public_name: Optional[str] = None
-    category: Optional[str] = None
     bio: Optional[str] = None
-    alcm_data: Optional[dict] = None
-    voice_status: str
-    voice_sample_url: Optional[str] = None
-    commercial_terms: Optional[dict] = None
-    governance: Optional[dict] = None
+    identity_category: Optional[str] = None
+    identity_category_secondary: Optional[str] = None
+    clone_type: Optional[str] = None
     status: str
-    completeness_score: float
-    version: str
+    health_status: Optional[str] = None
+    talent_authorization_at: Optional[datetime] = None
     certified_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
@@ -68,23 +58,24 @@ class TwinResponse(BaseModel):
 
 
 class TwinListResponse(BaseModel):
-    """Response schema for listing twins."""
+    """Compact twin for list views."""
     id: UUID
-    name: str
+    display_name: Optional[str] = None
     public_name: Optional[str] = None
-    category: Optional[str] = None
+    identity_category: Optional[str] = None
     status: str
-    completeness_score: float
-    version: str
-    certified_at: Optional[datetime] = None
+    health_status: Optional[str] = None
+    talent_authorization_at: Optional[datetime] = None
     created_at: datetime
 
     class Config:
         from_attributes = True
 
 
-class TwinCompletenessResponse(BaseModel):
-    """Response for twin completeness check."""
+class TwinHealthResponse(BaseModel):
+    """Health data from ALCM API."""
     twin_id: UUID
-    completeness_score: float
-    missing_sections: List[str] = []
+    cfs: float = 0.0
+    psychographic_coverage: float = 0.0
+    personality_confidence: float = 0.0
+    health_status: str = "BUILDING"

@@ -70,7 +70,8 @@ export const licensingApi = {
     if (twinId) params.twin_id = twinId;
     if (status) params.status = status;
     const { data } = await apiClient.get("/deals", { params });
-    return data;
+    // Handle both paginated {data, pagination} and flat array responses
+    return Array.isArray(data) ? data : (data.data || []);
   },
 
   async getDeal(dealId: string): Promise<Deal> {

@@ -16,9 +16,8 @@ from ..models.twin import Twin, TwinStatus
 from ..models.audit_log import AuditLog
 from ..schemas.twin import (
     TwinCreate, TwinUpdate, TwinResponse,
-    TwinListResponse, TwinCompletenessResponse,
+    TwinListResponse,
 )
-from ..utils.alcm_merge import deep_merge
 from ..services.alcm_client import get_alcm_client
 
 
@@ -112,7 +111,7 @@ async def update_twin(
     user: dict = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
-    """Update a twin. ALCM data uses deep-merge for partial updates."""
+    """Update platform-level twin fields. ALCM data managed via Training Area."""
     result = await db.execute(
         select(Twin).where(Twin.id == twin_id, Twin.talent_user_id == UUID(user["id"]))
     )
@@ -120,37 +119,18 @@ async def update_twin(
     if not twin:
         raise HTTPException(status_code=404, detail="Twin not found")
 
-    # Apply scalar updates
     update_data = data.model_dump(exclude_unset=True)
-
-    # Deep-merge ALCM data if provided
-    if "alcm_data" in update_data and update_data["alcm_data"] is not None:
-        twin.alcm_data = deep_merge(twin.alcm_data or {}, update_data.pop("alcm_data"))
-
-    # Deep-merge commercial_terms if provided
-    if "commercial_terms" in update_data and update_data["commercial_terms"] is not None:
-        twin.commercial_terms = deep_merge(
-            twin.commercial_terms or {}, update_data.pop("commercial_terms")
-        )
-
-    # Deep-merge governance if provided
-    if "governance" in update_data and update_data["governance"] is not None:
-        twin.governance = deep_merge(
-            twin.governance or {}, update_data.pop("governance")
-        )
-
-    # Apply remaining scalar fields
     for field, value in update_data.items():
-        if value is not None:
+        if value is not None and hasattr(twin, field):
             setattr(twin, field, value)
 
-    # Audit
     audit = AuditLog(
         twin_id=twin_id,
-        user_id=UUID(user["id"]),
-        action="twin_updated",
+        actor_id=UUID(user["id"]),
+        actor_type="TALENT",
+        action="UPDATE",
         entity_type="twin",
-        details={"fields_updated": list(data.model_dump(exclude_unset=True).keys())},
+        details={"fields_updated": list(update_data.keys())},
     )
     db.add(audit)
     await db.flush()

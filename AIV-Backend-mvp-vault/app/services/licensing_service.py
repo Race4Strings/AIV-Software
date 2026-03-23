@@ -104,8 +104,20 @@ class LicensingService:
         )
         next_number = result.scalar() + 1
 
-        # Calculate commission
-        rate = COMMISSION_RATES.get(next_number, DEFAULT_COMMISSION_RATE)
+        # Calculate commission based on COUNT of existing deals (not deal_number)
+        count_result = await self.db.execute(
+            select(func.count(Deal.id)).where(
+                Deal.twin_id == twin_id,
+                Deal.status.notin_(["TERMINATED"]),
+            )
+        )
+        past_deal_count = count_result.scalar() or 0
+        if past_deal_count == 0:
+            rate = Decimal("0.30")  # First deal: 30%
+        elif past_deal_count == 1:
+            rate = Decimal("0.25")  # Second deal: 25%
+        else:
+            rate = Decimal("0.20")  # Third+: 20%
         commission = value * rate
 
         # Get grace period from licensing rules

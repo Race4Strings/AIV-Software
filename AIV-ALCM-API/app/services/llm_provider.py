@@ -112,7 +112,7 @@ class GeminiProvider(AIProvider):
     async def generate_stream(self, prompt: str, context: Optional[str] = None,
                               temperature: float = 0.7, max_tokens: int = 2000) -> AsyncGenerator[str, None]:
         if not self.is_configured:
-            return
+            raise LLMNotConfiguredError("Gemini API key not set for streaming")
 
         url = f"{self.base_url}/models/{self.model}:streamGenerateContent?alt=sse"
         headers = {"Content-Type": "application/json", "x-goog-api-key": self.api_key}
@@ -247,7 +247,7 @@ class ClaudeProvider(AIProvider):
     async def generate_stream(self, prompt: str, context: Optional[str] = None,
                               temperature: float = 0.7, max_tokens: int = 2000) -> AsyncGenerator[str, None]:
         if not self.is_configured:
-            return
+            raise LLMNotConfiguredError("Anthropic API key not set for streaming")
 
         messages = []
         if context:
