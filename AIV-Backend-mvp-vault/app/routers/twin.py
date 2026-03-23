@@ -208,13 +208,28 @@ async def _delete_twin(twin_id: UUID, user: dict, db: AsyncSession):
 
     await safe_delete("DELETE FROM audit_logs WHERE twin_id = :tid", {"tid": twin_id})
     for tbl, col in [
+        # New schema tables
+        ("agent_messages", "session_id"),  # via agent_sessions
+        ("agent_sessions", "twin_id"),
+        ("guardrail_configs", "twin_id"),
+        ("licensing_rules_configs", "twin_id"),
+        ("deal_contracts", "deal_id"),  # via deals
+        ("deal_milestones", "deal_id"),  # via deals
+        ("deal_messages", "deal_id"),  # via deals
+        ("permitted_use_records", "deal_id"),  # via deals
+        ("identity_package_versions", "twin_id"),
+        ("consent_records", "twin_id"),
+        ("training_contributions", "twin_id"),
+        ("negotiation_knowledge", "twin_id"),
+        ("notifications", "entity_id"),
+        ("deals", "twin_id"),
+        ("onboarding_sessions", "twin_id"),
+        # Legacy tables (safe to attempt — will silently skip if already dropped)
         ("chat_message_table", "sender_twin_id"),
         ("chat_participant_table", "twin_id"),
         ("certifications", "twin_id"),
         ("documents", "twin_id"),
-        ("deals", "twin_id"),
         ("training_submissions", "twin_id"),
-        ("onboarding_sessions", "twin_id"),
     ]:
         await safe_delete(f"DELETE FROM {tbl} WHERE {col} = :tid", {"tid": twin_id})
     # Use raw SQL to avoid ORM relationship autoflush issues with missing DB columns
