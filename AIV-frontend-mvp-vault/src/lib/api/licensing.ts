@@ -131,4 +131,19 @@ export const licensingApi = {
     const { data } = await apiClient.get("/payments/payouts");
     return data;
   },
+
+  async trainAssistant(dealId: string, reasoning: string = "") {
+    const { data } = await apiClient.post(`/deals/${dealId}/train-assistant`, { reasoning });
+    return data;
+  },
+
+  async getNegotiationKnowledge(twinId: string) {
+    const { data } = await apiClient.get(`/twins/${twinId}/negotiation-knowledge`);
+    return data;
+  },
+
+  async getLicensingInfo(twinId: string) {
+    const { data } = await apiClient.get(`/twins/${twinId}/licensing-info`);
+    return data;
+  },
 };

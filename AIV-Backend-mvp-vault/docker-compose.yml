@@ -1,38 +1,4 @@
 services:
-  # AIV Platform (FastAPI :8000)
-  platform:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: aiv-platform
-    ports:
-      - "8000:8000"
-    env_file:
-      - .env
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_started
-      alcm-api:
-        condition: service_started
-    restart: unless-stopped
-
-  # ALCM API (FastAPI :8001)
-  alcm-api:
-    build:
-      context: ../AIV-ALCM-API
-      dockerfile: Dockerfile
-    container_name: aiv-alcm-api
-    ports:
-      - "8001:8001"
-    env_file:
-      - ../AIV-ALCM-API/.env
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
-
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine

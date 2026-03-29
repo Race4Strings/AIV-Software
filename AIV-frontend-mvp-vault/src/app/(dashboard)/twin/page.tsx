@@ -60,11 +60,19 @@ const HEALTH_ICONS: Record<string, { icon: typeof CheckCircle2; color: string; l
 };
 
 const CATEGORY_HINTS: Record<string, string> = {
+  MUSIC: "$20K–$200K",
   ENTERTAINMENT: "$15K–$100K",
   SPORTS: "$25K–$250K",
-  CORPORATE: "$10K–$75K",
-  CREATOR_ECONOMY: "$5K–$50K",
-  EDUCATION: "$5K–$30K",
+  BUSINESS: "$10K–$75K",
+  ACADEMIA: "$5K–$30K",
+  CULINARY: "$10K–$75K",
+  FASHION: "$15K–$150K",
+  MEDIA: "$10K–$50K",
+  GOVERNMENT: "$10K–$50K",
+  WELLNESS: "$5K–$50K",
+  ARTS: "$10K–$75K",
+  CHARACTER: "$10K–$150K",
+  VIRTUAL: "$5K–$50K",
 };
 
 export default function TwinPage() {
@@ -221,37 +229,35 @@ export default function TwinPage() {
               </div>
             </Card>
 
-            {/* Key stats */}
-            <div className="grid grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="pt-5 pb-4">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground"><Activity className="h-4 w-4" /> CFS</div>
-                  <div className="text-2xl font-bold mt-1">{health ? `${(health.cfs * 100).toFixed(0)}%` : "—"}</div>
-                  <p className="text-[10px] text-muted-foreground/60 mt-0.5">Composite Fidelity Score</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-5 pb-4">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground"><Briefcase className="h-4 w-4" /> Deals</div>
-                  <div className="text-2xl font-bold mt-1">{dealCount}</div>
-                  <p className="text-[10px] text-muted-foreground/60 mt-0.5">Total deals in pipeline</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-5 pb-4">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground"><TrendingUp className="h-4 w-4" /> Revenue</div>
-                  <div className="text-2xl font-bold mt-1 text-emerald-500">${revenue?.net_revenue?.toLocaleString() || "0"}</div>
-                  <p className="text-[10px] text-muted-foreground/60 mt-0.5">Net revenue earned</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-5 pb-4">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground"><Clock className="h-4 w-4" /> Created</div>
-                  <div className="text-lg font-bold mt-1">{twin.created_at ? new Date(twin.created_at).toLocaleDateString() : "—"}</div>
-                  <p className="text-[10px] text-muted-foreground/60 mt-0.5">{twin.updated_at ? `Updated ${new Date(twin.updated_at).toLocaleDateString()}` : ""}</p>
-                </CardContent>
-              </Card>
-            </div>
+            {/* Contextual Summary */}
+            <Card className="border-border/50">
+              <CardContent className="py-5">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {isBuilding ? (
+                    <>
+                      Your identity is being assembled.
+                      {health && health.cfs > 0 ? ` Profile accuracy is at ${(health.cfs * 100).toFixed(0)}% — ` : " "}
+                      {health && health.cfs >= 0.65 ? "your identity is ready for licensing." :
+                       health && health.cfs >= 0.5 ? "nearly ready for licensing. Continue training to reach the activation threshold." :
+                       "visit the Training Area to strengthen your profile and activate licensing."}
+                      {dealCount > 0 && ` You have ${dealCount} deal${dealCount !== 1 ? "s" : ""} in your pipeline.`}
+                    </>
+                  ) : (
+                    <>
+                      Your identity is active and available for licensing.
+                      {dealCount > 0 ? ` ${dealCount} deal${dealCount !== 1 ? "s" : ""} in your pipeline` : " No active deals yet"}
+                      {revenue?.net_revenue ? `, generating $${revenue.net_revenue.toLocaleString()} in net revenue.` : "."}
+                      {` Created ${twin.created_at ? new Date(twin.created_at).toLocaleDateString() : "recently"}.`}
+                    </>
+                  )}
+                </p>
+                {category && CATEGORY_HINTS[category] && (
+                  <p className="text-xs text-muted-foreground/60 mt-2">
+                    Typical {category.toLowerCase()} deal range: {CATEGORY_HINTS[category]}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Quick links */}
             <div className="grid grid-cols-4 gap-3">
@@ -354,56 +360,86 @@ export default function TwinPage() {
             </div>
           </TabsContent>
 
-          {/* ============== HEALTH TAB (with explanations) ============== */}
+          {/* ============== HEALTH TAB ============== */}
           <TabsContent value="health" className="space-y-4 mt-4">
-            {health ? (
+            {isBuilding && health ? (
+              /* BUILDING: Show progress metrics — user needs them to track toward activation */
               <>
                 <div className="grid grid-cols-3 gap-4">
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="text-sm font-medium">Composite Fidelity Score</div>
-                      <div className="text-3xl font-bold mt-1">{(health.cfs * 100).toFixed(0)}%</div>
-                      <div className="mt-3 h-2 rounded-full bg-muted overflow-hidden">
-                        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${health.cfs * 100}%` }} />
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-2">Measures how accurately your twin represents you across all identity dimensions. Higher is better.</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="text-sm font-medium">Psychographic Coverage</div>
-                      <div className="text-3xl font-bold mt-1">{(health.psychographic_coverage * 100).toFixed(0)}%</div>
-                      <div className="mt-3 h-2 rounded-full bg-muted overflow-hidden">
-                        <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${health.psychographic_coverage * 100}%` }} />
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-2">How much of your personality profile has been captured. Add training data to increase coverage.</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="text-sm font-medium">Personality Confidence</div>
-                      <div className="text-3xl font-bold mt-1">{(health.personality_confidence * 100).toFixed(0)}%</div>
-                      <div className="mt-3 h-2 rounded-full bg-muted overflow-hidden">
-                        <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${health.personality_confidence * 100}%` }} />
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-2">Statistical confidence in the accuracy of your personality model. Improves with more training interactions.</p>
-                    </CardContent>
-                  </Card>
+                  {[
+                    { label: "Profile Accuracy", value: health.cfs, target: 0.65, color: "bg-primary", desc: "How accurately your twin represents you" },
+                    { label: "Data Completeness", value: health.psychographic_coverage, target: 0.50, color: "bg-blue-500", desc: "How much of your personality has been captured" },
+                    { label: "Model Reliability", value: health.personality_confidence, target: 0.50, color: "bg-emerald-500", desc: "Confidence in your personality model" },
+                  ].map((metric) => {
+                    const pct = metric.value * 100;
+                    const qualLabel = pct < 30 ? "Early stage" : pct < 50 ? "Developing" : pct < metric.target * 100 ? "Nearly ready" : "Ready for licensing";
+                    const qualColor = pct < 30 ? "text-muted-foreground" : pct < 50 ? "text-blue-500" : pct < metric.target * 100 ? "text-amber-500" : "text-emerald-500";
+                    return (
+                      <Card key={metric.label}>
+                        <CardContent className="pt-6">
+                          <div className="text-sm font-medium">{metric.label}</div>
+                          <div className="flex items-baseline gap-2 mt-1">
+                            <span className="text-3xl font-bold">{pct.toFixed(0)}%</span>
+                            <span className={`text-xs font-semibold ${qualColor}`}>{qualLabel}</span>
+                          </div>
+                          <div className="mt-3 h-2 rounded-full bg-muted overflow-hidden">
+                            <div className={`h-full rounded-full ${metric.color} transition-all`} style={{ width: `${pct}%` }} />
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2">{metric.desc}. Target: {(metric.target * 100).toFixed(0)}%.</p>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
                 <Card>
                   <CardContent className="py-4">
-                    <h3 className="text-sm font-medium mb-2">What do these metrics mean?</h3>
+                    <h3 className="text-sm font-medium mb-2">How to improve these scores</h3>
                     <p className="text-sm text-muted-foreground">
-                      These three scores determine your twin's readiness for licensing. A CFS above 65%, coverage above 50%, and confidence above 50% are the minimum thresholds for activating your Licensing Portal. Regular training sessions in the Training Area improve all three metrics.
+                      These scores determine your readiness for licensing. Regular training sessions, uploading professional media, and refining your profile in the Training Area improve all three metrics.
                     </p>
-                    {isBuilding && (
-                      <Link href="/twin/training-area">
-                        <Button size="sm" className="mt-3"><Bot className="h-4 w-4 mr-1" /> Open Training Area</Button>
-                      </Link>
-                    )}
+                    <Link href="/twin/training-area">
+                      <Button size="sm" className="mt-3"><Bot className="h-4 w-4 mr-1" /> Open Training Area</Button>
+                    </Link>
                   </CardContent>
                 </Card>
               </>
+            ) : !isBuilding ? (
+              /* ACTIVE: Qualitative health indicator only — no percentages (spec Section 5) */
+              <Card>
+                <CardContent className="py-8">
+                  <div className="flex items-center gap-4">
+                    <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${
+                      healthCfg.color === "text-emerald-500" ? "bg-emerald-500/10" :
+                      healthCfg.color === "text-yellow-500" ? "bg-yellow-500/10" :
+                      healthCfg.color === "text-red-500" ? "bg-red-500/10" : "bg-muted"
+                    }`}>
+                      <HealthIcon className={`h-7 w-7 ${healthCfg.color}`} />
+                    </div>
+                    <div className="flex-1">
+                      <div className={`text-lg font-bold ${healthCfg.color}`}>{healthCfg.label}</div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {healthCfg.label === "Healthy"
+                          ? "Your identity profile is strong and ready for licensing. Continue training to maintain accuracy."
+                          : healthCfg.label === "Attention Needed"
+                          ? "Some areas of your identity profile could be strengthened. Visit the Training Area to improve."
+                          : healthCfg.label === "Action Required"
+                          ? "Your identity profile needs attention. Key areas may be outdated or incomplete."
+                          : "Your identity health is being evaluated."}
+                      </p>
+                    </div>
+                    <Link href="/twin/training-area">
+                      <Button size="sm" variant="outline"><Bot className="h-4 w-4 mr-1" /> Train</Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="py-8 text-center text-muted-foreground text-sm">
+                  Health data will be available once your identity begins processing.
+                </CardContent>
+              </Card>
+            )}
             ) : (
               <Card>
                 <CardContent className="py-8 text-center text-muted-foreground">
@@ -427,6 +463,7 @@ export default function TwinPage() {
                       <Button variant="ghost" size="sm" onClick={() => setEditingGuardrails(false)} disabled={saving}><X className="h-4 w-4 mr-1" /> Cancel</Button>
                       <Button size="sm" disabled={saving} onClick={async () => {
                         if (!twin) return;
+                        if (!window.confirm("Save changes to guardrails? This creates a new version and takes effect immediately.")) return;
                         setSaving(true);
                         try {
                           const result = await saveGuardrails(twin.id, guardrailDraft);
@@ -474,6 +511,11 @@ export default function TwinPage() {
                       ) : (
                         <div className="text-lg font-medium mt-2">{guardrails.humor_permitted ? "Permitted" : "Restricted"}</div>
                       )}
+                      <p className="text-[10px] text-muted-foreground/60 mt-2 italic">
+                        {(editingGuardrails ? guardrailDraft.humor_permitted : guardrails.humor_permitted)
+                          ? 'Your twin may use appropriate humor and wit in responses.'
+                          : 'Your twin will maintain a professional, serious tone at all times.'}
+                      </p>
                     </CardContent>
                   </Card>
                   <Card>
@@ -488,6 +530,11 @@ export default function TwinPage() {
                       ) : (
                         <div className="text-lg font-medium mt-2">{guardrails.require_ai_disclosure ? "Required" : "Optional"}</div>
                       )}
+                      <p className="text-[10px] text-muted-foreground/60 mt-2 italic">
+                        {(editingGuardrails ? guardrailDraft.require_ai_disclosure : guardrails.require_ai_disclosure)
+                          ? 'Every response will include a note that it was AI-generated.'
+                          : 'Responses will not include an AI-generation disclosure.'}
+                      </p>
                     </CardContent>
                   </Card>
                   <Card>
@@ -522,6 +569,7 @@ export default function TwinPage() {
                       <Button variant="ghost" size="sm" onClick={() => setEditingRules(false)} disabled={saving}><X className="h-4 w-4 mr-1" /> Cancel</Button>
                       <Button size="sm" disabled={saving} onClick={async () => {
                         if (!twin) return;
+                        if (!window.confirm("Save changes to licensing rules? This creates a new version and takes effect immediately.")) return;
                         setSaving(true);
                         try {
                           const result = await saveLicensingRules(twin.id, rulesDraft);

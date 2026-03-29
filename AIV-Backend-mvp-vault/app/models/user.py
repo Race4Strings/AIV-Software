@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, Boolean, DateTime, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 import uuid
 
@@ -8,16 +8,18 @@ from ..database import Base
 
 class User(Base):
     """User model for authentication and profile."""
-    
+
     __tablename__ = "user_table"
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(255), nullable=False)
     email = Column(String(255), nullable=False, unique=True, index=True)
     user_name = Column(String(255), nullable=False, unique=True, index=True)
     password = Column(String(255), nullable=False)
     is_verified = Column(Boolean, default=False, nullable=False)
-    role = Column(String(50), nullable=False, default="TALENT")  # TALENT|MANAGER|TEAM_MEMBER|CLIENT|AIV_STAFF|ADMIN
+    role = Column(String(50), nullable=False, default="TALENT")
+    stripe_customer_id = Column(String(255), nullable=True)
+    notification_preferences = Column(JSONB, nullable=True, default=dict)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     

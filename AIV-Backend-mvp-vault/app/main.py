@@ -13,6 +13,7 @@ from .routers import (
     payments_router, notifications_router,
     guardrails_router, consent_router,
     organizations_router, packages_router,
+    calibration_router,
 )
 
 from .middleware import SessionMiddleware
@@ -111,6 +112,7 @@ def create_app() -> FastAPI:
     app.include_router(packages_router)
     app.include_router(verify_router)
     app.include_router(audit_router)
+    app.include_router(calibration_router)
 
     @app.get("/")
     async def root():
@@ -134,6 +136,41 @@ def create_app() -> FastAPI:
             "alcm_available": client.is_available,
             "alcm_status": result.get("status", "unknown"),
         }
+
+    @app.get("/health/blockchain")
+    async def health_blockchain():
+        """Check blockchain service status and wallet balance."""
+        from .services.blockchain_service import BlockchainService
+        bc = BlockchainService()
+        return await bc.check_wallet_balance()
+
+    # ------------------------------------------------------------------
+    # Zoho Sign OAuth
+    # ------------------------------------------------------------------
+
+    @app.get("/auth/zoho/authorize")
+    async def zoho_authorize():
+        """Start the Zoho Sign OAuth flow. Returns the authorization URL."""
+        from .services.esign_service import ESignService
+        svc = ESignService()
+        return {"authorization_url": svc.get_oauth_url()}
+
+    @app.get("/auth/zoho/callback")
+    async def zoho_callback(code: str = "", state: str = ""):
+        """OAuth callback — exchanges the authorization code for tokens."""
+        if not code:
+            return {"error": "No authorization code received"}
+        from .services.esign_service import ESignService
+        svc = ESignService()
+        result = await svc.exchange_code_for_tokens(code)
+        if result:
+            return {
+                "status": "success",
+                "message": "Zoho Sign connected. Save the refresh_token to your .env file.",
+                "refresh_token": result.get("refresh_token"),
+                "access_token_expires_in": result.get("expires_in"),
+            }
+        return {"error": "Failed to exchange code for tokens"}
 
     return app
 

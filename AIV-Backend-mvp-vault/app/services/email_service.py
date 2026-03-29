@@ -252,5 +252,56 @@ class EmailService:
         )
 
 
+    # ── Deal & Business Event Emails ──────────────────────
+
+    async def send_deal_notification(self, to: str, subject_line: str, body_text: str, cta_url: str = "", cta_label: str = "View Deal") -> bool:
+        """Send a business event notification email with consistent AIV branding."""
+        html = f"""<!DOCTYPE html>
+<html><head><style>
+body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #e2e8f0; background: #0a0a1a; }}
+.container {{ max-width: 560px; margin: 0 auto; padding: 32px 24px; }}
+.header {{ text-align: center; padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 24px; }}
+.logo {{ font-size: 20px; font-weight: 700; color: #fff; letter-spacing: 1px; }}
+.content {{ color: #94a3b8; font-size: 15px; }}
+.content p {{ margin: 12px 0; }}
+.cta {{ display: inline-block; padding: 12px 28px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px; margin-top: 20px; }}
+.footer {{ text-align: center; margin-top: 32px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.06); color: #475569; font-size: 12px; }}
+</style></head>
+<body><div class="container">
+<div class="header"><div class="logo">AIV</div></div>
+<div class="content">
+<p style="color:#f1f5f9;font-size:17px;font-weight:600;">{subject_line}</p>
+<p>{body_text}</p>
+{f'<center><a href="{cta_url}" class="cta">{cta_label}</a></center>' if cta_url else ''}
+</div>
+<div class="footer">AIV — Identity Infrastructure<br>This is an automated notification from the AIV platform.</div>
+</div></body></html>"""
+        return await self.send_email(to=to, subject=f"AIV — {subject_line}", html_content=html, text_content=body_text)
+
+    async def send_deal_submitted(self, to: str, deal_type: str, deal_value: float, deal_url: str) -> bool:
+        return await self.send_deal_notification(to, "New Deal Inquiry", f"A new {deal_type.replace('_', ' ')} licensing inquiry has been submitted for ${deal_value:,.0f}. Review the terms and respond.", deal_url, "Review Inquiry")
+
+    async def send_deal_executed(self, to: str, deal_type: str, deal_value: float, deal_url: str) -> bool:
+        return await self.send_deal_notification(to, "Deal Executed", f"Your {deal_type.replace('_', ' ')} licensing deal for ${deal_value:,.0f} has been executed. The identity package is being delivered to the client.", deal_url, "View Deal")
+
+    async def send_contract_sent(self, to: str, deal_type: str) -> bool:
+        return await self.send_deal_notification(to, "Contract Sent for Signature", f"A licensing agreement for your {deal_type.replace('_', ' ')} deal has been sent for signature. Please review and sign to proceed.", "", "")
+
+    async def send_contract_signed(self, to: str, signer_name: str) -> bool:
+        return await self.send_deal_notification(to, "Contract Signed", f"{signer_name} has signed the licensing agreement. Waiting for the remaining party to complete signing.", "", "")
+
+    async def send_payment_received(self, to: str, amount: float, deal_type: str) -> bool:
+        return await self.send_deal_notification(to, "Payment Received", f"A payment of ${amount:,.0f} has been received for your {deal_type.replace('_', ' ')} licensing deal.", "", "")
+
+    async def send_payment_failed(self, to: str, amount: float) -> bool:
+        return await self.send_deal_notification(to, "Payment Issue", f"A payment of ${amount:,.0f} could not be processed. Please update your payment method to avoid service interruption.", "/settings/billing", "Update Payment Method")
+
+    async def send_fee_free_expiring(self, to: str, days_left: int) -> bool:
+        return await self.send_deal_notification(to, f"Fee-Free Period Ending in {days_left} Days", f"Your fee-free period ends in {days_left} day{'s' if days_left != 1 else ''}. The $997/month platform partnership fee will activate after this period. Close your first deal or ensure your payment method is on file.", "/settings/billing", "View Billing")
+
+    async def send_payout_processed(self, to: str, amount: float) -> bool:
+        return await self.send_deal_notification(to, "Payout Processed", f"A payout of ${amount:,.0f} has been transferred to your connected bank account. It should arrive within 2-3 business days.", "/settings/billing", "View Payout History")
+
+
 # Singleton instance
 email_service = EmailService()

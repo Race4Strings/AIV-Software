@@ -242,11 +242,18 @@ class AgentService:
             twin = await self._get_twin(session.twin_id)
             if twin and twin.alcm_twin_id:
                 guardrails = await self._get_active_guardrails(twin.id)
-                context = await self._build_digital_self_context(session, content)
+                conversation_history = await self._build_conversation_history(session.id, limit=20)
                 async for chunk in self.alcm.generate_stream(
-                    str(twin.alcm_twin_id), context, guardrails
+                    str(twin.alcm_twin_id),
+                    context=content,
+                    guardrails=guardrails,
+                    mode="CONVERSATION",
+                    conversation_history=conversation_history,
+                    deployment_scope="TRAINING_AREA",
                 ):
                     yield chunk
+                # Submit implicit accept for the previous exchange
+                await self._submit_implicit_accept(twin, session, content)
                 return
 
         # Fallback: non-streaming for other modes
@@ -275,7 +282,7 @@ class AgentService:
         return "I'm here to help with your AIV platform questions. The identity engine is currently starting up — try asking again in a moment."
 
     async def _digital_self_response(self, session: AgentSession, content: str) -> str:
-        """DIGITAL_SELF mode: calls ALCM /generate with twin personality."""
+        """DIGITAL_SELF mode: calls ALCM /generate with twin personality and conversation history."""
         if not session.twin_id:
             return "No twin is linked to this session. Please select a twin first."
 
@@ -284,14 +291,26 @@ class AgentService:
             return "This twin doesn't have an ALCM identity record yet."
 
         guardrails = await self._get_active_guardrails(twin.id)
-        context = await self._build_digital_self_context(session, content)
+        conversation_history = await self._build_conversation_history(session.id, limit=20)
 
-        return await self.alcm.generate(
-            str(twin.alcm_twin_id), context, guardrails, mode="digital_self"
+        result = await self.alcm.generate(
+            str(twin.alcm_twin_id),
+            context=content,
+            guardrails=guardrails,
+            mode="CONVERSATION",
+            conversation_history=conversation_history,
+            deployment_scope="TRAINING_AREA",
         )
 
+        if isinstance(result, dict):
+            response_text = result.get("response_text", "")
+            # Submit implicit accept feedback for the previous exchange
+            await self._submit_implicit_accept(twin, session, content)
+            return response_text
+        return str(result)
+
     async def _training_response(self, session: AgentSession, content: str) -> str:
-        """TRAINING mode: classify content via ALCM. No conversation history needed."""
+        """TRAINING mode: classify → attribute chain. Current message only, no history."""
         if not session.twin_id:
             return "No twin linked to this session."
 
@@ -299,46 +318,117 @@ class AgentService:
         if not twin or not twin.alcm_twin_id:
             return "This twin doesn't have an ALCM identity record yet."
 
-        # Send content for classification
-        result = await self.alcm.classify(str(twin.alcm_twin_id), content)
+        alcm_twin_id = str(twin.alcm_twin_id)
 
-        if result.get("_alcm_unavailable"):
+        # Step 1: Classify content
+        classify_result = await self.alcm.classify(
+            alcm_twin_id, content,
+            contributor_type="TALENT",
+            source_reliability=1.0,
+        )
+
+        if classify_result.get("_alcm_unavailable"):
             return "The identity engine is temporarily unavailable. Training content saved — it will be processed when the engine is back."
 
-        categories = result.get("categories_affected", [])
-        scores = result.get("confidence_scores", {})
+        categories = classify_result.get("categories_affected", [])
+        psychographic_data_id = classify_result.get("psychographic_data_id")
 
-        if categories:
-            cat_str = ", ".join(categories)
-            return f"Content analyzed. Categories affected: {cat_str}. This information has been processed for your twin's identity profile. Would you like to add more, or review what was captured?"
-        return "I wasn't able to extract identity-relevant information from that. Could you provide more specific content — like an interview quote, a biography passage, or a description of your expertise?"
+        if not categories:
+            return "I wasn't able to extract identity-relevant information from that. Could you provide more specific content — like an interview quote, a biography passage, or a description of your expertise?"
+
+        # Step 2: Attribute — update dimensional scores from classified data
+        if psychographic_data_id:
+            top_category = categories[0] if isinstance(categories[0], str) else categories[0].get("category", "")
+            top_confidence = categories[0].get("confidence", 0.5) if isinstance(categories[0], dict) else 0.5
+
+            attr_result = await self.alcm.attribute(
+                alcm_twin_id,
+                {
+                    "psychographic_data_id": psychographic_data_id,
+                    "category": top_category,
+                    "content_summary": content[:200],
+                    "confidence": top_confidence,
+                    "source_reliability": 1.0,
+                },
+            )
+
+            updated = attr_result.get("sub_components_updated", [])
+            core_updated = attr_result.get("personality_core_updated", False)
+
+            # Build response with what was learned
+            cat_names = [c if isinstance(c, str) else c.get("category", "") for c in categories]
+            response = f"Content analyzed and applied. Categories: {', '.join(cat_names)}."
+            if core_updated:
+                response += " Your twin's personality model was updated."
+            if updated:
+                dims = [u.get("dimension", u) if isinstance(u, dict) else str(u) for u in updated[:3]]
+                response += f" Dimensions affected: {', '.join(dims)}."
+
+            # Step 3: Check coverage gaps and steer conversation
+            response += await self._get_steering_suggestion(alcm_twin_id)
+
+            return response
+
+        cat_names = [c if isinstance(c, str) else c.get("category", "") for c in categories]
+        return f"Content analyzed. Categories: {', '.join(cat_names)}. Would you like to add more?"
 
     async def _refinement_response(self, session: AgentSession, content: str) -> str:
-        """REFINEMENT mode: direct correction sent to ALCM /attribute."""
+        """REFINEMENT mode: direct correction via /attribute + /feedback."""
         if not session.twin_id:
             return "No twin linked to this session."
 
         twin = await self._get_twin(session.twin_id)
         if not twin or not twin.alcm_twin_id:
             return "This twin doesn't have an ALCM identity record yet."
+
+        alcm_twin_id = str(twin.alcm_twin_id)
 
         # Build context: current correction + last 5 messages
         history = await self._get_recent_messages(session.id, limit=5)
         context_parts = [self._format_history(history)]
         context_parts.append(f"Refinement request: {content}")
 
+        # Step 1: Apply correction via /attribute
         result = await self.alcm.attribute(
-            str(twin.alcm_twin_id),
-            {"correction": content, "context": "\n".join(context_parts)},
+            alcm_twin_id,
+            {
+                "category": "REFINEMENT",
+                "content_summary": content[:200],
+                "confidence": 0.9,
+                "source_reliability": 1.0,
+            },
         )
 
         if result.get("_alcm_unavailable"):
             return "The identity engine is temporarily unavailable. Your correction has been saved and will be applied when the engine is back."
 
+        # Step 2: Submit feedback with REFINEMENT type
+        # Find the previous assistant message to reference as "original"
+        original_response = ""
+        for msg in reversed(history):
+            if msg.role == "AGENT":
+                original_response = msg.content
+                break
+
+        try:
+            await self.alcm.submit_feedback(
+                alcm_twin_id,
+                interaction_id=str(session.id),
+                feedback_type="REFINEMENT",
+                signal={
+                    "original_response": original_response,
+                    "corrected_response": content,
+                    "context": "\n".join(context_parts),
+                },
+            )
+        except ALCMError as e:
+            logger.warning(f"Feedback submission failed (non-blocking): {e}")
+
         updated = result.get("sub_components_updated", [])
         if updated:
-            return f"Refinement applied to: {', '.join(updated)}. Your twin's identity has been updated."
-        return "Correction noted. I'll incorporate this into your twin's profile."
+            dims = [u.get("sub_component", str(u)) if isinstance(u, dict) else str(u) for u in updated[:3]]
+            return f"Refinement applied to: {', '.join(dims)}. Your twin's identity has been updated."
+        return "Correction noted and applied to your twin's profile."
 
     # ------------------------------------------------------------------
     # Helpers
@@ -376,12 +466,57 @@ class AgentService:
         messages.reverse()  # Oldest first
         return messages
 
-    async def _build_digital_self_context(self, session: AgentSession, current_message: str) -> str:
-        """Build context for Digital Self: last 20 messages + current."""
-        history = await self._get_recent_messages(session.id, limit=20)
-        parts = [self._format_history(history)]
-        parts.append(f"User: {current_message}")
-        return "\n".join(parts)
+    async def _build_conversation_history(
+        self, session_id: UUID, limit: int = 20
+    ) -> List[dict]:
+        """Build structured conversation_history for ALCM /generate.
+        Returns: [{role: "user", content: "..."}, {role: "assistant", content: "..."}]
+        """
+        messages = await self._get_recent_messages(session_id, limit=limit)
+        history = []
+        for msg in messages:
+            if msg.role == "USER":
+                history.append({"role": "user", "content": msg.content})
+            elif msg.role == "AGENT":
+                history.append({"role": "assistant", "content": msg.content})
+        return history
+
+    async def _submit_implicit_accept(
+        self, twin: Twin, session: AgentSession, current_content: str
+    ) -> None:
+        """Submit IMPLICIT_ACCEPT feedback when user continues without correcting.
+        Called after each Digital Self exchange — the act of continuing implies
+        the previous response was acceptable.
+        """
+        if not twin.alcm_twin_id:
+            return
+        try:
+            await self.alcm.submit_feedback(
+                str(twin.alcm_twin_id),
+                interaction_id=str(session.id),
+                feedback_type="IMPLICIT_ACCEPT",
+                signal={"context": current_content[:200]},
+            )
+        except ALCMError as e:
+            logger.debug(f"Implicit accept feedback failed (non-blocking): {e}")
+
+    async def _get_steering_suggestion(self, alcm_twin_id: str) -> str:
+        """Check coverage gaps and suggest what to train next."""
+        try:
+            health = await self.alcm.get_health(alcm_twin_id)
+            if health.get("_alcm_unavailable"):
+                return ""
+            coverage = health.get("coverage", {})
+            per_category = coverage.get("per_category", {})
+
+            # Find categories below 30% coverage
+            gaps = [cat for cat, score in per_category.items() if score < 30]
+            if gaps:
+                gap_names = ", ".join(gaps[:3])
+                return f"\n\nI noticed your twin could use more depth in: {gap_names}. Want to share something about that?"
+        except ALCMError:
+            pass
+        return ""
 
     def _format_history(self, messages: List[AgentMessage]) -> str:
         lines = []
@@ -395,9 +530,18 @@ class AgentService:
     def _build_actions_log(self, mode: str) -> list:
         """Build actions metadata for the message."""
         if mode == "DIGITAL_SELF":
-            return [{"type": "alcm_query", "endpoint": "/generate"}]
+            return [
+                {"type": "alcm_query", "endpoint": "/generate"},
+                {"type": "alcm_feedback", "endpoint": "/feedback", "feedback_type": "IMPLICIT_ACCEPT"},
+            ]
         elif mode == "TRAINING":
-            return [{"type": "alcm_query", "endpoint": "/classify"}]
+            return [
+                {"type": "alcm_query", "endpoint": "/classify"},
+                {"type": "alcm_query", "endpoint": "/attribute"},
+            ]
         elif mode == "REFINEMENT":
-            return [{"type": "alcm_query", "endpoint": "/attribute"}]
+            return [
+                {"type": "alcm_query", "endpoint": "/attribute"},
+                {"type": "alcm_feedback", "endpoint": "/feedback", "feedback_type": "REFINEMENT"},
+            ]
         return [{"type": "platform_query"}]

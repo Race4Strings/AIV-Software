@@ -2,6 +2,7 @@
 
 from uuid import UUID
 from typing import List
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -300,6 +301,72 @@ async def reclone_voice(
 ):
     """Re-initiate voice cloning. Coming soon."""
     raise HTTPException(status_code=501, detail="Voice re-cloning coming soon")
+
+
+@router.get("/{twin_id}/export")
+async def export_twin_data(
+    twin_id: UUID,
+    user: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Export all data associated with a twin (GDPR data portability).
+
+    Returns a JSON document containing all personal data, consent records,
+    audit logs, and configuration associated with this identity.
+    """
+    import json
+    from ..models.consent_record import ConsentRecord
+    from ..models.audit_log import AuditLog
+    from ..models.guardrail_config import GuardrailConfig
+    from ..models.licensing_rules_config import LicensingRulesConfig
+
+    twin = (await db.execute(select(Twin).where(Twin.id == twin_id))).scalar_one_or_none()
+    if not twin:
+        raise HTTPException(status_code=404, detail="Twin not found")
+    if str(twin.talent_user_id) != user["id"]:
+        raise HTTPException(status_code=403, detail="Not your twin")
+
+    # Gather all related data
+    consents = (await db.execute(select(ConsentRecord).where(ConsentRecord.twin_id == twin_id))).scalars().all()
+    audit_logs = (await db.execute(select(AuditLog).where(AuditLog.twin_id == twin_id))).scalars().all()
+    guardrails = (await db.execute(select(GuardrailConfig).where(GuardrailConfig.twin_id == twin_id))).scalars().all()
+    licensing = (await db.execute(select(LicensingRulesConfig).where(LicensingRulesConfig.twin_id == twin_id))).scalars().all()
+
+    export_data = {
+        "export_type": "GDPR_DATA_EXPORT",
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "twin": {
+            "id": str(twin.id),
+            "display_name": twin.display_name,
+            "public_name": twin.public_name,
+            "bio": twin.bio,
+            "identity_category": twin.identity_category,
+            "clone_type": twin.clone_type,
+            "status": twin.status,
+            "health_status": twin.health_status,
+            "created_at": twin.created_at.isoformat() if twin.created_at else None,
+        },
+        "consents": [
+            {"type": c.consent_type, "action": c.action, "scope": c.scope, "created_at": c.created_at.isoformat() if c.created_at else None}
+            for c in consents
+        ],
+        "guardrail_versions": [
+            {"version": g.version, "is_active": g.is_active, "created_at": g.created_at.isoformat() if g.created_at else None}
+            for g in guardrails
+        ],
+        "licensing_rule_versions": [
+            {"version": l.version, "is_active": l.is_active, "created_at": l.created_at.isoformat() if l.created_at else None}
+            for l in licensing
+        ],
+        "audit_log_count": len(audit_logs),
+    }
+
+    content = json.dumps(export_data, indent=2)
+    return StreamingResponse(
+        io.BytesIO(content.encode()),
+        media_type="application/json",
+        headers={"Content-Disposition": f"attachment; filename=aiv-export-{twin_id}.json"},
+    )
 
 
 # voice_debug removed — voice operations now go through ALCM API

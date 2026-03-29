@@ -6,10 +6,13 @@ This is the primary revenue-generating part of the platform.
 """
 
 import json
+import logging
 from uuid import UUID
 from decimal import Decimal
 from typing import Optional, List
 from datetime import date
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from pydantic import BaseModel
@@ -210,11 +213,33 @@ async def transition_deal_status(
     try:
         deal = await svc.transition_status(UUID(deal_id), req.status, UUID(user["id"]))
 
-        # On execution: create commission invoice + payout
+        # On execution: create commission invoice + payout + blockchain anchor
         if req.status == "EXECUTED":
             csvc = CommissionService(db)
             await csvc.create_commission_invoice(deal)
             await csvc.create_payout(deal)
+
+            # Anchor deal execution on blockchain
+            try:
+                from ..services.blockchain_service import BlockchainService
+                bc = BlockchainService()
+                previous_hash = await bc.get_latest_hash(str(deal.twin_id), db)
+                await bc.anchor_deal_execution(
+                    twin_id=str(deal.twin_id),
+                    deal_data={
+                        "deal_id": str(deal.id),
+                        "deal_number": deal.deal_number,
+                        "deal_type": deal.deal_type,
+                        "value": str(deal.value),
+                        "commission_rate": str(deal.commission_rate),
+                        "territory": deal.territory,
+                        "data_scope": deal.data_scope,
+                        "executed_at": deal.executed_at.isoformat() if deal.executed_at else None,
+                    },
+                    previous_hash=previous_hash,
+                )
+            except Exception as e:
+                logger.warning(f"Deal blockchain anchoring failed (non-blocking): {e}")
 
         return _serialize(deal)
     except ValueError as e:
@@ -254,6 +279,115 @@ async def sign_contract(
         return _serialize(contract)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/deals/{deal_id}/generate-contract")
+async def generate_contract(
+    deal_id: str,
+    user: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Auto-generate a licensing agreement from deal terms.
+
+    Creates a contract with the deal's specific terms populated into
+    the template. Returns the contract record with generated text.
+    """
+    from ..services.contract_generator import generate_licensing_agreement
+    from ..models.deal_contract import DealContract
+    from ..models.twin import Twin
+    from ..models.organization import Organization
+
+    svc = LicensingService(db)
+    deal = await svc.get_deal(UUID(deal_id))
+    if not deal:
+        raise HTTPException(status_code=404, detail="Deal not found")
+
+    # Get twin and client org names
+    twin = (await db.execute(select(Twin).where(Twin.id == deal.twin_id))).scalar_one_or_none()
+    twin_name = twin.display_name if twin else "Unknown"
+    twin_category = twin.identity_category if twin else "ENTERTAINMENT"
+
+    client_org = None
+    if deal.client_organization_id:
+        client_org = (await db.execute(
+            select(Organization).where(Organization.id == deal.client_organization_id)
+        )).scalar_one_or_none()
+    client_name = client_org.name if client_org else "Client Organization"
+
+    contract_text = generate_licensing_agreement(
+        twin_name=twin_name,
+        twin_category=twin_category,
+        client_org_name=client_name,
+        deal_type=deal.deal_type,
+        deal_value=float(deal.value),
+        currency=deal.currency or "USD",
+        territory=deal.territory or [],
+        data_scope=deal.data_scope or [],
+        exclusivity=deal.exclusivity or False,
+        commission_rate=deal.commission_rate or 0.30,
+        deal_number=deal.deal_number or 1,
+    )
+
+    # Create contract record
+    existing = await db.execute(
+        select(DealContract).where(DealContract.deal_id == deal.id)
+    )
+    version = len(existing.scalars().all()) + 1
+
+    contract = DealContract(
+        deal_id=deal.id,
+        version=version,
+        contract_text=contract_text,
+        contract_url=None,
+    )
+    db.add(contract)
+    await db.flush()
+
+    return _serialize(contract)
+
+
+@router.post("/deals/{deal_id}/contract/{contract_id}/send-for-signature")
+async def send_for_signature(
+    deal_id: str,
+    contract_id: str,
+    talent_email: str = Query(...),
+    client_email: str = Query(...),
+    user: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Send a contract for e-signature via Dropbox Sign.
+
+    Both talent representative and client must sign before the deal
+    can transition to EXECUTED status.
+    """
+    from ..services.esign_service import ESignService
+    from ..models.deal_contract import DealContract
+
+    contract = (await db.execute(
+        select(DealContract).where(DealContract.id == UUID(contract_id))
+    )).scalar_one_or_none()
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+
+    esign = ESignService(db)
+    result = await esign.create_signature_request(
+        title=f"AIV Licensing Agreement — Deal #{contract.version}",
+        subject="AIV Licensing Agreement for Signature",
+        message="Please review and sign the attached licensing agreement.",
+        signers=[
+            {"email": talent_email, "name": "Talent Representative", "role": "talent"},
+            {"email": client_email, "name": "Client Representative", "role": "client"},
+        ],
+        metadata={"deal_id": deal_id, "contract_id": contract_id},
+    )
+
+    if result:
+        contract.signature_request_id = result.get("signature_request_id")
+        contract.esignature_ref = result.get("signature_request_id")
+        await db.flush()
+        return {"status": "sent", **result}
+
+    raise HTTPException(status_code=500, detail="Failed to send for signature")
 
 
 # ------------------------------------------------------------------
@@ -321,6 +455,71 @@ async def get_deal_messages(
 
 
 # ------------------------------------------------------------------
+# Package Delivery
+# ------------------------------------------------------------------
+
+@router.post("/deals/{deal_id}/deliver")
+async def deliver_package(
+    deal_id: str,
+    user: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Deliver identity package to client after deal execution.
+
+    Scoped to the deal's data_scope. Generates a secure access token
+    with a 30-day expiry.
+    """
+    from ..services.delivery_service import DeliveryService
+
+    svc = LicensingService(db)
+    deal = await svc.get_deal(UUID(deal_id))
+    if not deal:
+        raise HTTPException(status_code=404, detail="Deal not found")
+    if deal.status not in ("EXECUTED", "ACTIVE"):
+        raise HTTPException(status_code=400, detail="Deal must be executed before delivery")
+
+    delivery = DeliveryService(db)
+    result = await delivery.deliver_package(
+        deal_id=UUID(deal_id),
+        twin_id=deal.twin_id,
+        data_scope=deal.data_scope or [],
+        client_org_id=deal.client_organization_id,
+        delivered_by=UUID(user["id"]),
+    )
+    return result
+
+
+@router.get("/deals/{deal_id}/package")
+async def get_deal_package(
+    deal_id: str,
+    access_token: str = Query(...),
+    user: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Access the delivered identity package for a deal.
+
+    Requires a valid access token. Returns scoped identity data
+    matching the deal's data_scope.
+    """
+    from ..services.delivery_service import DeliveryService
+
+    svc = LicensingService(db)
+    deal = await svc.get_deal(UUID(deal_id))
+    if not deal:
+        raise HTTPException(status_code=404, detail="Deal not found")
+
+    delivery = DeliveryService(db)
+    package = await delivery.get_package_for_client(
+        twin_id=deal.twin_id,
+        data_scope=deal.data_scope or [],
+        access_token=access_token,
+    )
+    if not package:
+        raise HTTPException(status_code=404, detail="Package not available")
+    return package
+
+
+# ------------------------------------------------------------------
 # PUL (Permitted Use Lifecycle) — APPEND-ONLY
 # ------------------------------------------------------------------
 
@@ -381,3 +580,235 @@ async def disclose_partner(
         req.data_access_scope, UUID(user["id"]),
     )
     return _serialize(ppd)
+
+
+# ------------------------------------------------------------------
+# Client Output Validation
+# ------------------------------------------------------------------
+
+class ValidateOutputRequest(BaseModel):
+    sample_content: str
+    sample_context: str = ""
+
+
+@router.post("/{deal_id}/validate")
+async def validate_client_output(
+    deal_id: str,
+    req: ValidateOutputRequest,
+    user: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Validate client-submitted output against twin's personality profile.
+
+    Calls ALCM /validate and records the result in client_validation_submissions.
+    """
+    from ..services.alcm_client import get_alcm_client
+    from ..models.client_validation_submission import ClientValidationSubmission
+
+    svc = LicensingService(db)
+    deal = await svc.get_deal(UUID(deal_id))
+    if not deal:
+        raise HTTPException(status_code=404, detail="Deal not found")
+
+    # Get twin's ALCM ID
+    from ..models.twin import Twin
+    twin = (await db.execute(
+        select(Twin).where(Twin.id == deal.twin_id)
+    )).scalar_one_or_none()
+    if not twin or not twin.alcm_twin_id:
+        raise HTTPException(status_code=400, detail="Twin has no ALCM identity linked")
+
+    # Call ALCM validation
+    alcm = get_alcm_client()
+    result = await alcm.validate_output(
+        str(twin.alcm_twin_id), req.sample_content, req.sample_context,
+    )
+
+    if result.get("_alcm_unavailable"):
+        raise HTTPException(status_code=503, detail="Identity engine temporarily unavailable")
+
+    # Record the submission
+    submission = ClientValidationSubmission(
+        deal_id=UUID(deal_id),
+        sample_content=req.sample_content,
+        sample_context=req.sample_context,
+        consistency_score=result.get("consistency_score"),
+        status="PASS" if result.get("passed") else "FAIL",
+        feedback=result.get("details", "") + ("\n" + result.get("recommendation", "") if result.get("recommendation") else ""),
+    )
+    db.add(submission)
+    await db.flush()
+
+    return {
+        "id": str(submission.id),
+        "consistency_score": result.get("consistency_score"),
+        "passed": result.get("passed"),
+        "details": result.get("details"),
+        "divergent_traits": result.get("divergent_traits", []),
+        "recommendation": result.get("recommendation"),
+    }
+
+
+# ------------------------------------------------------------------
+# Contract File Upload
+# ------------------------------------------------------------------
+
+@router.post("/deals/{deal_id}/contract/upload")
+async def upload_contract_file(
+    deal_id: str,
+    file: UploadFile = File(...),
+    user: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upload a contract file (PDF/DOCX) for a deal."""
+    from ..services.storage_service import StorageService
+
+    storage = StorageService()
+    upload_result = await storage.upload_document(file, file.filename, user["id"])
+
+    svc = LicensingService(db)
+    contract = await svc.upload_contract(UUID(deal_id), upload_result.get("url", upload_result.get("key", "")))
+    return _serialize(contract)
+
+
+# ------------------------------------------------------------------
+# Negotiation Knowledge (Opt-In Assistant Training)
+# ------------------------------------------------------------------
+
+class TrainAssistantRequest(BaseModel):
+    reasoning: str = ""
+
+
+@router.post("/deals/{deal_id}/train-assistant")
+async def train_assistant_from_deal(
+    deal_id: str,
+    req: TrainAssistantRequest,
+    user: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Record a deal decision as negotiation knowledge for the assistant.
+
+    Called after approve/reject/modify decisions. Opt-in only.
+    """
+    from ..models.negotiation_knowledge import NegotiationKnowledge
+
+    svc = LicensingService(db)
+    deal = await svc.get_deal(UUID(deal_id))
+    if not deal:
+        raise HTTPException(status_code=404, detail="Deal not found")
+
+    knowledge = NegotiationKnowledge(
+        twin_id=deal.twin_id,
+        created_by=UUID(user["id"]),
+        knowledge_type="INQUIRY_DECISION",
+        deal_id=UUID(deal_id),
+        decision=deal.status,
+        context={
+            "deal_type": deal.deal_type,
+            "value": str(deal.value) if deal.value else None,
+            "territory": deal.territory,
+            "data_scope": deal.data_scope,
+            "exclusivity": deal.exclusivity,
+            "commission_rate": str(deal.commission_rate) if deal.commission_rate else None,
+        },
+        reasoning=req.reasoning,
+    )
+    db.add(knowledge)
+    await db.flush()
+
+    return {
+        "id": str(knowledge.id),
+        "knowledge_type": knowledge.knowledge_type,
+        "decision": knowledge.decision,
+        "message": "Decision recorded. Your assistant will learn from this pattern.",
+    }
+
+
+@router.get("/twins/{twin_id}/negotiation-knowledge")
+async def get_negotiation_knowledge(
+    twin_id: str,
+    user: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """List negotiation knowledge entries for a twin."""
+    from ..models.negotiation_knowledge import NegotiationKnowledge
+    from sqlalchemy import desc
+
+    result = await db.execute(
+        select(NegotiationKnowledge)
+        .where(NegotiationKnowledge.twin_id == UUID(twin_id))
+        .order_by(desc(NegotiationKnowledge.created_at))
+        .limit(100)
+    )
+    entries = result.scalars().all()
+    return [
+        {
+            "id": str(e.id),
+            "knowledge_type": e.knowledge_type,
+            "decision": e.decision,
+            "deal_id": str(e.deal_id) if e.deal_id else None,
+            "context": e.context,
+            "reasoning": e.reasoning,
+            "created_at": e.created_at.isoformat() if e.created_at else None,
+        }
+        for e in entries
+    ]
+
+
+# ------------------------------------------------------------------
+# Client-Facing Licensing Info (Public Qualification)
+# ------------------------------------------------------------------
+
+@router.get("/twins/{twin_id}/licensing-info")
+async def get_licensing_info(
+    twin_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Public endpoint: returns what's available for licensing.
+
+    Reads the active LicensingRulesConfig and returns a client-friendly summary.
+    No auth required — meant for client qualification before deal submission.
+    """
+    from ..models.licensing_rules_config import LicensingRulesConfig
+    from ..models.twin import Twin
+
+    twin = (await db.execute(
+        select(Twin).where(Twin.id == UUID(twin_id))
+    )).scalar_one_or_none()
+    if not twin:
+        raise HTTPException(status_code=404, detail="Identity not found")
+
+    if not twin.talent_authorization_at:
+        raise HTTPException(status_code=403, detail="This identity is not yet available for licensing")
+
+    # Get active licensing rules
+    rules = (await db.execute(
+        select(LicensingRulesConfig)
+        .where(LicensingRulesConfig.twin_id == UUID(twin_id), LicensingRulesConfig.is_active == True)
+        .limit(1)
+    )).scalar_one_or_none()
+
+    if not rules:
+        return {
+            "twin_id": str(twin.id),
+            "display_name": twin.display_name,
+            "category": twin.identity_category,
+            "available": True,
+            "message": "Licensing is available. Contact the talent's team for specific terms.",
+        }
+
+    all_modules = ["identity_profile", "knowledge_base", "voice_identity", "visual_identity"]
+
+    return {
+        "twin_id": str(twin.id),
+        "display_name": twin.display_name,
+        "category": twin.identity_category,
+        "available": True,
+        "available_modules": all_modules,
+        "pricing_floor": float(rules.pricing_floor) if rules.pricing_floor else None,
+        "currency": rules.currency or "USD",
+        "territories_restricted": rules.territory_restrictions or [],
+        "permitted_use_cases": rules.permitted_use_cases or [],
+        "blacklisted_use_cases": rules.blacklisted_use_cases or [],
+        "exclusivity_available": rules.exclusivity_available,
+    }

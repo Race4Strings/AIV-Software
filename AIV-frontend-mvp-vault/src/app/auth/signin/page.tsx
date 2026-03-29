@@ -1,166 +1,128 @@
 'use client'
 
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
-import { Loader2, Eye, EyeOff } from 'lucide-react'
+import { Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
-import React from 'react'
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
+import { useRouter } from 'next/navigation'
+import React, { useState } from 'react'
 import { toast } from 'sonner'
 import { authApi } from '@/lib/api'
 
-const signinSchema = z.object({
-  identifier: z.string().min(3, 'Please enter your email or username'),
-  password: z.string().min(1, 'Password is required'),
-})
-
-type SigninSchemaType = z.infer<typeof signinSchema>
-
-function PasswordInput({
-  form,
-  isPending,
-}: {
-  form: ReturnType<typeof useForm<SigninSchemaType>>
-  isPending: boolean
-}) {
-  const [showPassword, setShowPassword] = React.useState(false)
-
-  return (
-    <div className="flex items-center">
-      <FormField
-        control={form.control}
-        name="password"
-        render={({ field }) => (
-          <FormItem className="flex-1">
-            <FormControl>
-              <div className="relative">
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  {...field}
-                  disabled={isPending}
-                  placeholder="••••••••••••"
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  className="-translate-y-1/2 absolute top-1/2 right-2 text-muted-foreground hover:text-foreground"
-                  tabIndex={-1}
-                >
-                  {showPassword ? <Eye size={16} /> : <EyeOff size={16} />}
-                </button>
-              </div>
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-    </div>
-  )
-}
-
 export default function SigninPage() {
-  const form = useForm<SigninSchemaType>({
-    resolver: zodResolver(signinSchema),
-    mode: 'onChange',
-    defaultValues: {
-      identifier: '',
-      password: '',
-    },
-  })
+  const router = useRouter()
+  const [identifier, setIdentifier] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   const signinMutation = useMutation({
-    mutationFn: authApi.signin,
-    onSuccess: async (data) => {
-      localStorage.setItem('user', JSON.stringify(data))
+    mutationFn: () => authApi.signin({ identifier, password }),
+    onSuccess: (data) => {
       toast.success('Signed in successfully')
-      window.location.href = '/'
+      if (data) {
+        localStorage.setItem('user', JSON.stringify(data.data || data))
+      }
+      router.push('/dashboard')
     },
-    onError: (error: Error & { response?: { data?: { detail?: string | Array<{ msg: string }> } } }) => {
+    onError: (error: any) => {
       const detail = error?.response?.data?.detail
-      const message = Array.isArray(detail) ? detail[0]?.msg : detail || 'Sign in failed'
+      const message = typeof detail === 'string' ? detail : 'Invalid credentials. Please try again.'
       toast.error(message)
     },
   })
 
-  const onSubmit = (data: SigninSchemaType) => {
-    signinMutation.mutate({ identifier: data.identifier, password: data.password })
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!identifier.trim() || !password.trim()) {
+      toast.error('Please enter your email and password')
+      return
+    }
+    signinMutation.mutate()
   }
 
   return (
-    <div className={cn('flex flex-col gap-6')}>
-      <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="font-bold text-3xl">Welcome Back</h1>
-        <p className="text-balance text-muted-foreground text-sm">
-          Enter your email or username to login
+    <div className="flex flex-col gap-8 animate-fade-in">
+      {/* Header */}
+      <div className="flex flex-col gap-2 text-center">
+        <h1 className="font-bold text-3xl tracking-tight text-white">Welcome back</h1>
+        <p className="text-white/50 text-base">
+          Sign in to your AIV account
         </p>
       </div>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-          <div className="grid gap-2">
-            <FormField
-              control={form.control}
-              name="identifier"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email or Username</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="text"
-                      placeholder="john@example.com or johndoe"
-                      {...field}
-                      disabled={signinMutation.isPending}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+      {/* Sign In Form */}
+      <form onSubmit={handleSubmit} className="grid gap-5">
+        <div className="grid gap-2">
+          <label htmlFor="identifier" className="text-sm font-medium text-white/70">
+            Email or Username
+          </label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/30" />
+            <input
+              id="identifier"
+              type="text"
+              placeholder="you@example.com"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              disabled={signinMutation.isPending}
+              className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors pl-11"
+              autoComplete="email"
+              autoFocus
             />
           </div>
-          <div className="grid gap-2">
-            <div className="flex items-center justify-between">
-              <Label>Password</Label>
-              <Link
-                href="/auth/forgot-password"
-                className="text-sm underline-offset-4 hover:underline"
-              >
-                Forgot your password?
-              </Link>
-            </div>
-            <PasswordInput form={form} isPending={signinMutation.isPending} />
+        </div>
+
+        <div className="grid gap-2">
+          <div className="flex items-center justify-between">
+            <label htmlFor="password" className="text-sm font-medium text-white/70">
+              Password
+            </label>
+            <Link
+              href="/auth/forgot-password"
+              className="text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors"
+            >
+              Forgot password?
+            </Link>
           </div>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/30" />
+            <input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={signinMutation.isPending}
+              className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors pl-11 pr-11"
+              autoComplete="current-password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
+              tabIndex={-1}
+            >
+              {showPassword ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
 
-          <Button
-            type="submit"
-            className="w-full cursor-pointer bg-blue-600 hover:bg-blue-700 text-white"
-            disabled={!form.formState.isValid || signinMutation.isPending}
-          >
-            {signinMutation.isPending && (
-              <Loader2 className="size-4 animate-spin mr-2" />
-            )}
-            Login
-          </Button>
-        </form>
-      </Form>
+        <button
+          type="submit"
+          className="w-full py-3 rounded-xl bg-[#2563eb] text-white text-[15px] font-medium shadow-[0_0_20px_rgba(37,99,235,0.35)] hover:bg-[#3b82f6] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2 mt-1"
+          disabled={signinMutation.isPending || !identifier.trim() || !password.trim()}
+        >
+          {signinMutation.isPending ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : null}
+          Sign In
+        </button>
+      </form>
 
-      <div className="text-center text-sm">
-        Don&apos;t have an account?{' '}
-        <Link href="/auth/signup" className="underline underline-offset-4">
-          Sign up
+      {/* Access Code Link */}
+      <div className="text-center text-sm text-white/40">
+        Have an access code?{' '}
+        <Link href="/auth/signup" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
+          Create your account
         </Link>
       </div>
     </div>

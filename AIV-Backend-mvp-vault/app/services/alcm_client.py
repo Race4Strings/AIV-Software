@@ -9,7 +9,7 @@ Usage:
     from app.services.alcm_client import get_alcm_client
 
     client = get_alcm_client()
-    twin = await client.create_twin()
+    twin = await client.create_twin("ENTERTAINMENT", "PUBLIC_FIGURE")
     health = await client.get_health(twin["alcm_twin_id"])
 """
 
@@ -58,6 +58,11 @@ class ALCMNotFoundError(ALCMError):
     pass
 
 
+class ALCMLockedError(ALCMError):
+    """Twin is locked (423) — cannot generate or modify."""
+    pass
+
+
 class ALCMServerError(ALCMError):
     """ALCM returned a 500-level response."""
     pass
@@ -98,6 +103,8 @@ class ALCMClient:
 
                 if response.status_code == 404:
                     raise ALCMNotFoundError(f"Not found: {path}")
+                if response.status_code == 423:
+                    raise ALCMLockedError(f"Twin is locked: {path}")
                 if 400 <= response.status_code < 500:
                     detail = response.json() if response.headers.get("content-type", "").startswith("application/json") else {}
                     raise ALCMValidationError(
@@ -121,12 +128,16 @@ class ALCMClient:
     # Twin lifecycle
     # ------------------------------------------------------------------
 
-    async def create_twin(self) -> dict:
-        """POST /twin -> {alcm_twin_id}"""
-        return await self._request("POST", "/twin")
+    async def create_twin(self, identity_category: str = "ENTERTAINMENT",
+                          clone_type: str = "PUBLIC_FIGURE") -> dict:
+        """POST /twin -> {alcm_twin_id, status, created_at}"""
+        return await self._request("POST", "/twin", json={
+            "identity_category": identity_category,
+            "clone_type": clone_type,
+        })
 
     async def delete_twin(self, alcm_twin_id: str) -> bool:
-        """DELETE /twin/{id} -> bool"""
+        """DELETE /twin/{id} -> {deleted, twin_id}"""
         result = await self._request("DELETE", f"/twin/{alcm_twin_id}")
         return result.get("deleted", False)
 
@@ -135,21 +146,29 @@ class ALCMClient:
     # ------------------------------------------------------------------
 
     async def classify(self, alcm_twin_id: str, content: str,
-                       modality: str = "TEXT", source_reliability: float = 0.6) -> dict:
+                       modality: str = "TEXT", source_reliability: float = 0.6,
+                       contributor_id: Optional[str] = None,
+                       contributor_type: Optional[str] = None) -> dict:
         """POST /classify
-        Returns: {categories_affected, confidence_scores, processing_id}
+        Returns: {processing_id, categories_affected, sub_categories, psychographic_data_id}
         """
-        return await self._request("POST", "/classify", json={
+        body = {
             "twin_id": alcm_twin_id,
             "content": content,
             "modality": modality,
             "source_reliability": source_reliability,
-        })
+        }
+        if contributor_id:
+            body["contributor_id"] = contributor_id
+        if contributor_type:
+            body["contributor_type"] = contributor_type
+        return await self._request("POST", "/classify", json=body)
 
     async def analyze_media(self, alcm_twin_id: str, media_url: str,
                             media_type: str) -> dict:
         """POST /analyze-media
-        Returns: {voice_profile, visual_descriptors, processing_id}
+        Returns: {processing_id, status: "QUEUED", estimated_duration_seconds}
+        Note: This is async — poll GET /jobs/{processing_id} for completion.
         """
         return await self._request("POST", "/analyze-media", json={
             "twin_id": alcm_twin_id,
@@ -159,7 +178,8 @@ class ALCMClient:
 
     async def attribute(self, alcm_twin_id: str, classified_data: dict) -> dict:
         """POST /attribute
-        Returns: {sub_components_updated, confidence_deltas}
+        classified_data: {psychographic_data_id, category, content_summary, confidence, source_reliability}
+        Returns: {sub_components_updated, personality_core_updated, personality_core_confidence}
         """
         return await self._request("POST", "/attribute", json={
             "twin_id": alcm_twin_id,
@@ -171,34 +191,47 @@ class ALCMClient:
     # ------------------------------------------------------------------
 
     async def generate(self, alcm_twin_id: str, context: str,
-                       guardrails: dict = None, mode: str = "conversation") -> str:
+                       guardrails: dict = None, mode: str = "CONVERSATION",
+                       conversation_history: Optional[List[Dict]] = None,
+                       deployment_scope: str = "TRAINING_AREA") -> dict:
         """POST /generate
-        Returns: response text (extracted from full response)
+        Returns full response dict: {response_text, personality_consistency_score,
+        mood_state, guardrail_checks, tokens_used, metadata}
         """
-        result = await self._request("POST", "/generate", json={
+        body = {
             "twin_id": alcm_twin_id,
             "context": context,
             "guardrails": guardrails or {},
             "mode": mode,
-        })
-        return result.get("response_text", "")
+            "deployment_scope": deployment_scope,
+        }
+        if conversation_history:
+            body["conversation_history"] = conversation_history
+        return await self._request("POST", "/generate", json=body)
 
     async def generate_stream(self, alcm_twin_id: str, context: str,
                               guardrails: dict = None,
-                              mode: str = "conversation") -> AsyncGenerator[str, None]:
+                              mode: str = "CONVERSATION",
+                              conversation_history: Optional[List[Dict]] = None,
+                              deployment_scope: str = "TRAINING_AREA") -> AsyncGenerator[str, None]:
         """POST /generate/stream -> SSE stream of text chunks.
 
         Yields text chunks as they arrive. Caller is responsible for
         assembling the full response if needed.
         """
+        body = {
+            "twin_id": alcm_twin_id,
+            "context": context,
+            "guardrails": guardrails or {},
+            "mode": mode,
+            "deployment_scope": deployment_scope,
+        }
+        if conversation_history:
+            body["conversation_history"] = conversation_history
+
         try:
             async with self._client(timeout_override=120.0) as client:
-                async with client.stream("POST", "/generate/stream", json={
-                    "twin_id": alcm_twin_id,
-                    "context": context,
-                    "guardrails": guardrails or {},
-                    "mode": mode,
-                }) as response:
+                async with client.stream("POST", "/generate/stream", json=body) as response:
                     if response.status_code != 200:
                         logger.error(f"ALCM stream error: {response.status_code}")
                         return
@@ -210,8 +243,11 @@ class ALCMClient:
                             break
                         try:
                             data = json.loads(data_str)
-                            if "text" in data:
+                            if data.get("type") == "token" and "text" in data:
                                 yield data["text"]
+                            elif data.get("type") == "error":
+                                logger.error(f"ALCM stream error: {data.get('message')}")
+                                break
                         except json.JSONDecodeError:
                             continue
         except httpx.ConnectError:
@@ -242,7 +278,7 @@ class ALCMClient:
     async def validate_output(self, alcm_twin_id: str, sample: str,
                               context: str = "") -> dict:
         """POST /validate
-        Returns: {consistency_score, passed, details}
+        Returns: {consistency_score, passed, details, divergent_traits, recommendation}
         """
         return await self._request("POST", "/validate", json={
             "twin_id": alcm_twin_id,
@@ -256,13 +292,16 @@ class ALCMClient:
 
     async def get_health(self, alcm_twin_id: str) -> dict:
         """GET /twin/{id}/health
-        Returns: {cfs, psychographic_coverage, personality_confidence, health_status}
+        Returns: {twin_id, cfs, health_status, personality_core: {big_five, mbti, ccp,
+        overall_confidence}, per_dimension_fidelity, coverage: {overall, per_category},
+        last_training_activity, last_cfs_computation}
         """
         return await self._request("GET", f"/twin/{alcm_twin_id}/health")
 
     async def get_drift(self, alcm_twin_id: str) -> dict:
         """GET /twin/{id}/drift
-        Returns: {drift_score, threshold_status, details}
+        Returns: {drift_score, threshold, threshold_status, per_dimension_drift,
+        baseline_set_at, last_checked}
         """
         return await self._request("GET", f"/twin/{alcm_twin_id}/drift")
 
@@ -272,7 +311,7 @@ class ALCMClient:
 
     async def get_package(self, alcm_twin_id: str, scope: List[str]) -> dict:
         """GET /twin/{id}/package?scope=identity_profile,voice_identity
-        Returns scoped identity data per deal manifest.
+        Returns: {twin_id, version, seal_hash, generated_at, modules: {...}}
         """
         scope_str = ",".join(scope)
         return await self._request("GET", f"/twin/{alcm_twin_id}/package",
@@ -280,7 +319,7 @@ class ALCMClient:
 
     async def create_snapshot(self, alcm_twin_id: str) -> dict:
         """POST /twin/{id}/snapshot
-        Returns: {snapshot_ref, seal_hash, version_number}
+        Returns: {snapshot_ref, seal_hash, version_number, created_at}
         """
         return await self._request("POST", f"/twin/{alcm_twin_id}/snapshot")
 
@@ -290,7 +329,7 @@ class ALCMClient:
 
     async def push_guardrails(self, alcm_twin_id: str, config: dict) -> dict:
         """POST /twin/{id}/guardrails
-        Pushes updated guardrail config to the ALCM for enforcement.
+        Returns: {confirmation, guardrail_version, propagation_status}
         """
         return await self._request("POST", f"/twin/{alcm_twin_id}/guardrails",
                                    json=config)
@@ -303,12 +342,26 @@ class ALCMClient:
                               feedback_type: str, signal: dict) -> dict:
         """POST /twin/{id}/feedback
         feedback_type: USER_CORRECTION | RATING | IMPLICIT_ACCEPT | REFINEMENT
+        signal: {original_response, corrected_response, context, rating}
+        Returns: {processed, learning_applied, sub_components_affected, confidence_deltas}
         """
         return await self._request("POST", f"/twin/{alcm_twin_id}/feedback", json={
             "interaction_id": interaction_id,
             "feedback_type": feedback_type,
             "signal": signal,
         })
+
+    # ------------------------------------------------------------------
+    # Async job polling
+    # ------------------------------------------------------------------
+
+    async def get_job_status(self, job_id: str) -> dict:
+        """GET /jobs/{job_id}
+        Returns: {job_id, job_type, status, progress, result, error,
+        queued_at, started_at, completed_at}
+        status: QUEUED | PROCESSING | COMPLETED | FAILED
+        """
+        return await self._request("GET", f"/jobs/{job_id}")
 
     # ------------------------------------------------------------------
     # Service health
@@ -351,6 +404,8 @@ class GracefulALCMClient:
             return fallback
         except ALCMNotFoundError:
             raise  # Not found is a real error — don't swallow
+        except ALCMLockedError:
+            raise  # Locked is a real error — surface to user
         except ALCMValidationError:
             raise  # Validation errors should surface
         except ALCMServerError as e:
@@ -362,18 +417,23 @@ class GracefulALCMClient:
         return self._available
 
     # --- Twin lifecycle (no fallback — these must succeed) ---
-    async def create_twin(self) -> dict:
-        return await self._inner.create_twin()
+    async def create_twin(self, identity_category: str = "ENTERTAINMENT",
+                          clone_type: str = "PUBLIC_FIGURE") -> dict:
+        return await self._inner.create_twin(identity_category, clone_type)
 
     async def delete_twin(self, alcm_twin_id: str) -> bool:
         return await self._inner.delete_twin(alcm_twin_id)
 
     # --- Data processing (fallback: empty results) ---
     async def classify(self, alcm_twin_id: str, content: str,
-                       modality: str = "TEXT", source_reliability: float = 0.6) -> dict:
+                       modality: str = "TEXT", source_reliability: float = 0.6,
+                       contributor_id: Optional[str] = None,
+                       contributor_type: Optional[str] = None) -> dict:
         return await self._safe(
-            self._inner.classify(alcm_twin_id, content, modality, source_reliability),
-            {"categories_affected": [], "confidence_scores": {}, "_alcm_unavailable": True},
+            self._inner.classify(alcm_twin_id, content, modality, source_reliability,
+                                contributor_id, contributor_type),
+            {"categories_affected": [], "sub_categories": [],
+             "psychographic_data_id": None, "_alcm_unavailable": True},
             "classify",
         )
 
@@ -381,32 +441,40 @@ class GracefulALCMClient:
                             media_type: str) -> dict:
         return await self._safe(
             self._inner.analyze_media(alcm_twin_id, media_url, media_type),
-            {"_alcm_unavailable": True},
+            {"processing_id": None, "status": "UNAVAILABLE", "_alcm_unavailable": True},
             "analyze_media",
         )
 
     async def attribute(self, alcm_twin_id: str, classified_data: dict) -> dict:
         return await self._safe(
             self._inner.attribute(alcm_twin_id, classified_data),
-            {"sub_components_updated": [], "_alcm_unavailable": True},
+            {"sub_components_updated": [], "personality_core_updated": False,
+             "_alcm_unavailable": True},
             "attribute",
         )
 
     # --- Generation (fallback: message explaining unavailability) ---
     async def generate(self, alcm_twin_id: str, context: str,
-                       guardrails: dict = None, mode: str = "conversation") -> str:
+                       guardrails: dict = None, mode: str = "CONVERSATION",
+                       conversation_history: Optional[List[Dict]] = None,
+                       deployment_scope: str = "TRAINING_AREA") -> dict:
         return await self._safe(
-            self._inner.generate(alcm_twin_id, context, guardrails, mode),
-            "The identity engine is temporarily unavailable. Please try again shortly.",
+            self._inner.generate(alcm_twin_id, context, guardrails, mode,
+                                conversation_history, deployment_scope),
+            {"response_text": "The identity engine is temporarily unavailable. Please try again shortly.",
+             "_alcm_unavailable": True},
             "generate",
         )
 
     async def generate_stream(self, alcm_twin_id: str, context: str,
                               guardrails: dict = None,
-                              mode: str = "conversation") -> AsyncGenerator[str, None]:
+                              mode: str = "CONVERSATION",
+                              conversation_history: Optional[List[Dict]] = None,
+                              deployment_scope: str = "TRAINING_AREA") -> AsyncGenerator[str, None]:
         try:
             async for chunk in self._inner.generate_stream(
-                alcm_twin_id, context, guardrails, mode
+                alcm_twin_id, context, guardrails, mode,
+                conversation_history, deployment_scope
             ):
                 self._available = True
                 yield chunk
@@ -436,14 +504,16 @@ class GracefulALCMClient:
         return await self._safe(
             self._inner.get_health(alcm_twin_id),
             {"cfs": 0.0, "psychographic_coverage": 0.0, "personality_confidence": 0.0,
-             "health_status": "UNKNOWN", "_alcm_unavailable": True},
+             "health_status": "UNKNOWN", "coverage": {"overall": 0.0, "per_category": {}},
+             "personality_core": {"big_five": {}, "overall_confidence": 0.0},
+             "_alcm_unavailable": True},
             "get_health",
         )
 
     async def get_drift(self, alcm_twin_id: str) -> dict:
         return await self._safe(
             self._inner.get_drift(alcm_twin_id),
-            {"drift_score": None, "_alcm_unavailable": True},
+            {"drift_score": None, "threshold_status": "UNKNOWN", "_alcm_unavailable": True},
             "get_drift",
         )
 
@@ -451,7 +521,7 @@ class GracefulALCMClient:
     async def get_package(self, alcm_twin_id: str, scope: List[str]) -> dict:
         return await self._safe(
             self._inner.get_package(alcm_twin_id, scope),
-            {"_alcm_unavailable": True},
+            {"modules": {}, "_alcm_unavailable": True},
             "get_package",
         )
 
@@ -466,7 +536,7 @@ class GracefulALCMClient:
     async def push_guardrails(self, alcm_twin_id: str, config: dict) -> dict:
         return await self._safe(
             self._inner.push_guardrails(alcm_twin_id, config),
-            {"_alcm_unavailable": True},
+            {"confirmation": False, "_alcm_unavailable": True},
             "push_guardrails",
         )
 
@@ -477,6 +547,14 @@ class GracefulALCMClient:
             self._inner.submit_feedback(alcm_twin_id, interaction_id, feedback_type, signal),
             {"processed": False, "_alcm_unavailable": True},
             "submit_feedback",
+        )
+
+    # --- Job polling ---
+    async def get_job_status(self, job_id: str) -> dict:
+        return await self._safe(
+            self._inner.get_job_status(job_id),
+            {"status": "UNKNOWN", "_alcm_unavailable": True},
+            "get_job_status",
         )
 
     # --- Service health ---

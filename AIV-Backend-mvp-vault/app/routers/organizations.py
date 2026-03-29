@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
 from ..middleware import require_auth
+from ..middleware.permissions import require_role
 from ..models.organization import Organization, OrganizationMembership
 from ..models.user import User
 from ..services.notification_service import NotificationService
@@ -66,9 +67,9 @@ async def list_members(
 @router.post("/{org_id}/invite")
 async def invite_member(
     org_id: str, req: InviteRequest,
-    user: dict = Depends(require_auth), db: AsyncSession = Depends(get_db),
+    user: dict = Depends(require_role("ADMIN")), db: AsyncSession = Depends(get_db),
 ):
-    """Invite a user to the organization by email."""
+    """Invite a user to the organization. Requires ADMIN or OWNER role."""
     # Check if user exists
     user_result = await db.execute(select(User).where(User.email == req.email))
     target_user = user_result.scalar_one_or_none()

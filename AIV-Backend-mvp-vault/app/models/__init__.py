@@ -48,6 +48,13 @@ from .twin_lock import TwinLock
 from .consent_record import ConsentRecord
 from .audit_log import AuditLog
 
+# Access Control
+from .access_code import AccessCode
+from .waitlist import WaitlistEntry
+
+# Calibration (Precision Tuning — BFI-2)
+from .bfi2_response import BFI2Response
+
 # Marketplace (Stage 3 — schema only)
 from .marketplace_listing import MarketplaceListing
 from .marketplace_inquiry import MarketplaceInquiry
@@ -65,5 +72,7 @@ __all__ = [
     "IdentityPackageVersion",
     "Invoice", "UsageMeter", "Payout",
     "Notification", "MisuseDetection", "TwinLock", "ConsentRecord", "AuditLog",
+    "AccessCode", "WaitlistEntry",
+    "BFI2Response",
     "MarketplaceListing", "MarketplaceInquiry",
 ]

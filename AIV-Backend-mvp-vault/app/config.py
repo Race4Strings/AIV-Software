@@ -94,6 +94,22 @@ class Settings(BaseSettings):
     alcm_api_timeout: int = 30
     alcm_auth_token: str = "dev-alcm-token-change-in-production"
 
+    # Stripe
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_platform_fee_price_id: str = ""  # Stripe Price ID for $997/month subscription
+
+    # Zoho Sign (e-signatures) — replaces Dropbox Sign
+    zoho_sign_client_id: str = ""
+    zoho_sign_client_secret: str = ""
+    zoho_sign_redirect_uri: str = "http://localhost:8000/auth/zoho/callback"
+    zoho_sign_org_id: str = ""  # Retrieved programmatically if not set
+    zoho_sign_access_token: str = ""  # Set after OAuth flow
+    zoho_sign_refresh_token: str = ""  # Set after OAuth flow
+
+    # Dropbox Sign (HelloSign) — legacy, kept for reference
+    dropbox_sign_api_key: str = ""
+
     # Anthropic (for assistant orchestration — generation is ALCM's job)
     anthropic_api_key: str = ""
 

@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
-  Shield, Fingerprint, BadgeCheck, Bot, Briefcase,
+  Shield, Fingerprint, BadgeCheck, Briefcase,
   PanelLeft, Settings,
 } from "lucide-react";
 
@@ -17,9 +17,8 @@ import {
 import { Separator } from "@/components/ui/separator";
 
 const navItems = [
-  { title: "Home", href: "/", icon: Shield },
+  { title: "Home", href: "/dashboard", icon: Shield },
   { title: "Identity", href: "/twin", icon: Fingerprint },
-  { title: "Training Area", href: "/twin/training-area", icon: Bot },
   { title: "Deals", href: "/deals", icon: Briefcase },
   { title: "Certification", href: "/twin/certification", icon: BadgeCheck },
 ];
@@ -42,7 +41,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   }, []);
 
   const isActive = (href: string) => {
-    if (href === "/") return pathname === "/";
+    if (href === "/dashboard") return pathname === "/dashboard";
     if (pathname === href) return true;
     if (!pathname.startsWith(href + "/")) return false;
     const moreSpecific = navItems.some(
@@ -66,7 +65,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                 <PanelLeft className="size-5 text-sidebar-foreground/70 absolute opacity-0 group-hover/logo:opacity-100 transition-opacity" />
               </>
             ) : (
-              <Link href="/">
+              <Link href="/dashboard">
                 <Image src="/aiv.svg" alt="AIV" width={46} height={26} className="h-6 w-auto object-contain" />
               </Link>
             )}

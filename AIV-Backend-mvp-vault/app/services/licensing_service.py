@@ -259,6 +259,24 @@ class LicensingService:
         ))
         await self.db.flush()
 
+        # Send email notification for key transitions
+        try:
+            from .email_service import email_service
+            from ..models.user import User
+            twin_result = await self.db.execute(select(Twin).where(Twin.id == deal.twin_id))
+            twin = twin_result.scalar_one_or_none()
+            if twin and twin.talent_user_id:
+                user_result = await self.db.execute(select(User).where(User.id == twin.talent_user_id))
+                user = user_result.scalar_one_or_none()
+                if user:
+                    deal_url = f"/deals/{deal_id}"
+                    if new_status == "SUBMITTED":
+                        await email_service.send_deal_submitted(user.email, deal.deal_type, float(deal.value), deal_url)
+                    elif new_status == "EXECUTED":
+                        await email_service.send_deal_executed(user.email, deal.deal_type, float(deal.value), deal_url)
+        except Exception as e:
+            logger.warning(f"Deal transition email failed: {e}")
+
         return deal
 
     # ------------------------------------------------------------------

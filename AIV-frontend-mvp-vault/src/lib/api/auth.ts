@@ -5,6 +5,7 @@ export interface SignupData {
     username: string;
     email: string;
     password: string;
+    access_code?: string;
 }
 
 export interface SigninData {
@@ -79,6 +80,11 @@ export const authApi = {
     getMe: async (): Promise<User> => {
         const response = await apiClient.get("/auth/me");
         return response.data.data;
+    },
+
+    validateAccessCode: async (code: string): Promise<{ state: string; valid: boolean; message: string }> => {
+        const response = await apiClient.post("/auth/validate-code", { code });
+        return response.data;
     },
 };
 

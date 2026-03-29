@@ -11,10 +11,12 @@ class DealContract(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     deal_id = Column(UUID(as_uuid=True), ForeignKey("deals.id"), nullable=False, index=True)
     version = Column(Integer, nullable=False, default=1)
-    contract_url = Column(Text, nullable=False)
+    contract_url = Column(Text, nullable=True)
+    contract_text = Column(Text, nullable=True)
     signed_by_talent_at = Column(DateTime(timezone=True), nullable=True)
     signed_by_client_at = Column(DateTime(timezone=True), nullable=True)
     esignature_ref = Column(Text, nullable=True)
+    signature_request_id = Column(String(255), nullable=True)  # Dropbox Sign request ID
     is_amendment = Column(Boolean, default=False)
     parent_contract_id = Column(UUID(as_uuid=True), ForeignKey("deal_contracts.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -1,3 +1,7 @@
 export { apiClient } from "./client";
 export { authApi } from "./auth";
 export { uploadApi } from "./upload";
+export { licensingApi } from "./licensing";
+export { paymentsApi } from "./payments";
+export { organizationsApi } from "./organizations";
+export { guardrailsApi } from "./guardrails";

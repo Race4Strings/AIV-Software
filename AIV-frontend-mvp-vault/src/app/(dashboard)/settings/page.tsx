@@ -3,7 +3,7 @@
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Moon, Sun, User, Mail, Shield, Bell, LogOut, Users, Calendar, Building2 } from "lucide-react";
+import { Moon, Sun, User, Mail, Shield, Bell, LogOut, Users, Calendar, Building2, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -44,10 +44,17 @@ export default function SettingsPage() {
     router.replace("/auth/signin");
   };
 
-  const updateNotifPref = (key: string, value: boolean) => {
+  const updateNotifPref = async (key: string, value: boolean) => {
     const updated = { ...notifPrefs, [key]: value };
     setNotifPrefs(updated);
+    // Persist to both localStorage (immediate) and backend (durable)
     localStorage.setItem("notification_prefs", JSON.stringify(updated));
+    try {
+      const apiClient = (await import("@/lib/api/client")).default;
+      await apiClient.post("/notifications/preferences", updated);
+    } catch {
+      // Silent fallback — localStorage still has the prefs
+    }
   };
 
   const themeOptions = [
@@ -102,7 +109,7 @@ export default function SettingsPage() {
                 <Users className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <p className="text-xs text-muted-foreground">Team</p>
-                  <Link href="#" className="font-medium text-xs text-primary hover:underline">Manage team</Link>
+                  <Link href="/settings/team" className="font-medium text-xs text-primary hover:underline">Manage team</Link>
                 </div>
               </div>
             </div>
@@ -160,6 +167,29 @@ export default function SettingsPage() {
                 />
               </div>
             ))}
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Billing */}
+      <section className="space-y-4 border-t border-border pt-6">
+        <div>
+          <h2 className="text-lg font-semibold flex items-center gap-2"><DollarSign className="h-5 w-5" /> Billing</h2>
+          <p className="text-sm text-muted-foreground">Payment methods, invoices, and payout history.</p>
+        </div>
+        <Card className="border-border/50">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Manage billing</p>
+                <p className="text-sm text-muted-foreground">View invoices, manage payment methods, and track payouts.</p>
+              </div>
+              <Link href="/settings/billing">
+                <Button variant="outline" size="sm" className="gap-2">
+                  Open Billing
+                </Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
       </section>

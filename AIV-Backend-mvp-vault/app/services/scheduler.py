@@ -128,8 +128,31 @@ async def activate_platform_fees():
                         due_date=today + timedelta(days=30),
                     )
                     db.add(invoice)
-                    activated += 1
 
+                    # Create Stripe subscription if possible
+                    try:
+                        from .stripe_service import StripeService
+                        stripe_svc = StripeService(db)
+                        sub_result = await stripe_svc.create_platform_fee_subscription(twin.id)
+                        if sub_result:
+                            logger.info(f"Stripe subscription created: {sub_result.get('subscription_id')}")
+                    except Exception as stripe_err:
+                        logger.warning(f"Stripe subscription failed (will retry): {stripe_err}")
+
+                    # Send notification email
+                    try:
+                        from .email_service import email_service
+                        from ..models.user import User
+                        user_result = await db.execute(
+                            select(User).where(User.id == twin.talent_user_id)
+                        )
+                        user = user_result.scalar_one_or_none()
+                        if user:
+                            await email_service.send_fee_free_expiring(user.email, 0)
+                    except Exception as email_err:
+                        logger.warning(f"Fee activation email failed: {email_err}")
+
+                    activated += 1
                     logger.info(f"Platform fee activated for twin {twin.id}")
 
             await db.commit()

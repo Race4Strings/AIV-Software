@@ -57,6 +57,7 @@ class Twin(Base):
     stage_2_completed_at = Column(DateTime(timezone=True), nullable=True)
     fee_free_window_expires = Column(DateTime(timezone=True), nullable=True)
     platform_fee_active = Column(Boolean, default=False)
+    stripe_subscription_id = Column(String(255), nullable=True)
     certified_at = Column(DateTime(timezone=True), nullable=True)
 
     # Health (cached from ALCM): BUILDING | HEALTHY | ATTENTION_NEEDED | ACTION_REQUIRED

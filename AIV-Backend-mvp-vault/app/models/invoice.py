@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, Date, ForeignKey, Numeric, func
+from sqlalchemy import Column, String, Text, DateTime, Date, ForeignKey, Numeric, func
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from ..database import Base
@@ -18,4 +18,6 @@ class Invoice(Base):
     status = Column(String(50), default="PENDING")  # PENDING|PAID|OVERDUE|CANCELLED
     due_date = Column(Date, nullable=False)
     paid_at = Column(DateTime(timezone=True), nullable=True)
+    stripe_invoice_id = Column(String(255), nullable=True)
+    stripe_invoice_url = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

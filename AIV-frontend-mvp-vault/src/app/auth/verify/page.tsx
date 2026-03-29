@@ -1,22 +1,32 @@
 'use client'
 
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { useMutation } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
-import React, { Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import React, { Suspense, useState, useEffect, useRef, useCallback } from 'react'
 import { toast } from 'sonner'
 import { authApi } from '@/lib/api'
 
 function VerifyPageContent() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const email = searchParams.get('email') || ''
-  const devOtpFromSignup = searchParams.get('dev_otp') || ''
-  const [otp, setOtp] = React.useState('')
-  const [devOtp, setDevOtp] = React.useState(devOtpFromSignup)
+  const [otp, setOtp] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Resend cooldown (60 seconds)
+  const [cooldown, setCooldown] = useState(0)
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = setTimeout(() => setCooldown((c) => c - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [cooldown])
+
+  // Auto-focus on mount
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
 
   const verifyMutation = useMutation({
     mutationFn: authApi.verifyEmail,
@@ -25,12 +35,11 @@ function VerifyPageContent() {
       if (data) {
         localStorage.setItem('user', JSON.stringify(data))
       }
-      // Redirect to dashboard
-      window.location.href = '/'
+      window.location.href = '/onboard'
     },
-    onError: (error: Error & { response?: { data?: { detail?: string | Array<{ msg: string }> } } }) => {
+    onError: (error: any) => {
       const detail = error?.response?.data?.detail
-      const message = Array.isArray(detail) 
+      const message = Array.isArray(detail)
         ? detail[0]?.msg || 'Verification failed'
         : detail || 'Verification failed'
       toast.error(message)
@@ -39,18 +48,30 @@ function VerifyPageContent() {
 
   const resendMutation = useMutation({
     mutationFn: authApi.resendOtp,
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.success('Verification code resent!')
-      if (data?.dev_otp) {
-        setDevOtp(data.dev_otp)
-      }
+      setCooldown(60)
     },
-    onError: (error: Error & { response?: { data?: { detail?: string | Array<{ msg: string }> } } }) => {
+    onError: (error: any) => {
       const detail = error?.response?.data?.detail
       const message = Array.isArray(detail) ? detail[0]?.msg : detail || 'Failed to resend code'
       toast.error(message)
     },
   })
+
+  const handleOtpChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 6)
+    setOtp(value)
+  }, [])
+
+  // Handle paste — extract digits from pasted content
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    e.preventDefault()
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+    if (pasted) {
+      setOtp(pasted)
+    }
+  }, [])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,62 +80,68 @@ function VerifyPageContent() {
     }
   }
 
+  const handleResend = () => {
+    if (cooldown > 0) return
+    resendMutation.mutate({ email })
+  }
+
   return (
-    <div className={cn('flex flex-col gap-6')}>
-      <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="font-bold text-2xl">Verify your email</h1>
-        <p className="text-muted-foreground text-sm">
+    <div className="flex flex-col gap-6 animate-fade-in">
+      <div className="flex flex-col gap-2 text-center">
+        <h1 className="font-bold text-3xl tracking-tight text-white">Verify your email</h1>
+        <p className="text-white/50 text-base">
           We&apos;ve sent a 6-digit verification code to{' '}
-          <span className="font-medium text-foreground">{email}</span>
+          <span className="font-medium text-blue-400">{email}</span>
         </p>
       </div>
 
-      {devOtp && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-center">
-          <p className="text-xs text-amber-600 dark:text-amber-400 mb-1">Dev Mode — Your verification code:</p>
-          <p className="text-2xl font-mono font-bold tracking-[0.3em] text-amber-700 dark:text-amber-300">{devOtp}</p>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="grid gap-4">
+      <form onSubmit={handleSubmit} className="grid gap-6">
         <div className="grid gap-2">
-          <Input
+          <input
+            ref={inputRef}
             type="text"
-            placeholder="Enter 6-digit code"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            placeholder="000000"
             value={otp}
-            onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-            className="text-center text-lg tracking-widest"
+            onChange={handleOtpChange}
+            onPaste={handlePaste}
+            className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/12 text-white text-lg placeholder:text-white/20 focus:outline-none focus:border-blue-500 transition-colors font-mono tracking-[0.3em] text-center"
             maxLength={6}
             disabled={verifyMutation.isPending}
           />
         </div>
 
-        <Button
+        <button
           type="submit"
-          className="w-full cursor-pointer"
+          className="w-full py-3 rounded-xl bg-[#2563eb] text-white text-[15px] font-medium shadow-[0_0_20px_rgba(37,99,235,0.35)] hover:bg-[#3b82f6] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
           disabled={otp.length !== 6 || verifyMutation.isPending}
         >
-          {verifyMutation.isPending && (
-            <Loader2 className="size-4 animate-spin mr-2" />
-          )}
+          {verifyMutation.isPending && <Loader2 className="size-4 animate-spin" />}
           Verify Email
-        </Button>
+        </button>
       </form>
 
-      <div className="text-center text-sm">
+      <div className="text-center text-sm text-white/50">
         Didn&apos;t receive the code?{' '}
-        <button
-          type="button"
-          onClick={() => resendMutation.mutate({ email })}
-          disabled={resendMutation.isPending}
-          className="underline underline-offset-4 hover:text-primary disabled:opacity-50"
-        >
-          {resendMutation.isPending ? 'Sending...' : 'Resend'}
-        </button>
+        {cooldown > 0 ? (
+          <span className="text-white/30">
+            Resend in {cooldown}s
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={resendMutation.isPending}
+            className="text-blue-400 hover:text-blue-300 font-medium transition-colors disabled:opacity-50"
+          >
+            {resendMutation.isPending ? 'Sending...' : 'Resend'}
+          </button>
+        )}
       </div>
 
       <div className="text-center text-sm">
-        <Link href="/auth/signin" className="underline underline-offset-4">
+        <Link href="/auth/signin" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
           Back to sign in
         </Link>
       </div>
@@ -124,7 +151,7 @@ function VerifyPageContent() {
 
 export default function VerifyPage() {
   return (
-    <Suspense fallback={<div className="flex justify-center"><Loader2 className="animate-spin" /></div>}>
+    <Suspense fallback={<div className="flex justify-center"><Loader2 className="animate-spin text-white/40" /></div>}>
       <VerifyPageContent />
     </Suspense>
   )

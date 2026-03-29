@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, Loader2, Plus, Upload, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -103,6 +104,12 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
   }
 
   async function createNewSession() {
+    // Show session summary if there were messages in the current session
+    if (messages.length > 0) {
+      const userMsgs = messages.filter((m) => m.role === "USER").length;
+      const agentMsgs = messages.filter((m) => m.role === "AGENT").length;
+      toast.success(`Session complete: ${userMsgs} message${userMsgs !== 1 ? "s" : ""} sent, ${agentMsgs} response${agentMsgs !== 1 ? "s" : ""} received.`);
+    }
     try {
       const newSession = await assistantApi.createSession(twinId);
       setSession(newSession);
@@ -202,7 +209,7 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
     const file = e.target.files?.[0];
     if (!file || !session) return;
     try {
-      const result = await uploadApi.uploadFile(file, "training");
+      const result = await uploadApi.uploadFile(file, "uploads");
       const content = `[Uploaded file: ${file.name}]\nURL: ${result.url}`;
       setInput(content);
       toast.success(`Uploaded ${file.name}`);
@@ -252,31 +259,56 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
             </Button>
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
-            {sessions.slice(0, 10).map((s, idx) => (
-              <button
-                key={s.id}
-                onClick={() => selectSession(s)}
-                className={`w-full text-left rounded-lg px-3 py-2.5 transition-colors ${
-                  s.id === session?.id
-                    ? "bg-primary/10 text-foreground border border-primary/20"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                }`}
-              >
-                <div className="text-xs font-medium truncate">{getSessionTitle(s, idx)}</div>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">{(s.current_mode || "ASSISTANT").toLowerCase().replace("_", " ")}</Badge>
-                  <span className="text-[10px] text-muted-foreground/60">
-                    {new Date(s.started_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </span>
+            {(() => {
+              const grouped: Record<string, typeof sessions> = {};
+              sessions.slice(0, 15).forEach((s, idx) => {
+                const d = new Date(s.started_at);
+                const today = new Date();
+                const isToday = d.toDateString() === today.toDateString();
+                const isYesterday = d.toDateString() === new Date(today.getTime() - 86400000).toDateString();
+                const weekAgo = new Date(today.getTime() - 7 * 86400000);
+                const label = isToday ? "Today" : isYesterday ? "Yesterday" : d > weekAgo ? "This Week" : "Earlier";
+                if (!grouped[label]) grouped[label] = [];
+                grouped[label].push(s);
+              });
+              return Object.entries(grouped).map(([label, groupSessions]) => (
+                <div key={label}>
+                  <p className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-wider px-3 pt-2 pb-1">{label}</p>
+                  {groupSessions.map((s, idx) => (
+                    <button
+                      key={s.id}
+                      onClick={() => selectSession(s)}
+                      className={`w-full text-left rounded-lg px-3 py-2.5 transition-colors ${
+                        s.id === session?.id
+                          ? "bg-primary/10 text-foreground border border-primary/20"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      }`}
+                    >
+                      <div className="text-xs font-medium truncate">{getSessionTitle(s, idx)}</div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">{(s.current_mode || "ASSISTANT").toLowerCase().replace("_", " ")}</Badge>
+                        <span className="text-[10px] text-muted-foreground/60">
+                          {new Date(s.started_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
                 </div>
-              </button>
-            ))}
+              ));
+            })()}
           </div>
         </div>
       )}
 
       {/* Main chat area */}
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Mode accent indicator */}
+        <div className={`h-0.5 transition-colors ${
+          session?.current_mode === "DIGITAL_SELF" ? "bg-purple-500" :
+          session?.current_mode === "TRAINING" ? "bg-blue-500" :
+          session?.current_mode === "REFINEMENT" ? "bg-amber-500" :
+          "bg-primary"
+        }`} />
         {/* Header: Mode switcher + session toggle */}
         <div className="flex items-center justify-between border-b px-4 py-3">
           <div className="flex items-center gap-2">
@@ -300,6 +332,21 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
           )}
         </div>
 
+      {/* Session Progress Indicator */}
+      {messages.length > 0 && (
+        <div className="flex items-center gap-4 px-4 py-2 border-b border-border/30 text-[11px] text-muted-foreground">
+          <span>{messages.filter((m) => m.role === "USER").length} message{messages.filter((m) => m.role === "USER").length !== 1 ? "s" : ""}</span>
+          <span className="h-3 w-px bg-border" />
+          <span>{messages.filter((m) => m.role === "AGENT").length} response{messages.filter((m) => m.role === "AGENT").length !== 1 ? "s" : ""}</span>
+          {messages.some((m) => m.content?.includes("[Uploaded file:")) && (
+            <>
+              <span className="h-3 w-px bg-border" />
+              <span>{messages.filter((m) => m.content?.includes("[Uploaded file:")).length} file{messages.filter((m) => m.content?.includes("[Uploaded file:")).length !== 1 ? "s" : ""}</span>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Messages */}
       <ScrollArea className="flex-1 px-4" aria-live="polite" aria-label="Conversation messages">
         {messages.length === 0 && !isStreaming && (
@@ -310,34 +357,24 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
             </p>
             <p className="mt-1 text-sm text-muted-foreground/60 max-w-md">
               {session?.current_mode === "DIGITAL_SELF"
-                ? "Talk to your digital twin. Test how it responds, deepen its accuracy."
+                ? "Talk to your digital twin. Test how it responds and deepen its accuracy."
                 : session?.current_mode === "TRAINING"
-                ? "Add information — paste content, share links, upload files to train your twin."
+                ? "Add information — paste content, share links, or upload files to train your twin."
                 : session?.current_mode === "REFINEMENT"
                 ? "Correct your twin's responses. Side-by-side comparison and fine-tuning."
                 : "Ask about deals, revenue, platform features, or get guidance."}
             </p>
+            <p className="mt-4 text-xs text-muted-foreground/40 max-w-sm">
+              Start with a message below. The more you interact, the stronger your identity profile becomes.
+            </p>
 
-            {/* Coverage indicator during BUILDING */}
+            {/* Building status — activity encouragement (replaces ALCM metrics) */}
             {healthData && healthData.status === "BUILDING" && (
               <div className="mt-4 rounded-lg border border-border/50 bg-muted/30 px-4 py-3 text-left max-w-sm w-full">
-                <p className="text-xs font-medium text-muted-foreground mb-2">Identity Coverage</p>
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Psychographic</span>
-                    <span className="font-mono">{Math.round((healthData.coverage || 0) * 100)}%</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${(healthData.coverage || 0) * 100}%` }} />
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Confidence</span>
-                    <span className="font-mono">{Math.round((healthData.confidence || 0) * 100)}%</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${(healthData.confidence || 0) * 100}%` }} />
-                  </div>
-                </div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Identity Status: Building</p>
+                <p className="text-xs text-muted-foreground">
+                  Each conversation strengthens your identity profile. Upload media, share content, and refine responses to increase your deal value.
+                </p>
               </div>
             )}
 

@@ -9,6 +9,8 @@ export interface Organization {
 export interface OrgMember {
   id: string;
   user_id: string;
+  name?: string;
+  email?: string;
   role: string;
   permissions: Record<string, boolean>;
   accepted_at: string | null;

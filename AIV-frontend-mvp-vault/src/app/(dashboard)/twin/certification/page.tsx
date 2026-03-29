@@ -301,12 +301,12 @@ export default function CertificationPage() {
                 </p>
                 <p>
                   In the event of unauthorized use, deepfakes, or impersonation of your likeness, this certification
-                  serves as <span className="text-foreground font-medium">court-admissible evidence</span> of prior ownership. The SHA-256 hash
+                  serves as <span className="text-foreground font-medium">documented proof of prior existence and ownership</span>. The SHA-256 hash
                   and blockchain anchor provide tamper-proof verification that your identity profile existed before any infringing content.
                 </p>
                 <p>
-                  Share the public verification URL or download the PDF certificate to present as documentation in legal proceedings,
-                  DMCA takedowns, or platform disputes.
+                  Share the public verification URL or download the PDF certificate to present as documentation in disputes,
+                  DMCA takedowns, or platform enforcement actions.
                 </p>
               </div>
             </div>

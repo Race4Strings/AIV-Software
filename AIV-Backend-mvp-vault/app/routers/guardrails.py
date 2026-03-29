@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
 from ..middleware import require_auth
+from ..middleware.permissions import require_role
 from ..models.twin import Twin
 from ..models.guardrail_config import GuardrailConfig
 from ..models.licensing_rules_config import LicensingRulesConfig
@@ -84,9 +85,9 @@ class GuardrailUpdate(BaseModel):
 @router.post("/twins/{twin_id}/guardrails")
 async def update_guardrails(
     twin_id: str, req: GuardrailUpdate,
-    user: dict = Depends(require_auth), db: AsyncSession = Depends(get_db),
+    user: dict = Depends(require_role("ADMIN")), db: AsyncSession = Depends(get_db),
 ):
-    """Create new guardrail version. Deactivates previous, pushes to ALCM API."""
+    """Create new guardrail version. Requires ADMIN or OWNER role."""
     tid = UUID(twin_id)
 
     # Deactivate current
@@ -162,7 +163,7 @@ class LicensingRulesUpdate(BaseModel):
 @router.post("/twins/{twin_id}/licensing-rules")
 async def update_licensing_rules(
     twin_id: str, req: LicensingRulesUpdate,
-    user: dict = Depends(require_auth), db: AsyncSession = Depends(get_db),
+    user: dict = Depends(require_role("ADMIN")), db: AsyncSession = Depends(get_db),
 ):
     tid = UUID(twin_id)
 

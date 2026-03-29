@@ -7,19 +7,21 @@ from datetime import datetime
 # ============== Request Schemas ==============
 
 class SignupRequest(BaseModel):
-    """Schema for user registration."""
+    """Schema for user registration. Requires a valid access code."""
     name: str = Field(..., min_length=2, max_length=255)
     username: str = Field(..., min_length=3, max_length=255, pattern=r"^[a-zA-Z0-9_]+$")
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=255)
-    
+    access_code: Optional[str] = Field(None, description="AIV access code (required in production)")
+
     class Config:
         json_schema_extra = {
             "example": {
                 "name": "John Doe",
                 "username": "johndoe",
                 "email": "john@example.com",
-                "password": "securepassword123"
+                "password": "securepassword123",
+                "access_code": "AIV-ABC123"
             }
         }
 

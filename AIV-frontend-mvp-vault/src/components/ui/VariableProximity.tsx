@@ -55,9 +55,7 @@ interface VariableProximityProps {
     className?: string;
     onClick?: () => void;
     style?: React.CSSProperties;
-    id?: string;
-    tabIndex?: number;
-    "aria-label"?: string;
+    [key: string]: any;
 }
 
 const VariableProximity = forwardRef<HTMLSpanElement, VariableProximityProps>((props, ref) => {
