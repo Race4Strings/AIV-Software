@@ -349,6 +349,45 @@ async def reset_password(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str
+
+
+@router.post("/change-password", response_model=MessageResponse)
+async def change_password(
+    data: ChangePasswordRequest,
+    user: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Change password for authenticated user. Requires current password."""
+    from ..models.user import User
+    import bcrypt
+
+    result = await db.execute(select(User).where(User.id == uuid.UUID(user["id"])))
+    db_user = result.scalar_one_or_none()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Verify old password
+    if not bcrypt.checkpw(data.old_password.encode(), db_user.password_hash.encode()):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    # Validate new password
+    if len(data.new_password) < 8:
+        raise HTTPException(status_code=400, detail="New password must be at least 8 characters")
+
+    if data.old_password == data.new_password:
+        raise HTTPException(status_code=400, detail="New password must be different from current password")
+
+    # Hash and update
+    new_hash = bcrypt.hashpw(data.new_password.encode(), bcrypt.gensalt()).decode()
+    db_user.password_hash = new_hash
+    await db.flush()
+
+    return MessageResponse(state="success", message="Password changed successfully")
+
+
 # ------------------------------------------------------------------
 # Access Code Endpoints
 # ------------------------------------------------------------------

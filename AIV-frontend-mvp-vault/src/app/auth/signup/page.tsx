@@ -29,6 +29,27 @@ function SignupForm() {
   const [passwordConfirm, setPasswordConfirm] = useState('')
   const [accessCode, setAccessCode] = useState(codeFromUrl)
   const [showPassword, setShowPassword] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
+
+  function validateField(field: string, value: string) {
+    const errors: Record<string, string> = { ...fieldErrors }
+    if (field === 'name' && !value.trim()) errors.name = 'Name is required'
+    else if (field === 'name') delete errors.name
+    if (field === 'username' && !value.trim()) errors.username = 'Username is required'
+    else if (field === 'username' && value.length < 3) errors.username = 'At least 3 characters'
+    else if (field === 'username') delete errors.username
+    if (field === 'email' && !value.includes('@')) errors.email = 'Enter a valid email'
+    else if (field === 'email') delete errors.email
+    if (field === 'password' && value.length > 0 && value.length < 8) errors.password = 'At least 8 characters'
+    else if (field === 'password') delete errors.password
+    setFieldErrors(errors)
+  }
+
+  function handleBlur(field: string, value: string) {
+    setTouched(prev => ({ ...prev, [field]: true }))
+    validateField(field, value)
+  }
 
   const signupMutation = useMutation({
     mutationFn: () => authApi.signup({
@@ -104,23 +125,27 @@ function SignupForm() {
             <input
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => { setName(e.target.value); if (touched.name) validateField('name', e.target.value); }}
+              onBlur={(e) => handleBlur('name', e.target.value)}
               placeholder="Full name"
               disabled={signupMutation.isPending}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+              className={`w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border ${touched.name && fieldErrors.name ? 'border-red-500/50' : 'border-white/12'} text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors`}
               autoFocus={!!codeFromUrl}
             />
+            {touched.name && fieldErrors.name && <p className="text-[10px] text-red-400 mt-1">{fieldErrors.name}</p>}
           </div>
           <div>
             <label className="block text-xs text-white/70 font-medium mb-1.5">Username *</label>
             <input
               type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+              onChange={(e) => { const v = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''); setUsername(v); if (touched.username) validateField('username', v); }}
+              onBlur={(e) => handleBlur('username', e.target.value)}
               placeholder="johndoe"
               disabled={signupMutation.isPending}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+              className={`w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border ${touched.username && fieldErrors.username ? 'border-red-500/50' : 'border-white/12'} text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors`}
             />
+            {touched.username && fieldErrors.username && <p className="text-[10px] text-red-400 mt-1">{fieldErrors.username}</p>}
           </div>
         </div>
 
@@ -130,11 +155,13 @@ function SignupForm() {
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { setEmail(e.target.value); if (touched.email) validateField('email', e.target.value); }}
+            onBlur={(e) => handleBlur('email', e.target.value)}
             placeholder="you@example.com"
             disabled={signupMutation.isPending}
-            className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+            className={`w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border ${touched.email && fieldErrors.email ? 'border-red-500/50' : 'border-white/12'} text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors`}
           />
+          {touched.email && fieldErrors.email && <p className="text-[10px] text-red-400 mt-1">{fieldErrors.email}</p>}
         </div>
 
         {/* Password */}

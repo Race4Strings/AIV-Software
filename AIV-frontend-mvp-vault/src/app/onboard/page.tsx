@@ -649,7 +649,11 @@ export default function OnboardingPage() {
               e.preventDefault();
               setDragActive(false);
               const dropped = Array.from(e.dataTransfer.files);
-              if (dropped.length > 0) setFiles((prev) => [...prev, ...dropped]);
+              const valid = dropped.filter(f => {
+                if (f.size > 50 * 1024 * 1024) { toast.error(`${f.name} exceeds 50MB limit`); return false; }
+                return true;
+              });
+              if (valid.length > 0) setFiles((prev) => [...prev, ...valid]);
             }}
           >
             <CardContent className="flex flex-col items-center gap-4 py-10">
@@ -658,7 +662,11 @@ export default function OnboardingPage() {
                 <div className="space-y-1.5 text-sm w-full max-w-sm">
                   {files.map((f, i) => (
                     <div key={f.name + i} className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                      {f.type.startsWith("image/") ? (
+                        <img src={URL.createObjectURL(f)} alt="" className="h-8 w-8 rounded object-cover shrink-0" />
+                      ) : (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                      )}
                       <span className="truncate flex-1">{f.name}</span>
                       <span className="text-xs text-muted-foreground shrink-0">{(f.size / 1024 / 1024).toFixed(1)} MB</span>
                       <button onClick={() => removeFile(i)} className="text-muted-foreground hover:text-destructive transition-colors shrink-0 p-0.5 rounded">
@@ -672,7 +680,14 @@ export default function OnboardingPage() {
                   {dragActive ? "Drop files here..." : "Drag and drop files here, or click to browse"}
                 </p>
               )}
-              <input ref={fileInputRef} type="file" multiple accept="audio/*,video/*,image/*,.pdf,.doc,.docx,.txt" className="hidden" onChange={(e) => { setFiles((prev) => [...prev, ...Array.from(e.target.files || [])]); e.target.value = ""; }} />
+              <input ref={fileInputRef} type="file" multiple accept="audio/*,video/*,image/*,.pdf,.doc,.docx,.txt" className="hidden" onChange={(e) => {
+                const newFiles = Array.from(e.target.files || []).filter(f => {
+                  if (f.size > 50 * 1024 * 1024) { toast.error(`${f.name} exceeds 50MB limit`); return false; }
+                  return true;
+                });
+                setFiles((prev) => [...prev, ...newFiles]);
+                e.target.value = "";
+              }} />
               <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                 {files.length > 0 ? "Add More" : "Choose Files"}
               </Button>

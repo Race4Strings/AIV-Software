@@ -346,6 +346,34 @@ async def generate_contract(
     return _serialize(contract)
 
 
+@router.get("/deals/{deal_id}/contract/{contract_id}/pdf")
+async def download_contract_pdf(
+    deal_id: str,
+    contract_id: str,
+    user: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Download a contract as PDF."""
+    from ..services.contract_generator import text_to_pdf
+    from ..models.deal_contract import DealContract
+    from fastapi.responses import Response
+
+    contract = (await db.execute(
+        select(DealContract).where(DealContract.id == UUID(contract_id))
+    )).scalar_one_or_none()
+
+    if not contract or not contract.contract_text:
+        raise HTTPException(status_code=404, detail="Contract not found")
+
+    pdf_bytes = text_to_pdf("AIV Identity Licensing Agreement", contract.contract_text)
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=AIV-Contract-{deal_id[:8]}.pdf"},
+    )
+
+
 @router.post("/deals/{deal_id}/contract/{contract_id}/send-for-signature")
 async def send_for_signature(
     deal_id: str,

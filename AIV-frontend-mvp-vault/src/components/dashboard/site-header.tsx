@@ -23,6 +23,11 @@ export function SiteHeader({
 
   useEffect(() => {
     notificationsApi.list().then(setNotifications).catch(() => {});
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(() => {
+      notificationsApi.list().then(setNotifications).catch(() => {});
+    }, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleMarkAllRead = async () => {

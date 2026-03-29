@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
@@ -17,6 +17,7 @@ from .routers import (
 )
 
 from .middleware import SessionMiddleware
+from .middleware.auth_middleware import require_auth
 
 import logging
 logger = logging.getLogger(__name__)
@@ -171,6 +172,17 @@ def create_app() -> FastAPI:
                 "access_token_expires_in": result.get("expires_in"),
             }
         return {"error": "Failed to exchange code for tokens"}
+
+    # ------------------------------------------------------------------
+    # Async Job Polling (proxy to ALCM)
+    # ------------------------------------------------------------------
+
+    @app.get("/jobs/{job_id}")
+    async def get_job_status(job_id: str, user: dict = Depends(require_auth)):
+        """Poll async job status (media processing, etc). Proxies to ALCM."""
+        from .services.alcm_client import get_alcm_client
+        client = get_alcm_client()
+        return await client.get_job_status(job_id)
 
     return app
 

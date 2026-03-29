@@ -3,13 +3,16 @@
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Moon, Sun, User, Mail, Shield, Bell, LogOut, Users, Calendar, Building2, DollarSign } from "lucide-react";
+import { Moon, Sun, User, Mail, Shield, Bell, LogOut, Users, Calendar, Building2, DollarSign, Loader2, Eye, EyeOff, Lock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { authApi } from "@/lib/api";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -23,6 +26,11 @@ export default function SettingsPage() {
     system_updates: false,
   });
   const router = useRouter();
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ old: "", new: "", confirm: "" });
+  const [showOldPw, setShowOldPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -211,6 +219,95 @@ export default function SettingsPage() {
                 <LogOut className="h-4 w-4" /> Sign Out
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Change Password */}
+        <Card className="border-border/50">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Change password</p>
+                <p className="text-sm text-muted-foreground">Update your account password.</p>
+              </div>
+              {!showPasswordForm && (
+                <Button variant="outline" size="sm" onClick={() => setShowPasswordForm(true)} className="gap-2">
+                  <Lock className="h-4 w-4" /> Change
+                </Button>
+              )}
+            </div>
+            {showPasswordForm && (
+              <div className="mt-4 space-y-3 max-w-sm">
+                <div className="relative">
+                  <Input
+                    type={showOldPw ? "text" : "password"}
+                    placeholder="Current password"
+                    value={passwordForm.old}
+                    onChange={(e) => setPasswordForm(p => ({ ...p, old: e.target.value }))}
+                  />
+                  <button type="button" onClick={() => setShowOldPw(!showOldPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+                    {showOldPw ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                  </button>
+                </div>
+                <div className="relative">
+                  <Input
+                    type={showNewPw ? "text" : "password"}
+                    placeholder="New password (min 8 characters)"
+                    value={passwordForm.new}
+                    onChange={(e) => setPasswordForm(p => ({ ...p, new: e.target.value }))}
+                  />
+                  <button type="button" onClick={() => setShowNewPw(!showNewPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+                    {showNewPw ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                  </button>
+                </div>
+                {passwordForm.new.length > 0 && (() => {
+                  const s = (passwordForm.new.length >= 8 ? 1 : 0) + (/[A-Z]/.test(passwordForm.new) ? 1 : 0) + (/[0-9]/.test(passwordForm.new) ? 1 : 0) + (/[^A-Za-z0-9]/.test(passwordForm.new) ? 1 : 0);
+                  const colors = ["bg-red-500", "bg-orange-500", "bg-yellow-500", "bg-emerald-500"];
+                  const labels = ["", "Weak", "Fair", "Good", "Strong"];
+                  return (
+                    <div className="space-y-1">
+                      <div className="flex gap-1">
+                        {[1,2,3,4].map(l => <div key={l} className={`h-1 flex-1 rounded-full transition-colors ${l <= s ? colors[s-1] : "bg-muted"}`} />)}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">{passwordForm.new.length < 8 ? "At least 8 characters" : labels[s]}</p>
+                    </div>
+                  );
+                })()}
+                <Input
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={passwordForm.confirm}
+                  onChange={(e) => setPasswordForm(p => ({ ...p, confirm: e.target.value }))}
+                />
+                {passwordForm.confirm && passwordForm.new !== passwordForm.confirm && (
+                  <p className="text-xs text-red-500">Passwords don&apos;t match</p>
+                )}
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    disabled={changingPassword || passwordForm.new.length < 8 || passwordForm.new !== passwordForm.confirm || !passwordForm.old}
+                    onClick={async () => {
+                      setChangingPassword(true);
+                      try {
+                        await authApi.changePassword(passwordForm.old, passwordForm.new);
+                        toast.success("Password changed successfully");
+                        setPasswordForm({ old: "", new: "", confirm: "" });
+                        setShowPasswordForm(false);
+                      } catch (err: any) {
+                        toast.error(err?.response?.data?.detail || "Failed to change password");
+                      }
+                      setChangingPassword(false);
+                    }}
+                  >
+                    {changingPassword ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                    Update Password
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setShowPasswordForm(false); setPasswordForm({ old: "", new: "", confirm: "" }); }}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </section>

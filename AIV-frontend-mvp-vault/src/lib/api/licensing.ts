@@ -42,7 +42,8 @@ export interface DealMilestone {
 export interface DealContract {
   id: string;
   version: number;
-  contract_url: string;
+  contract_url: string | null;
+  contract_text: string | null;
   signed_by_talent_at: string | null;
   signed_by_client_at: string | null;
   is_amendment: boolean;

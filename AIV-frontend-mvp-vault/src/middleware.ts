@@ -10,25 +10,32 @@ const publicRoutes = [
     '/auth/forgot-password',  // Password reset request
     '/auth/reset-password',   // Password reset
     '/verify',                // Public seal verification
+    '/calibration',           // Precision Tuning (has its own auth check)
+    '/onboard',               // Onboarding (has its own auth check)
+    '/admin',                 // Admin (has its own auth check)
 ]
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
 
-    // Check if user has a session cookie (set by backend)
-    // Note: In development, the cookie may not be sent due to cross-origin
-    // We also check for a localStorage flag set by the frontend
-    const sessionCookie = request.cookies.get('session_id')
-    const isAuthenticated = !!sessionCookie
-
     // Allow public routes
-    if (publicRoutes.some(route => pathname.startsWith(route))) {
+    if (publicRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
         return NextResponse.next()
     }
 
-    // For protected routes, let the client-side handle auth check
-    // This is necessary because cross-origin cookies don't work well in dev
-    // The client will redirect to signin if not authenticated
+    // Check for session cookie (set by backend as httponly cookie)
+    const sessionCookie = request.cookies.get('session_id')
+
+    if (!sessionCookie?.value) {
+        // No session — redirect to signin for protected routes
+        // Preserve the intended destination so we can redirect back after login
+        const signinUrl = new URL('/auth/signin', request.url)
+        signinUrl.searchParams.set('redirect', pathname)
+        return NextResponse.redirect(signinUrl)
+    }
+
+    // Session cookie exists — allow through
+    // The backend validates the session on every API call via require_auth
     return NextResponse.next()
 }
 
@@ -42,6 +49,6 @@ export const config = {
          * - favicon.ico (favicon file)
          * - public files (images, etc.)
          */
-        '/((?!api|_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.svg$|.*\\.jpg$|.*\\.ico$).*)',
+        '/((?!api|_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.svg$|.*\\.jpg$|.*\\.ico$|fonts).*)',
     ],
 }

@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Briefcase, CheckCircle2, AlertTriangle, Clock,
-  DollarSign, ArrowRight, Loader2, Plus, X,
+  DollarSign, ArrowRight, Loader2, Plus, X, Search,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,8 @@ export default function DealsPage() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [revenue, setRevenue] = useState<RevenueSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const [showNewDeal, setShowNewDeal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newDeal, setNewDeal] = useState({
@@ -252,9 +254,50 @@ export default function DealsPage() {
         </div>
       )}
 
-      {/* Pipeline View — groups memoized to avoid re-filtering on every render */}
+      {/* Search & Filter */}
+      {deals.length > 0 && (
+        <div className="flex gap-3 items-center">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by type, territory, value..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+          >
+            <option value="ALL">All statuses</option>
+            <option value="SUBMITTED">Submitted</option>
+            <option value="UNDER_REVIEW">Under Review</option>
+            <option value="APPROVED">Approved</option>
+            <option value="CONTRACT_SENT">Contract Sent</option>
+            <option value="EXECUTED">Executed</option>
+            <option value="ACTIVE">Active</option>
+            <option value="COMPLETED">Completed</option>
+          </select>
+        </div>
+      )}
+
+      {/* Pipeline View */}
       {Object.entries(STATUS_GROUPS).map(([group, statuses]) => {
-        const groupDeals = deals.filter((d: Deal) => statuses.includes(d.status));
+        const groupDeals = deals
+          .filter((d: Deal) => statuses.includes(d.status))
+          .filter((d: Deal) => statusFilter === "ALL" || d.status === statusFilter)
+          .filter((d: Deal) => {
+            if (!searchQuery) return true;
+            const q = searchQuery.toLowerCase();
+            return (
+              d.deal_type.toLowerCase().includes(q) ||
+              (d.territory || []).some((t: string) => t.toLowerCase().includes(q)) ||
+              String(d.value).includes(q) ||
+              String(d.deal_number).includes(q)
+            );
+          });
         if (groupDeals.length === 0) return null;
 
         return (

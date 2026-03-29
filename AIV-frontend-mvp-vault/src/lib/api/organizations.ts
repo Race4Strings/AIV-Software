@@ -29,4 +29,11 @@ export const organizationsApi = {
     const { data } = await apiClient.post(`/organizations/${orgId}/invite`, { email, role, permissions });
     return data;
   },
+  async updateMemberRole(orgId: string, userId: string, role: string) {
+    const { data } = await apiClient.put(`/organizations/${orgId}/members/${userId}`, { role });
+    return data;
+  },
+  async removeMember(orgId: string, userId: string) {
+    await apiClient.delete(`/organizations/${orgId}/members/${userId}`);
+  },
 };

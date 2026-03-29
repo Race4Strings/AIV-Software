@@ -128,3 +128,28 @@ async def update_member(
     await db.flush()
 
     return {"id": str(membership.id), "role": membership.role, "permissions": membership.permissions}
+
+
+@router.delete("/{org_id}/members/{user_id}")
+async def remove_member(
+    org_id: str, user_id: str,
+    user: dict = Depends(require_role("ADMIN")), db: AsyncSession = Depends(get_db),
+):
+    """Remove a member from the organization. Requires ADMIN or OWNER role."""
+    result = await db.execute(
+        select(OrganizationMembership).where(
+            OrganizationMembership.organization_id == UUID(org_id),
+            OrganizationMembership.user_id == UUID(user_id),
+        )
+    )
+    membership = result.scalar_one_or_none()
+    if not membership:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    if membership.role == "OWNER":
+        raise HTTPException(status_code=403, detail="Cannot remove the organization owner")
+
+    await db.delete(membership)
+    await db.flush()
+
+    return {"message": "Member removed"}

@@ -86,6 +86,13 @@ export const authApi = {
         const response = await apiClient.post("/auth/validate-code", { code });
         return response.data;
     },
+
+    changePassword: async (oldPassword: string, newPassword: string): Promise<void> => {
+        await apiClient.post("/auth/change-password", {
+            old_password: oldPassword,
+            new_password: newPassword,
+        });
+    },
 };
 
 export default authApi;

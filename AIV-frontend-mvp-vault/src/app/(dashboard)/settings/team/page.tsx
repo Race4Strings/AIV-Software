@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Users, UserPlus, Shield, Mail, CheckCircle2,
-  Clock, Loader2, Crown, Eye,
+  Clock, Loader2, Crown, Eye, Trash2, MoreVertical,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,8 @@ export default function TeamPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("MEMBER");
   const [inviting, setInviting] = useState(false);
+  const [editingRole, setEditingRole] = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
 
   useEffect(() => {
     // Get org ID from user data
@@ -149,10 +151,31 @@ export default function TeamPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-sm">{m.name || m.email || `User ${m.user_id.slice(0, 8)}`}</span>
-                      <Badge variant="outline" className="text-[10px]">
-                        <RoleIcon className={`h-3 w-3 mr-1 ${roleConfig.color}`} />
-                        {roleConfig.label}
-                      </Badge>
+                      {editingRole === m.user_id ? (
+                        <select
+                          value={m.role}
+                          onChange={async (e) => {
+                            try {
+                              await organizationsApi.updateMemberRole(orgId, m.user_id, e.target.value);
+                              toast.success("Role updated");
+                              setEditingRole(null);
+                              await loadMembers(orgId);
+                            } catch { toast.error("Failed to update role"); }
+                          }}
+                          onBlur={() => setEditingRole(null)}
+                          autoFocus
+                          className="rounded border border-border bg-background px-2 py-0.5 text-xs"
+                        >
+                          <option value="ADMIN">Admin</option>
+                          <option value="MEMBER">Member</option>
+                          <option value="VIEWER">Viewer</option>
+                        </select>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px]">
+                          <RoleIcon className={`h-3 w-3 mr-1 ${roleConfig.color}`} />
+                          {roleConfig.label}
+                        </Badge>
+                      )}
                     </div>
                     {m.email && m.name && (
                       <p className="text-xs text-muted-foreground">{m.email}</p>
@@ -171,6 +194,55 @@ export default function TeamPage() {
                       )}
                     </div>
                   </div>
+                  {/* Member actions — hidden for OWNER */}
+                  {m.role !== "OWNER" && (
+                    <div className="flex items-center gap-1">
+                      {confirmRemove === m.user_id ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-red-500">Remove?</span>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="h-7 text-xs"
+                            onClick={async () => {
+                              try {
+                                await organizationsApi.removeMember(orgId, m.user_id);
+                                toast.success("Member removed");
+                                setConfirmRemove(null);
+                                await loadMembers(orgId);
+                              } catch { toast.error("Failed to remove member"); }
+                            }}
+                          >
+                            Yes
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setConfirmRemove(null)}>
+                            No
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0"
+                            onClick={() => setEditingRole(editingRole === m.user_id ? null : m.user_id)}
+                            title="Edit role"
+                          >
+                            <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0"
+                            onClick={() => setConfirmRemove(m.user_id)}
+                            title="Remove member"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-red-500" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
