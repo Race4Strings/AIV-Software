@@ -131,4 +131,30 @@ async def create_snapshot(
     db.add(version)
     await db.flush()
 
+    # Cascade notification to active deals using this twin
+    try:
+        from ..models.deal import Deal
+        from ..services.notification_service import NotificationService
+
+        active_deals = await db.execute(
+            select(Deal).where(
+                Deal.twin_id == tid,
+                Deal.status.in_(["EXECUTED", "ACTIVE"]),
+            )
+        )
+        nsvc = NotificationService(db)
+        for deal in active_deals.scalars().all():
+            # Notify the twin's talent user
+            if twin.talent_user_id:
+                await nsvc.create(
+                    twin.talent_user_id, "PACKAGE_UPDATE",
+                    f"Identity package updated to v{next_ver}",
+                    f"A new version of {twin.display_name}'s identity package is available for deal #{deal.deal_number}.",
+                    action_url=f"/deals/{deal.id}",
+                    entity_type="identity_package", entity_id=version.id,
+                )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Cascade notification failed (non-blocking): {e}")
+
     return _serialize(version)

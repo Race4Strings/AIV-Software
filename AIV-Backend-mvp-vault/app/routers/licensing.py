@@ -284,15 +284,19 @@ async def sign_contract(
 @router.post("/deals/{deal_id}/generate-contract")
 async def generate_contract(
     deal_id: str,
+    template_type: str = Query("licensing_agreement", description="licensing_agreement | psa | dpa"),
     user: dict = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
-    """Auto-generate a licensing agreement from deal terms.
+    """Auto-generate a contract from deal terms.
 
-    Creates a contract with the deal's specific terms populated into
-    the template. Returns the contract record with generated text.
+    template_type: licensing_agreement (default), psa, dpa
     """
-    from ..services.contract_generator import generate_licensing_agreement
+    from ..services.contract_generator import (
+        generate_licensing_agreement,
+        generate_platform_services_agreement,
+        generate_data_processing_agreement,
+    )
     from ..models.deal_contract import DealContract
     from ..models.twin import Twin
     from ..models.organization import Organization
@@ -314,19 +318,31 @@ async def generate_contract(
         )).scalar_one_or_none()
     client_name = client_org.name if client_org else "Client Organization"
 
-    contract_text = generate_licensing_agreement(
-        twin_name=twin_name,
-        twin_category=twin_category,
-        client_org_name=client_name,
-        deal_type=deal.deal_type,
-        deal_value=float(deal.value),
-        currency=deal.currency or "USD",
-        territory=deal.territory or [],
-        data_scope=deal.data_scope or [],
-        exclusivity=deal.exclusivity or False,
-        commission_rate=deal.commission_rate or 0.30,
-        deal_number=deal.deal_number or 1,
-    )
+    if template_type == "psa":
+        contract_text = generate_platform_services_agreement(
+            user_name=twin_name,
+            org_name=client_name,
+            role="TALENT",
+        )
+    elif template_type == "dpa":
+        contract_text = generate_data_processing_agreement(
+            twin_name=twin_name,
+            org_name=client_name,
+        )
+    else:
+        contract_text = generate_licensing_agreement(
+            twin_name=twin_name,
+            twin_category=twin_category,
+            client_org_name=client_name,
+            deal_type=deal.deal_type,
+            deal_value=float(deal.value),
+            currency=deal.currency or "USD",
+            territory=deal.territory or [],
+            data_scope=deal.data_scope or [],
+            exclusivity=deal.exclusivity or False,
+            commission_rate=deal.commission_rate or 0.30,
+            deal_number=deal.deal_number or 1,
+        )
 
     # Create contract record
     existing = await db.execute(

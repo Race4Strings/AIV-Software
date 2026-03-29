@@ -43,6 +43,11 @@ export default function DealWorkspacePage() {
   const [signEmails, setSignEmails] = useState({ talent: "", client: "" });
   const [transitioning, setTransitioning] = useState(false);
   const [showTrainPrompt, setShowTrainPrompt] = useState(false);
+  const [contractTemplate, setContractTemplate] = useState("licensing_agreement");
+  const [showRdaForm, setShowRdaForm] = useState(false);
+  const [rdaForm, setRdaForm] = useState({ recipient_org: "", recipient_contact: "", purpose: "", restrictions: "" });
+  const [showPartnerForm, setShowPartnerForm] = useState(false);
+  const [partnerForm, setPartnerForm] = useState({ partner_name: "", partner_role: "", data_access_scope: "" });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Status transition config
@@ -194,6 +199,7 @@ export default function DealWorkspacePage() {
           <TabsTrigger value="milestones">Milestones {deal.milestones?.length ? `(${deal.milestones.length})` : ""}</TabsTrigger>
           <TabsTrigger value="messages">Messages {messages.length ? `(${messages.length})` : ""}</TabsTrigger>
           <TabsTrigger value="pul">PUL {deal.pul_records?.length ? `(${deal.pul_records.length})` : ""}</TabsTrigger>
+          <TabsTrigger value="compliance">Compliance</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4 mt-4">
@@ -218,7 +224,16 @@ export default function DealWorkspacePage() {
         </TabsContent>
 
         <TabsContent value="contract" className="mt-4 space-y-3">
-          <div className="flex justify-end">
+          <div className="flex items-center justify-end gap-2">
+            <select
+              value={contractTemplate}
+              onChange={(e) => setContractTemplate(e.target.value)}
+              className="rounded-md border border-border bg-background px-2 py-1.5 text-xs"
+            >
+              <option value="licensing_agreement">Licensing Agreement</option>
+              <option value="psa">Platform Services Agreement</option>
+              <option value="dpa">Data Processing Agreement</option>
+            </select>
             <Button
               variant="outline"
               size="sm"
@@ -226,16 +241,16 @@ export default function DealWorkspacePage() {
               onClick={async () => {
                 setGeneratingContract(true);
                 try {
-                  await apiClient.post(`/deals/${dealId}/generate-contract`);
+                  await apiClient.post(`/deals/${dealId}/generate-contract?template_type=${contractTemplate}`);
                   const refreshed = await licensingApi.getDeal(dealId);
                   setDeal(refreshed);
-                  toast.success("Contract generated from deal terms");
+                  toast.success("Contract generated");
                 } catch { toast.error("Failed to generate contract"); }
                 setGeneratingContract(false);
               }}
             >
               {generatingContract ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <FileText className="h-4 w-4 mr-1" />}
-              Generate Contract
+              Generate
             </Button>
           </div>
           {deal.contracts?.length ? (
@@ -511,6 +526,101 @@ export default function DealWorkspacePage() {
               ))}
             </div>
           ) : !showPulForm && <p className="text-sm text-muted-foreground py-8 text-center">No PUL submissions yet. Submit your first permitted use record to track compliance.</p>}
+        </TabsContent>
+
+        {/* Compliance Tab — RDA + Production Partners */}
+        <TabsContent value="compliance" className="mt-4 space-y-6">
+          {/* Reference Data Agreements */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold">Reference Data Agreements</h3>
+              <Button size="sm" variant="outline" onClick={() => setShowRdaForm(!showRdaForm)}>
+                {showRdaForm ? <X className="h-3.5 w-3.5 mr-1" /> : <Plus className="h-3.5 w-3.5 mr-1" />}
+                {showRdaForm ? "Cancel" : "New RDA"}
+              </Button>
+            </div>
+            {showRdaForm && (
+              <Card className="mb-3">
+                <CardContent className="py-4 space-y-3">
+                  <Input placeholder="Recipient organization" value={rdaForm.recipient_org} onChange={(e) => setRdaForm(p => ({ ...p, recipient_org: e.target.value }))} />
+                  <Input placeholder="Recipient contact email" value={rdaForm.recipient_contact} onChange={(e) => setRdaForm(p => ({ ...p, recipient_contact: e.target.value }))} />
+                  <Input placeholder="Purpose of data transfer" value={rdaForm.purpose} onChange={(e) => setRdaForm(p => ({ ...p, purpose: e.target.value }))} />
+                  <Input placeholder="Restrictions (optional)" value={rdaForm.restrictions} onChange={(e) => setRdaForm(p => ({ ...p, restrictions: e.target.value }))} />
+                  <Button size="sm" disabled={!rdaForm.recipient_org || !rdaForm.purpose} onClick={async () => {
+                    try {
+                      await apiClient.post(`/deals/${dealId}/rda`, rdaForm);
+                      toast.success("RDA created");
+                      setShowRdaForm(false);
+                      setRdaForm({ recipient_org: "", recipient_contact: "", purpose: "", restrictions: "" });
+                      const refreshed = await licensingApi.getDeal(dealId);
+                      setDeal(refreshed);
+                    } catch { toast.error("Failed to create RDA"); }
+                  }}>Create RDA</Button>
+                </CardContent>
+              </Card>
+            )}
+            {deal.rdas?.length ? (
+              <div className="space-y-2">
+                {deal.rdas.map((rda: any) => (
+                  <Card key={rda.id} className="border-border/50">
+                    <CardContent className="py-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium">{rda.recipient_org}</p>
+                          <p className="text-xs text-muted-foreground">{rda.purpose}</p>
+                        </div>
+                        <Badge variant="outline" className="text-[10px]">
+                          {rda.signed_at ? "Signed" : "Pending"}
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : !showRdaForm && <p className="text-sm text-muted-foreground py-4 text-center">No Reference Data Agreements yet.</p>}
+          </div>
+
+          {/* Production Partner Disclosures */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold">Production Partner Disclosures</h3>
+              <Button size="sm" variant="outline" onClick={() => setShowPartnerForm(!showPartnerForm)}>
+                {showPartnerForm ? <X className="h-3.5 w-3.5 mr-1" /> : <Plus className="h-3.5 w-3.5 mr-1" />}
+                {showPartnerForm ? "Cancel" : "Disclose Partner"}
+              </Button>
+            </div>
+            {showPartnerForm && (
+              <Card className="mb-3">
+                <CardContent className="py-4 space-y-3">
+                  <Input placeholder="Partner name" value={partnerForm.partner_name} onChange={(e) => setPartnerForm(p => ({ ...p, partner_name: e.target.value }))} />
+                  <Input placeholder="Partner role (e.g., Voice synthesis provider)" value={partnerForm.partner_role} onChange={(e) => setPartnerForm(p => ({ ...p, partner_role: e.target.value }))} />
+                  <Input placeholder="Data access scope" value={partnerForm.data_access_scope} onChange={(e) => setPartnerForm(p => ({ ...p, data_access_scope: e.target.value }))} />
+                  <Button size="sm" disabled={!partnerForm.partner_name || !partnerForm.partner_role} onClick={async () => {
+                    try {
+                      await apiClient.post(`/deals/${dealId}/partner`, partnerForm);
+                      toast.success("Partner disclosed");
+                      setShowPartnerForm(false);
+                      setPartnerForm({ partner_name: "", partner_role: "", data_access_scope: "" });
+                      const refreshed = await licensingApi.getDeal(dealId);
+                      setDeal(refreshed);
+                    } catch { toast.error("Failed to disclose partner"); }
+                  }}>Submit Disclosure</Button>
+                </CardContent>
+              </Card>
+            )}
+            {deal.partners?.length ? (
+              <div className="space-y-2">
+                {deal.partners.map((p: any) => (
+                  <Card key={p.id} className="border-border/50">
+                    <CardContent className="py-3">
+                      <p className="text-sm font-medium">{p.partner_name}</p>
+                      <p className="text-xs text-muted-foreground">{p.partner_role} — {p.data_access_scope}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : !showPartnerForm && <p className="text-sm text-muted-foreground py-4 text-center">No production partners disclosed yet.</p>}
+          </div>
         </TabsContent>
       </Tabs>
     </div>

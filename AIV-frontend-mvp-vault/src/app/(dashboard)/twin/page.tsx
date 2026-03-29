@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Loader2, Fingerprint, Shield, DollarSign, Activity,
   Bot, CheckCircle2, AlertTriangle, AlertCircle, Pencil, Save, X,
-  BadgeCheck, Briefcase, TrendingUp, Clock, Eye,
+  BadgeCheck, Briefcase, TrendingUp, Clock, Eye, Lock,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -89,6 +89,8 @@ export default function TwinPage() {
   const [editingIdentity, setEditingIdentity] = useState(false);
   const [identityDraft, setIdentityDraft] = useState<Record<string, string>>({});
   const [editingGuardrails, setEditingGuardrails] = useState(false);
+  const [confirmLock, setConfirmLock] = useState(false);
+  const [locking, setLocking] = useState(false);
   const [editingRules, setEditingRules] = useState(false);
   const [guardrailDraft, setGuardrailDraft] = useState<Record<string, unknown>>({});
   const [rulesDraft, setRulesDraft] = useState<Record<string, unknown>>({});
@@ -181,10 +183,45 @@ export default function TwinPage() {
               )}
             </div>
           </div>
-          <Link href="/twin/training-area">
-            <Button variant="outline" size="sm"><Bot className="h-4 w-4 mr-1" /> Training Area</Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/twin/training-area">
+              <Button variant="outline" size="sm"><Bot className="h-4 w-4 mr-1" /> Training Area</Button>
+            </Link>
+            {twin.status !== "LOCKED" && (
+              confirmLock ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-red-500">Lock this identity?</span>
+                  <Button size="sm" variant="destructive" disabled={locking} onClick={async () => {
+                    setLocking(true);
+                    try {
+                      await apiClient.patch(`/twins/${twin.id}`, { status: "LOCKED" });
+                      setTwin({ ...twin, status: "LOCKED" });
+                      toast.success("Identity locked");
+                    } catch { toast.error("Failed to lock"); }
+                    setLocking(false);
+                    setConfirmLock(false);
+                  }}>Yes</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setConfirmLock(false)}>No</Button>
+                </div>
+              ) : (
+                <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setConfirmLock(true)}>
+                  <Lock className="h-4 w-4" />
+                </Button>
+              )
+            )}
+          </div>
         </div>
+        {twin.status === "LOCKED" && (
+          <Card className="border-red-500/30 bg-red-500/5">
+            <CardContent className="flex items-center gap-3 py-3">
+              <Lock className="h-5 w-5 text-red-500 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-red-500">Identity Locked</p>
+                <p className="text-xs text-muted-foreground">This identity is locked. Licensing portal is closed. Contact support to unlock.</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Tabs — 5 tabs with Overview as default */}
         <Tabs value={activeTab} onValueChange={handleTabChange}>
