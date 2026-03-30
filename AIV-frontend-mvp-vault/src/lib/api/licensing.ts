@@ -147,4 +147,60 @@ export const licensingApi = {
     const { data } = await apiClient.get(`/twins/${twinId}/licensing-info`);
     return data;
   },
+
+  // Contract management
+  async generateContract(dealId: string, templateType: string = "licensing_agreement") {
+    const { data } = await apiClient.post(`/deals/${dealId}/generate-contract?template_type=${templateType}`);
+    return data;
+  },
+
+  async downloadContractPdf(dealId: string, contractId: string): Promise<Blob> {
+    const response = await apiClient.get(`/deals/${dealId}/contract/${contractId}/pdf`, {
+      responseType: "blob",
+    });
+    return response.data;
+  },
+
+  async sendForSignature(dealId: string, contractId: string, talentEmail: string, clientEmail: string) {
+    const { data } = await apiClient.post(
+      `/deals/${dealId}/contract/${contractId}/send-for-signature?talent_email=${encodeURIComponent(talentEmail)}&client_email=${encodeURIComponent(clientEmail)}`
+    );
+    return data;
+  },
+
+  async uploadContract(dealId: string, file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+    const { data } = await apiClient.post(`/deals/${dealId}/contract/upload`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return data;
+  },
+
+  // Reference Data Agreements
+  async createRDA(dealId: string, rda: { recipient_org: string; recipient_contact: string; purpose: string; restrictions?: string }) {
+    const { data } = await apiClient.post(`/deals/${dealId}/rda`, rda);
+    return data;
+  },
+
+  // Production Partner Disclosures
+  async addPartner(dealId: string, partner: { partner_name: string; partner_role: string; data_access_scope: string }) {
+    const { data } = await apiClient.post(`/deals/${dealId}/partner`, partner);
+    return data;
+  },
+
+  // PUL (Permitted Use Lifecycle)
+  async submitPUL(dealId: string, pul: { record_type: string; content_produced: string; platforms_used: string }) {
+    const { data } = await apiClient.post(`/deals/${dealId}/pul`, pul);
+    return data;
+  },
+
+  // Client output validation
+  async validateOutput(dealId: string, sampleContent: string, sampleContext: string = "") {
+    const { data } = await apiClient.post(`/deals/${dealId}/validate`, {
+      sample_content: sampleContent,
+      sample_context: sampleContext,
+    });
+    return data;
+  },
 };
