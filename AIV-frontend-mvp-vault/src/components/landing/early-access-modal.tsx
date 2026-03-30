@@ -224,9 +224,10 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
 
       setStep(3)
       toast.success("You're on the list!")
-    } catch (err: any) {
-      const detail = err?.response?.data?.detail
-      const msg = err?.response?.data?.message
+    } catch (err: unknown) {
+      const e = err as Record<string, Record<string, Record<string, string>>>;
+      const detail = e?.response?.data?.detail
+      const msg = e?.response?.data?.message
       toast.error(typeof detail === 'string' ? detail : msg || 'Failed to join waitlist')
     } finally {
       setSubmitting(false)
@@ -249,8 +250,9 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
       } else {
         setCodeError(result.message || 'Invalid access code')
       }
-    } catch (err: any) {
-      const detail = err?.response?.data?.detail
+    } catch (err: unknown) {
+      const e = err as Record<string, Record<string, Record<string, string>>>;
+      const detail = e?.response?.data?.detail
       setCodeError(typeof detail === 'string' ? detail : 'Failed to validate code')
     } finally {
       setValidatingCode(false)
@@ -292,8 +294,9 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
       if (role) localStorage.setItem('aiv_user_role', role)
       setStep(6) // Go to email verification
       toast.success('Account created! Check your email for the verification code.')
-    } catch (err: any) {
-      const detail = err?.response?.data?.detail
+    } catch (err: unknown) {
+      const e = err as Record<string, Record<string, Record<string, string>>>;
+      const detail = e?.response?.data?.detail
       const message = Array.isArray(detail) ? detail[0]?.msg : (typeof detail === 'string' ? detail : 'Sign up failed')
       toast.error(message)
     } finally {
@@ -318,8 +321,9 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
       }
       setStep(7) // Success
       toast.success('Email verified! Welcome to AIV.')
-    } catch (err: any) {
-      const detail = err?.response?.data?.detail
+    } catch (err: unknown) {
+      const e = err as Record<string, Record<string, Record<string, string>>>;
+      const detail = e?.response?.data?.detail
       toast.error(typeof detail === 'string' ? detail : 'Invalid verification code')
     } finally {
       setSubmitting(false)
@@ -341,8 +345,9 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
       localStorage.setItem('user', JSON.stringify(result))
       toast.success('Signed in successfully')
       window.location.href = '/dashboard'
-    } catch (err: any) {
-      const detail = err?.response?.data?.detail
+    } catch (err: unknown) {
+      const e = err as Record<string, Record<string, Record<string, string>>>;
+      const detail = e?.response?.data?.detail
       const message = Array.isArray(detail) ? detail[0]?.msg : (typeof detail === 'string' ? detail : 'Sign in failed')
       toast.error(message)
     } finally {

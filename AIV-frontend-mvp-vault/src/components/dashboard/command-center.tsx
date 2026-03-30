@@ -191,7 +191,7 @@ export function CommandCenter() {
 
       // Twins
       if (results[0].status === "fulfilled" && results[0].value.length > 0) {
-        const t = results[0].value[0] as Record<string, unknown>;
+        const t = results[0].value[0] as unknown as Record<string, unknown>;
         setTwin(t);
         // Fetch calibration status for this twin
         if (t.id) {
@@ -279,7 +279,7 @@ export function CommandCenter() {
             </div>
             <h2 className="text-xl font-bold">Identity setup in progress</h2>
             <p className="mt-2 text-sm text-muted-foreground max-w-sm">
-              You started setting up an identity but didn't finish. Pick up where you left off to complete authorization.
+              You started setting up an identity but didn&apos;t finish. Pick up where you left off to complete authorization.
             </p>
             <Link href="/onboard" className="mt-6">
               <Button>

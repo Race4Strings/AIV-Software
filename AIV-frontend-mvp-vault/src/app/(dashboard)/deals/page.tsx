@@ -308,7 +308,7 @@ export default function DealsPage() {
             <div className="space-y-2">
               {groupDeals.map((deal) => {
                 const flags = deal.parameter_flags || {};
-                const allOk = flags._all_within_range;
+                const allOk = flags._all_within_range?.status === "ok";
 
                 return (
                   <Card

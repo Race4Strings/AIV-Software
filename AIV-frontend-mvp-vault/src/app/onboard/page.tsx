@@ -585,7 +585,7 @@ export default function OnboardingPage() {
                     <div className="pt-3 border-t border-border/30">
                       <Label className="text-xs text-muted-foreground">Detected Categories</Label>
                       <div className="flex gap-1.5 mt-1.5 flex-wrap">
-                        {(discoveryResults.detected_categories as string[]).map((cat: string) => (
+                        {(discoveryResults?.detected_categories as string[])?.map((cat: string) => (
                           <Badge key={cat} variant="secondary" className="text-xs">
                             {cat.replace("_", " ")}
                           </Badge>
@@ -735,7 +735,7 @@ export default function OnboardingPage() {
                 </select>
                 {(discoveryResults?.detected_categories as string[] | undefined)?.length ? (
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    Suggested: {(discoveryResults.detected_categories as string[]).slice(0, 3).map(c => c.replace("_", " ")).join(", ")}
+                    Suggested: {(discoveryResults?.detected_categories as string[])?.slice(0, 3).map(c => c.replace("_", " ")).join(", ")}
                   </p>
                 ) : null}
               </div>

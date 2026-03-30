@@ -477,16 +477,6 @@ export default function TwinPage() {
                 </CardContent>
               </Card>
             )}
-            ) : (
-              <Card>
-                <CardContent className="py-8 text-center text-muted-foreground">
-                  <Activity className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                  <p className="font-medium">Health data not available yet</p>
-                  <p className="text-sm mt-1">Visit the Training Area to start building your identity. Health metrics appear after your first training session.</p>
-                  <Link href="/twin/training-area"><Button className="mt-3"><Bot className="h-4 w-4 mr-1" /> Start Training</Button></Link>
-                </CardContent>
-              </Card>
-            )}
           </TabsContent>
 
           {/* ============== GUARDRAILS TAB ============== */}

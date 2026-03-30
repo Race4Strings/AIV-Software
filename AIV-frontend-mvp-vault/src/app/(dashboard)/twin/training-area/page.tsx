@@ -16,7 +16,7 @@ export default function TrainingAreaPage() {
     fetchTwins()
       .then((twins) => {
         if (twins.length > 0) {
-          const t = twins[0] as Record<string, unknown>;
+          const t = twins[0] as unknown as Record<string, unknown>;
           setTwinId(t.id as string);
           setTwinName((t.display_name as string) || (t.name as string) || "Your Twin");
           setTwinStatus((t.health_status as string) || "BUILDING");

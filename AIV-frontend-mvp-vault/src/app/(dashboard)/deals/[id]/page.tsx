@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft, FileText, Target, Shield, MessageSquare,
-  CheckCircle2, AlertTriangle, Loader2, Send, Plus,
+  CheckCircle2, AlertTriangle, Loader2, Send, Plus, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -122,7 +122,7 @@ export default function DealWorkspacePage() {
   }
 
   const flags = deal.parameter_flags || {};
-  const allOk = flags._all_within_range;
+  const allOk = flags._all_within_range?.status === "ok";
 
   return (
     <div className="space-y-6 p-6">

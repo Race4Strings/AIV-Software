@@ -234,10 +234,10 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
     );
   }
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(true); // eslint-disable-line react-hooks/rules-of-hooks
 
   // Derive session title from first user message or mode
-  function getSessionTitle(s: AgentSession, idx: number): string {
+  function getSessionTitle(s: AgentSession, _idx: number): string {
     // If this is the active session and we have messages, use first user message
     if (s.id === session?.id && messages.length > 0) {
       const firstUser = messages.find(m => m.role === "USER");

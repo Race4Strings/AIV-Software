@@ -11,7 +11,7 @@ export const uploadApi = {
     /**
      * Upload a file to S3-compatible storage
      */
-    uploadFile: async (file: File | Blob, folder: 'uploads' | 'voice' | 'images' | 'documents' = 'uploads'): Promise<UploadResponse> => {
+    uploadFile: async (file: File | Blob, folder: 'uploads' | 'voice' | 'images' | 'documents' | 'onboarding' = 'uploads'): Promise<UploadResponse> => {
         const formData = new FormData();
 
         // Handle both File and Blob

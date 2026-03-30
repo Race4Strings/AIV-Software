@@ -28,6 +28,8 @@ export interface Deal {
   milestones?: DealMilestone[];
   contracts?: DealContract[];
   pul_records?: PULRecord[];
+  rdas?: { id: string; recipient_org: string; recipient_contact: string; purpose: string; restrictions?: string; created_at: string }[];
+  partners?: { id: string; partner_name: string; partner_role: string; data_access_scope: string; created_at: string }[];
 }
 
 export interface DealMilestone {
@@ -103,6 +105,11 @@ export const licensingApi = {
     const { data } = await apiClient.post(`/deals/${dealId}/milestones`, {
       title, description, due_date: dueDate,
     });
+    return data;
+  },
+
+  async updateMilestone(dealId: string, milestoneId: string, updates: { completed?: boolean }) {
+    const { data } = await apiClient.put(`/deals/${dealId}/milestones/${milestoneId}`, updates);
     return data;
   },
 
