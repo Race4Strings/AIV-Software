@@ -17,6 +17,9 @@ psycopg[binary]
 # Rate Limiting
 slowapi==0.1.9
 
+# Scheduling
+apscheduler==3.10.4
+
 # Authentication
 passlib[bcrypt]==1.7.4
 python-jose[cryptography]==3.3.0
