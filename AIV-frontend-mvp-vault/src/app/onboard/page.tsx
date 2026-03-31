@@ -14,7 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import apiClient from "@/lib/api/client";
+import { onboardingApi } from "@/lib/api/onboarding";
+import { updateTwin } from "@/lib/api/twins";
 import { uploadApi } from "@/lib/api/upload";
 
 // ──────────────────────────────────────────────────────
@@ -153,9 +154,8 @@ export default function OnboardingPage() {
     let cancelled = false;
     async function checkActiveSession() {
       try {
-        const res = await apiClient.get("/onboarding/sessions/active");
-        if (cancelled || !res.data) { setInitialLoading(false); return; }
-        const session = res.data;
+        const session = await onboardingApi.getActiveSession();
+        if (cancelled || !session) { setInitialLoading(false); return; }
         setSessionId(session.id);
         setTwinId(session.twin_id || "");
         if (session.discovery_input) setDiscoveryInput(session.discovery_input);
@@ -194,12 +194,9 @@ export default function OnboardingPage() {
     if (!discoveryInput.trim()) return;
     setLoading(true);
     try {
-      const res = await apiClient.post("/onboarding/start", {
-        discovery_input: discoveryInput.trim(),
-        onboarding_path: "HYBRID",
-      });
-      setSessionId(res.data.id);
-      setTwinId(res.data.twin_id || "");
+      const res = await onboardingApi.start(discoveryInput.trim());
+      setSessionId(res.id);
+      setTwinId(res.twin_id || "");
       setStep(1);
       setDiscoveryPolling(true);
       setDiscoveryStage(0);
@@ -225,19 +222,19 @@ export default function OnboardingPage() {
     let cancelled = false;
     const poll = async () => {
       try {
-        const res = await apiClient.get(`/onboarding/${sessionId}/discovery-results`);
+        const res = await onboardingApi.getDiscoveryResults(sessionId);
         if (cancelled) return;
-        setDiscoveryResults(res.data);
-        if (res.data.status === "ready") {
+        setDiscoveryResults(res);
+        if (res.status === "ready") {
           setDiscoveryPolling(false);
-          setIsMockData(!!res.data.mock);
-          const twin = res.data.twin || {};
+          setIsMockData(!!res.mock);
+          const twin = res.twin || {};
           setProfileDraft({
             display_name: (twin.display_name as string) || discoveryInput.split("/").pop()?.replace("@", "").trim() || "",
             bio: (twin.bio as string) || "",
           });
           // Pre-populate categories from detection (user can change in Step 3)
-          const detected = (res.data.detected_categories as string[]) || [];
+          const detected = (res.detected_categories as string[]) || [];
           if (detected.length > 0 && selectedCategories.length === 0) {
             setSelectedCategories(detected.slice(0, 3));
           }
@@ -259,7 +256,7 @@ export default function OnboardingPage() {
     try {
       if (twinId && (profileDraft.display_name || profileDraft.bio)) {
         try {
-          await apiClient.put(`/twins/${twinId}`, {
+          await updateTwin(twinId, {
             display_name: profileDraft.display_name,
             bio: profileDraft.bio,
           });
@@ -267,9 +264,7 @@ export default function OnboardingPage() {
           toast.error(getErrorMsg(err, "Failed to save profile changes. You can update this later."));
         }
       }
-      await apiClient.post(`/onboarding/${sessionId}/confirm-profiles`, {
-        confirmed_profiles: discoveryResults?.discovered_profiles || [],
-      });
+      await onboardingApi.confirmProfiles(sessionId, (discoveryResults?.discovered_profiles as string[]) || []);
       setStep(2);
     } catch {
       toast.error("Failed to confirm profile.");
@@ -287,7 +282,7 @@ export default function OnboardingPage() {
 
   async function handleUpload() {
     if (files.length === 0) {
-      await apiClient.post(`/onboarding/${sessionId}/upload`).catch(() => {});
+      await onboardingApi.recordUpload(sessionId).catch(() => {});
       setStep(3);
       return;
     }
@@ -296,7 +291,7 @@ export default function OnboardingPage() {
       for (const file of files) {
         await uploadApi.uploadFile(file, "onboarding");
       }
-      await apiClient.post(`/onboarding/${sessionId}/upload`).catch(() => {});
+      await onboardingApi.recordUpload(sessionId).catch(() => {});
       toast.success(`${files.length} file(s) uploaded`);
       setStep(3);
     } catch {
@@ -328,13 +323,13 @@ export default function OnboardingPage() {
     setLoading(true);
     try {
       // Submit rights with user-selected category
-      await apiClient.post(`/onboarding/${sessionId}/rights`, {
+      await onboardingApi.submitRights(sessionId, {
         identity_category: selectedCategories.length > 0 ? selectedCategories : ["ENTERTAINMENT"],
         successor: null,
         consents: grantedConsents,
       });
       // Auto-approve Gate 1 (self-manager)
-      await apiClient.post(`/onboarding/${sessionId}/gate-1`, { approved: true });
+      await onboardingApi.approveGate1(sessionId);
       setStep(4);
     } catch (err: unknown) {
       toast.error(getErrorMsg(err, "Failed to save consents."));
@@ -350,13 +345,10 @@ export default function OnboardingPage() {
     setLoading(true);
     try {
       const grantedConsents = Object.entries(consents).filter(([, v]) => v).map(([k]) => k);
-      const res = await apiClient.post(`/onboarding/${sessionId}/gate-2`, {
-        approved: true,
-        consents: grantedConsents,
-      });
+      const res = await onboardingApi.authorizeGate2(sessionId, grantedConsents);
       setAuthorized(true);
-      if (res.data.readiness_warnings?.length > 0) {
-        toast.info(`Note: ${res.data.readiness_warnings.join(". ")}. You can improve in the Training Area.`);
+      if (res.readiness_warnings?.length > 0) {
+        toast.info(`Note: ${res.readiness_warnings.join(". ")}. You can improve in the Training Area.`);
       }
       setTimeout(() => setShowButtons(true), 2000);
     } catch (err: unknown) {
