@@ -21,4 +21,11 @@ export const notificationsApi = {
   async markAllRead() {
     return apiClient.post("/notifications/read-all");
   },
+  async getPreferences(): Promise<Record<string, boolean>> {
+    const { data } = await apiClient.get("/notifications/preferences");
+    return data;
+  },
+  async updatePreferences(prefs: Record<string, boolean>): Promise<void> {
+    await apiClient.post("/notifications/preferences", prefs);
+  },
 };
