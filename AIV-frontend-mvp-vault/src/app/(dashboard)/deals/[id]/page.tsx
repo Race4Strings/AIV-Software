@@ -15,7 +15,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { licensingApi, type Deal } from "@/lib/api/licensing";
-import apiClient from "@/lib/api/client";
 
 interface DealMessage {
   id: string;
@@ -64,7 +63,7 @@ export default function DealWorkspacePage() {
     if (!deal || transitioning) return;
     setTransitioning(true);
     try {
-      await apiClient.put(`/deals/${dealId}/status`, { status: newStatus });
+      await licensingApi.transitionStatus(dealId, newStatus);
       const updated = await licensingApi.getDeal(dealId);
       setDeal(updated);
       toast.success(`Deal moved to ${newStatus.replace("_", " ")}`);
@@ -78,7 +77,7 @@ export default function DealWorkspacePage() {
 
   async function handleTrainAssistant(reasoning: string = "") {
     try {
-      await apiClient.post(`/deals/${dealId}/train-assistant`, { reasoning });
+      await licensingApi.trainAssistant(dealId, reasoning);
       toast.success("Decision recorded for your assistant");
     } catch { /* non-blocking */ }
     setShowTrainPrompt(false);
@@ -241,7 +240,7 @@ export default function DealWorkspacePage() {
               onClick={async () => {
                 setGeneratingContract(true);
                 try {
-                  await apiClient.post(`/deals/${dealId}/generate-contract?template_type=${contractTemplate}`);
+                  await licensingApi.generateContract(dealId, contractTemplate);
                   const refreshed = await licensingApi.getDeal(dealId);
                   setDeal(refreshed);
                   toast.success("Contract generated");
@@ -297,7 +296,7 @@ export default function DealWorkspacePage() {
                                         disabled={!signEmails.talent || !signEmails.client}
                                         onClick={async () => {
                                           try {
-                                            await apiClient.post(`/deals/${dealId}/contract/${c.id}/send-for-signature?talent_email=${encodeURIComponent(signEmails.talent)}&client_email=${encodeURIComponent(signEmails.client)}`);
+                                            await licensingApi.sendForSignature(dealId, c.id, signEmails.talent, signEmails.client);
                                             toast.success("Contract sent for signature");
                                             setShowSignDialog(null);
                                             setSignEmails({ talent: "", client: "" });
@@ -491,10 +490,10 @@ export default function DealWorkspacePage() {
                   size="sm"
                   onClick={async () => {
                     try {
-                      await apiClient.post(`/deals/${dealId}/pul`, {
+                      await licensingApi.submitPUL(dealId, {
                         record_type: pulForm.record_type,
-                        content_produced: { description: pulForm.content_produced },
-                        platforms_used: pulForm.platforms_used.split(",").map((s: string) => s.trim()).filter(Boolean),
+                        content_produced: pulForm.content_produced,
+                        platforms_used: pulForm.platforms_used,
                       });
                       const refreshed = await licensingApi.getDeal(dealId);
                       setDeal(refreshed);
@@ -548,7 +547,7 @@ export default function DealWorkspacePage() {
                   <Input placeholder="Restrictions (optional)" value={rdaForm.restrictions} onChange={(e) => setRdaForm(p => ({ ...p, restrictions: e.target.value }))} />
                   <Button size="sm" disabled={!rdaForm.recipient_org || !rdaForm.purpose} onClick={async () => {
                     try {
-                      await apiClient.post(`/deals/${dealId}/rda`, rdaForm);
+                      await licensingApi.createRDA(dealId, rdaForm);
                       toast.success("RDA created");
                       setShowRdaForm(false);
                       setRdaForm({ recipient_org: "", recipient_contact: "", purpose: "", restrictions: "" });
@@ -597,7 +596,7 @@ export default function DealWorkspacePage() {
                   <Input placeholder="Data access scope" value={partnerForm.data_access_scope} onChange={(e) => setPartnerForm(p => ({ ...p, data_access_scope: e.target.value }))} />
                   <Button size="sm" disabled={!partnerForm.partner_name || !partnerForm.partner_role} onClick={async () => {
                     try {
-                      await apiClient.post(`/deals/${dealId}/partner`, partnerForm);
+                      await licensingApi.addPartner(dealId, partnerForm);
                       toast.success("Partner disclosed");
                       setShowPartnerForm(false);
                       setPartnerForm({ partner_name: "", partner_role: "", data_access_scope: "" });

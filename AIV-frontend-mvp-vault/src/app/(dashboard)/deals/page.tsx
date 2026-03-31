@@ -14,7 +14,6 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { licensingApi, type Deal, type RevenueSummary } from "@/lib/api/licensing";
-import apiClient from "@/lib/api/client";
 
 const STATUS_GROUPS: Record<string, string[]> = {
   "Inquiries": ["SUBMITTED", "UNDER_REVIEW"],
@@ -80,18 +79,17 @@ export default function DealsPage() {
       const twinId = user.twin_id;
       if (!twinId) { toast.error("No twin linked to your account"); setCreating(false); return; }
 
-      const res = await apiClient.post("/deals", {
+      const deal = await licensingApi.createDeal({
         twin_id: twinId,
+        client_org_id: "",
         deal_type: newDeal.deal_type,
         value: parseFloat(newDeal.value),
         territory: newDeal.territory.split(",").map((t: string) => t.trim()).filter(Boolean),
         exclusivity: newDeal.exclusivity,
-        start_date: newDeal.start_date || undefined,
-        end_date: newDeal.end_date || undefined,
         data_scope: newDeal.data_scope,
       });
       toast.success("Deal created");
-      router.push(`/deals/${res.data.id}`);
+      router.push(`/deals/${deal.id}`);
     } catch (err: any) {
       toast.error(err?.response?.data?.detail || "Failed to create deal");
     }

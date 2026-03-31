@@ -12,30 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import apiClient from "@/lib/api/client";
-
-interface AccessCode {
-  id: string;
-  code: string;
-  label: string;
-  is_used: boolean;
-  used_by: string | null;
-  used_at: string | null;
-  created_at: string;
-  expires_at: string | null;
-}
-
-interface WaitlistEntry {
-  id: string;
-  email: string;
-  name: string | null;
-  role: string | null;
-  status: string;
-  granted_at: string | null;
-  access_code: string | null;
-  created_at: string;
-  metadata: Record<string, unknown> | null;
-}
+import { adminApi, type AccessCode, type WaitlistEntry } from "@/lib/api/admin";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -65,11 +42,11 @@ export default function AdminDashboard() {
     setLoading(true);
     try {
       const [codesRes, waitlistRes] = await Promise.allSettled([
-        apiClient.get("/auth/access-codes"),
-        apiClient.get("/auth/waitlist"),
+        adminApi.getAccessCodes(),
+        adminApi.getWaitlist(),
       ]);
-      if (codesRes.status === "fulfilled") setCodes(codesRes.value.data);
-      if (waitlistRes.status === "fulfilled") setWaitlist(waitlistRes.value.data);
+      if (codesRes.status === "fulfilled") setCodes(codesRes.value);
+      if (waitlistRes.status === "fulfilled") setWaitlist(waitlistRes.value);
     } catch {}
     setLoading(false);
   }
@@ -79,7 +56,7 @@ export default function AdminDashboard() {
   async function generateCodes() {
     setGenerating(true);
     try {
-      await apiClient.post("/auth/generate-codes", { count: codeCount, label: codeLabel || "Generated" });
+      await adminApi.generateCodes(codeCount, codeLabel || "Generated");
       toast.success(`${codeCount} access codes generated`);
       setCodeLabel("");
       await loadData();
@@ -90,7 +67,7 @@ export default function AdminDashboard() {
   async function grantAccess(entryId: string) {
     setGranting(entryId);
     try {
-      await apiClient.post("/auth/grant-access", { waitlist_id: entryId });
+      await adminApi.grantAccess(entryId);
       toast.success("Access granted — code sent");
       await loadData();
     } catch { toast.error("Failed to grant access"); }
@@ -100,7 +77,7 @@ export default function AdminDashboard() {
   async function removeFromWaitlist(entryId: string) {
     if (!window.confirm("Remove this entry from the waitlist?")) return;
     try {
-      await apiClient.delete(`/auth/waitlist/${entryId}`);
+      await adminApi.removeFromWaitlist(entryId);
       toast.success("Removed from waitlist");
       await loadData();
     } catch { toast.error("Failed to remove"); }

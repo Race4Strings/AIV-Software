@@ -44,6 +44,22 @@ export async function fetchTwin(id: string): Promise<Twin | null> {
   }
 }
 
+export interface TwinHealth {
+  twin_id: string;
+  cfs: number;
+  psychographic_coverage: number;
+  personality_confidence: number;
+  health_status: string;
+}
+
+export async function fetchTwinHealth(id: string): Promise<TwinHealth | null> {
+  try {
+    const res = await apiClient.get(`/twins/${id}/health`);
+    return res.data;
+  } catch {
+    return null;
+  }
+}
 
 export async function updateTwin(
   id: string,

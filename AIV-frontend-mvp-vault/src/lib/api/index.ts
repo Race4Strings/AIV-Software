@@ -5,3 +5,4 @@ export { licensingApi } from "./licensing";
 export { paymentsApi } from "./payments";
 export { organizationsApi } from "./organizations";
 export { guardrailsApi } from "./guardrails";
+export { adminApi } from "./admin";
