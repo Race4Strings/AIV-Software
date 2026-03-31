@@ -563,6 +563,61 @@ export default function OnboardingPage() {
                     </div>
                   )}
 
+                  {/* Wikipedia summary */}
+                  {(discoveryResults?.twin as Record<string, unknown>)?.wikipedia && (
+                    <div className="pt-3 border-t border-border/30">
+                      <Label className="text-xs text-muted-foreground">Wikipedia</Label>
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-3">
+                        {((discoveryResults?.twin as Record<string, unknown>)?.wikipedia as Record<string, string>)?.extract}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Gemini-synthesized profile */}
+                  {(discoveryResults?.twin as Record<string, unknown>)?.gemini_profile && (() => {
+                    const gp = (discoveryResults?.twin as Record<string, unknown>)?.gemini_profile as Record<string, unknown>;
+                    return (
+                      <div className="pt-3 border-t border-border/30 space-y-2">
+                        {(gp.known_for as string[])?.length > 0 && (
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Known For</Label>
+                            <div className="flex gap-1.5 mt-1 flex-wrap">
+                              {(gp.known_for as string[]).slice(0, 5).map((item: string, i: number) => (
+                                <Badge key={i} variant="outline" className="text-xs">{item}</Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {(gp.career_highlights as string[])?.length > 0 && (
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Career Highlights</Label>
+                            <ul className="mt-1 space-y-0.5">
+                              {(gp.career_highlights as string[]).slice(0, 4).map((item: string, i: number) => (
+                                <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                                  <span className="text-primary mt-0.5">•</span> {item}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Social profiles found */}
+                  {((discoveryResults?.twin as Record<string, unknown>)?.social_profiles as Array<Record<string, string>>)?.length > 0 && (
+                    <div className="pt-3 border-t border-border/30">
+                      <Label className="text-xs text-muted-foreground">Social Profiles Found</Label>
+                      <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                        {((discoveryResults?.twin as Record<string, unknown>)?.social_profiles as Array<Record<string, string>>).slice(0, 6).map((profile, i) => (
+                          <Badge key={i} variant="secondary" className="text-xs">
+                            {profile.domain?.replace("www.", "") || "Link"}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Only show health metrics when real data is available (not mock) */}
                   {health && !isMockData && (
                     <div className="grid grid-cols-3 gap-3 pt-3 border-t border-border/30">
