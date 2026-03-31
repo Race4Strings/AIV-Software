@@ -98,7 +98,12 @@ export default function DealsPage() {
   }
 
   const DEAL_TYPES = ["BRAND_CAMPAIGN", "CONTENT_CREATION", "VOICE_LICENSING", "GAME_CHARACTER", "EDUCATIONAL", "CUSTOM"];
-  const DATA_SCOPE_OPTIONS = ["identity_profile", "knowledge_base", "voice_identity", "visual_identity"];
+  const DATA_SCOPE_OPTIONS: { key: string; label: string; hint: string }[] = [
+    { key: "identity_profile", label: "Identity Profile", hint: "Personality, behavioral style, guardrails" },
+    { key: "knowledge_base", label: "Knowledge Base", hint: "Expertise, positions, opinions, RAG data" },
+    { key: "voice_identity", label: "Voice Identity", hint: "Voice embeddings, speech patterns, accent" },
+    { key: "visual_identity", label: "Visual Identity", hint: "Appearance, expressions, gestures" },
+  ];
 
   return (
     <div className="space-y-6 p-6">
@@ -158,25 +163,29 @@ export default function DealsPage() {
               <div className="flex items-end pb-1">
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
                   <Checkbox checked={newDeal.exclusivity} onCheckedChange={(v) => setNewDeal(prev => ({ ...prev, exclusivity: !!v }))} />
-                  Exclusivity requested
+                  <span title="Client gets sole access to the licensed data scope for the deal duration">Exclusivity requested</span>
                 </label>
               </div>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Data Scope</Label>
-              <div className="flex flex-wrap gap-3">
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Data Scope — what the client receives</Label>
+              <div className="grid grid-cols-2 gap-2">
                 {DATA_SCOPE_OPTIONS.map(scope => (
-                  <label key={scope} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                  <label key={scope.key} className="flex items-start gap-2 text-sm cursor-pointer rounded-lg border border-border/50 p-2.5 hover:bg-muted/30 transition-colors">
                     <Checkbox
-                      checked={newDeal.data_scope.includes(scope)}
+                      className="mt-0.5"
+                      checked={newDeal.data_scope.includes(scope.key)}
                       onCheckedChange={(v) => {
                         setNewDeal(prev => ({
                           ...prev,
-                          data_scope: v ? [...prev.data_scope, scope] : prev.data_scope.filter(s => s !== scope),
+                          data_scope: v ? [...prev.data_scope, scope.key] : prev.data_scope.filter(s => s !== scope.key),
                         }));
                       }}
                     />
-                    {scope.replace(/_/g, " ")}
+                    <div>
+                      <span className="font-medium">{scope.label}</span>
+                      <span className="block text-[10px] text-muted-foreground mt-0.5">{scope.hint}</span>
+                    </div>
                   </label>
                 ))}
               </div>

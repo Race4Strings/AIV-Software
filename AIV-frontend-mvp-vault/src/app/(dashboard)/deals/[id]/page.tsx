@@ -50,13 +50,13 @@ export default function DealWorkspacePage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Status transition config
-  const NEXT_ACTION: Record<string, { label: string; next: string; variant?: "default" | "outline" }> = {
-    SUBMITTED: { label: "Begin Review", next: "UNDER_REVIEW" },
-    UNDER_REVIEW: { label: "Approve Inquiry", next: "APPROVED" },
-    APPROVED: { label: "Send to Contract", next: "CONTRACT_SENT" },
-    CONTRACT_SENT: { label: "Mark as Executed", next: "EXECUTED" },
-    EXECUTED: { label: "Activate Deal", next: "ACTIVE" },
-    ACTIVE: { label: "Complete Deal", next: "COMPLETED", variant: "outline" },
+  const NEXT_ACTION: Record<string, { label: string; next: string; hint: string; variant?: "default" | "outline" }> = {
+    SUBMITTED: { label: "Begin Review", next: "UNDER_REVIEW", hint: "Review the deal parameters and client details" },
+    UNDER_REVIEW: { label: "Approve Inquiry", next: "APPROVED", hint: "Approve this deal to proceed to contract generation" },
+    APPROVED: { label: "Send to Contract", next: "CONTRACT_SENT", hint: "Generate and send the contract for both-party signing" },
+    CONTRACT_SENT: { label: "Mark as Executed", next: "EXECUTED", hint: "Both parties must sign before execution. Commission is calculated on execution." },
+    EXECUTED: { label: "Activate Deal", next: "ACTIVE", hint: "Begin the active delivery period — client receives identity data" },
+    ACTIVE: { label: "Complete Deal", next: "COMPLETED", variant: "outline", hint: "Close this deal after all milestones are met and final attestation submitted" },
   };
 
   async function handleTransition(newStatus: string) {
@@ -162,19 +162,22 @@ export default function DealWorkspacePage() {
 
       {/* Status Action Bar */}
       {deal.status && NEXT_ACTION[deal.status] && (
-        <div className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
-          <div className="text-sm text-muted-foreground">
-            Current: <span className="font-medium text-foreground">{deal.status.replace(/_/g, " ")}</span>
+        <div className="rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              Current: <span className="font-medium text-foreground">{deal.status.replace(/_/g, " ")}</span>
+            </div>
+            <Button
+              size="sm"
+              variant={NEXT_ACTION[deal.status].variant || "default"}
+              onClick={() => handleTransition(NEXT_ACTION[deal.status].next)}
+              disabled={transitioning}
+            >
+              {transitioning ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+              {NEXT_ACTION[deal.status].label}
+            </Button>
           </div>
-          <Button
-            size="sm"
-            variant={NEXT_ACTION[deal.status].variant || "default"}
-            onClick={() => handleTransition(NEXT_ACTION[deal.status].next)}
-            disabled={transitioning}
-          >
-            {transitioning ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-            {NEXT_ACTION[deal.status].label}
-          </Button>
+          <p className="text-[10px] text-muted-foreground mt-1.5">{NEXT_ACTION[deal.status].hint}</p>
         </div>
       )}
 
