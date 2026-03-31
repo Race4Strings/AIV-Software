@@ -11,7 +11,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("Global error:", error);
+    // Error tracked via error boundary — Sentry/LogRocket integration goes here
   }, [error]);
 
   return (

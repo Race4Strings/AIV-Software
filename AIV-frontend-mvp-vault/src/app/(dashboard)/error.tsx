@@ -12,7 +12,7 @@ export default function DashboardError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("Dashboard error:", error);
+    // Error tracked via error boundary — Sentry/LogRocket integration goes here
   }, [error]);
 
   return (

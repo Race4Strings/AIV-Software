@@ -22,7 +22,7 @@ export const authStorage = {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (e) {
-      console.error("Failed to save user to localStorage:", e);
+      // Storage failure — non-critical, user will need to re-auth
     }
   },
 
