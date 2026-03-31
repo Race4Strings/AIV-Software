@@ -374,9 +374,16 @@ def get_items_for_client() -> list[dict]:
     Each item has: item_number, text (without "I am someone who..." prefix
     since the frontend shows that once at the top).
     """
+    domain_labels = {
+        "E": "Extraversion",
+        "A": "Agreeableness",
+        "C": "Conscientiousness",
+        "N": "Negative Emotionality",
+        "O": "Open-Mindedness",
+    }
     return [
-        {"item": item_num, "text": text}
-        for item_num, text, _, _, _ in BFI2_ITEMS
+        {"item": item_num, "text": text, "domain": domain, "domain_label": domain_labels.get(domain, domain)}
+        for item_num, text, domain, _, _ in BFI2_ITEMS
     ]
 
 

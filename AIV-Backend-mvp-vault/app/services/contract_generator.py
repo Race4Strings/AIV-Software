@@ -12,7 +12,10 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
+from ..config import get_settings
+
 logger = logging.getLogger(__name__)
+_settings = get_settings()
 
 
 def text_to_pdf(title: str, text: str) -> bytes:
@@ -204,12 +207,12 @@ Role: {role.title()}
 
 2. COMMISSION STRUCTURE
    AIV retains a commission on each licensing deal:
-   - First deal: 30% of gross deal value
-   - Second deal: 25% of gross deal value
-   - Third deal and beyond: 20% of gross deal value
+   - First deal: {int(_settings.commission_rate_first_deal * 100)}% of gross deal value
+   - Second deal: {int(_settings.commission_rate_second_deal * 100)}% of gross deal value
+   - Third deal and beyond: {int(_settings.commission_rate_default * 100)}% of gross deal value
 
 3. PLATFORM PARTNERSHIP FEE
-   A monthly fee of $997 USD activates when:
+   A monthly fee of ${int(_settings.platform_fee_monthly):,} USD activates when:
    - The first licensing deal is executed, OR
    - 90 days after onboarding completion
    Whichever occurs first. This fee covers ongoing AI training,

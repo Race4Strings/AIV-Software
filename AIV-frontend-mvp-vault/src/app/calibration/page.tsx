@@ -107,37 +107,62 @@ export default function CalibrationPage() {
     setLoading(false);
   }, [twinId]);
 
-  // Handle item answer — auto-save + auto-advance
-  const handleAnswer = useCallback(
-    async (value: number) => {
-      if (!calId || !twinId || !items[currentIndex]) return;
+  // Group items into pages of ~10 (by domain order: 12 items per domain → show 2 pages per domain, 6 items each — or 10 items per page across domains)
+  // Simple approach: chunk items into pages of 10
+  const ITEMS_PER_PAGE = 10;
+  const pages = items.reduce<CalibrationItem[][]>((acc, item, i) => {
+    const pageIdx = Math.floor(i / ITEMS_PER_PAGE);
+    if (!acc[pageIdx]) acc[pageIdx] = [];
+    acc[pageIdx].push(item);
+    return acc;
+  }, []);
+  const totalPages = pages.length;
 
-      const item = items[currentIndex];
-      const newResponses = [...responses, { item: item.item, value }];
-      setResponses(newResponses);
-      setSaving(true);
+  // Track per-item responses as a map for the current page
+  const [pageResponses, setPageResponses] = useState<Record<number, number>>({});
 
-      // Auto-save
-      await saveResponses(twinId, calId, newResponses);
-      setSaving(false);
+  // Handle setting an answer for one item on the current page
+  const setItemResponse = useCallback((itemNum: number, value: number) => {
+    setPageResponses((prev) => ({ ...prev, [itemNum]: value }));
+  }, []);
 
-      // Auto-advance or complete
-      if (currentIndex + 1 >= items.length) {
-        // All 60 done — trigger scoring
-        setPhase("completing");
-        const result = await completeCalibration(twinId, calId);
-        if (result) {
-          setPhase("done");
-        } else {
-          toast.error("Scoring failed. Your responses are saved — try again later.");
-          router.push("/dashboard");
-        }
+  // Handle submitting the current page (save + advance)
+  const handlePageSubmit = useCallback(async () => {
+    if (!calId || !twinId) return;
+    const currentPage = pages[currentIndex];
+    if (!currentPage) return;
+
+    // Check all items on page are answered
+    const unanswered = currentPage.filter((item) => pageResponses[item.item] === undefined);
+    if (unanswered.length > 0) {
+      toast.error(`Please answer all ${currentPage.length} statements before continuing.`);
+      return;
+    }
+
+    setSaving(true);
+    const newResponses = [
+      ...responses,
+      ...currentPage.map((item) => ({ item: item.item, value: pageResponses[item.item] })),
+    ];
+    setResponses(newResponses);
+    await saveResponses(twinId, calId, newResponses);
+    setSaving(false);
+
+    if (currentIndex + 1 >= totalPages) {
+      // All pages done — trigger scoring
+      setPhase("completing");
+      const result = await completeCalibration(twinId, calId);
+      if (result) {
+        setPhase("done");
       } else {
-        setCurrentIndex((i) => i + 1);
+        toast.error("Scoring failed. Your responses are saved — try again later.");
+        router.push("/dashboard");
       }
-    },
-    [calId, twinId, items, currentIndex, responses, router]
-  );
+    } else {
+      setPageResponses({});
+      setCurrentIndex((i) => i + 1);
+    }
+  }, [calId, twinId, pages, currentIndex, totalPages, pageResponses, responses, router]);
 
   const handleSkip = () => {
     router.push("/dashboard");
@@ -242,9 +267,11 @@ export default function CalibrationPage() {
     );
   }
 
-  // ── TUNING SESSION (one item per screen) ──
-  const currentItem = items[currentIndex];
-  const progress = ((currentIndex) / items.length) * 100;
+  // ── TUNING SESSION (10 items per page) ──
+  const currentPage = pages[currentIndex] || [];
+  const progress = (currentIndex / totalPages) * 100;
+  const answeredOnPage = currentPage.filter((item) => pageResponses[item.item] !== undefined).length;
+  const currentDomain = currentPage[0]?.domain_label || "";
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -258,8 +285,11 @@ export default function CalibrationPage() {
         />
       </div>
 
-      {/* Skip link */}
-      <div className="flex justify-end px-6 pt-4">
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 pt-4 pb-2">
+        <div className="text-sm text-muted-foreground">
+          Page {currentIndex + 1} of {totalPages} &middot; {answeredOnPage}/{currentPage.length} answered
+        </div>
         <button
           onClick={handleSkip}
           className="text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -268,9 +298,9 @@ export default function CalibrationPage() {
         </button>
       </div>
 
-      {/* Item display */}
-      <div className="flex-1 flex items-center justify-center px-6">
-        <div className="w-full max-w-xl">
+      {/* Page content */}
+      <div className="flex-1 overflow-auto px-6 pb-6">
+        <div className="w-full max-w-2xl mx-auto">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentIndex}
@@ -278,55 +308,81 @@ export default function CalibrationPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -40 }}
               transition={{ duration: 0.25, ease: "easeInOut" }}
-              className="space-y-12"
             >
-              {/* Statement prefix + text */}
-              <div className="text-center space-y-2">
-                <p className="text-sm text-muted-foreground uppercase tracking-wider">
-                  I am someone who...
-                </p>
-                <p className="text-2xl font-medium leading-snug">
-                  {currentItem?.text}
-                </p>
+              {/* Domain header */}
+              {currentDomain && (
+                <div className="text-center mb-6">
+                  <p className="text-xs text-primary font-medium uppercase tracking-widest">{currentDomain}</p>
+                </div>
+              )}
+
+              {/* Scale legend */}
+              <div className="flex justify-end gap-4 mb-4 text-[10px] text-muted-foreground">
+                {SCALE_LABELS.map(({ value, label }) => (
+                  <span key={value} className="text-center w-12">{value} = {label.split(" ")[0]}</span>
+                ))}
               </div>
 
-              {/* 5-point scale */}
-              <div className="flex justify-center gap-3">
-                {SCALE_LABELS.map(({ value, label }) => (
-                  <button
-                    key={value}
-                    onClick={() => handleAnswer(value)}
-                    disabled={saving}
-                    className="group flex flex-col items-center gap-2 w-20"
-                  >
+              {/* Items list */}
+              <div className="space-y-3">
+                {currentPage.map((item) => {
+                  const selected = pageResponses[item.item];
+                  return (
                     <div
-                      className={`
-                        w-14 h-14 rounded-xl border-2 flex items-center justify-center
-                        text-lg font-semibold transition-all duration-150
-                        border-border bg-background text-muted-foreground
-                        hover:border-primary hover:text-primary hover:bg-primary/5
-                        active:scale-95 active:bg-primary active:text-primary-foreground
-                        disabled:opacity-50 disabled:cursor-not-allowed
-                      `}
+                      key={item.item}
+                      className={`rounded-lg border p-4 transition-colors ${
+                        selected !== undefined ? "border-primary/20 bg-primary/[0.02]" : "border-border"
+                      }`}
                     >
-                      {value}
+                      <p className="text-sm mb-3">
+                        <span className="text-muted-foreground">I am someone who </span>
+                        <span className="font-medium">{item.text.toLowerCase()}</span>
+                      </p>
+                      <div className="flex gap-2">
+                        {SCALE_LABELS.map(({ value, label }) => (
+                          <button
+                            key={value}
+                            onClick={() => setItemResponse(item.item, value)}
+                            className={`
+                              flex-1 h-10 rounded-lg border text-sm font-medium transition-all duration-150
+                              ${selected === value
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                              }
+                            `}
+                            title={label}
+                          >
+                            {value}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <span className="text-[10px] text-muted-foreground leading-tight text-center group-hover:text-foreground transition-colors">
-                      {label}
-                    </span>
-                  </button>
-                ))}
+                  );
+                })}
+              </div>
+
+              {/* Continue button */}
+              <div className="mt-6">
+                <Button
+                  onClick={handlePageSubmit}
+                  disabled={saving || answeredOnPage < currentPage.length}
+                  className="w-full py-5 text-base"
+                >
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : null}
+                  {currentIndex + 1 >= totalPages ? "Complete Precision Tuning" : "Continue"}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+                {answeredOnPage < currentPage.length && (
+                  <p className="text-xs text-muted-foreground text-center mt-2">
+                    Answer all {currentPage.length} statements to continue
+                  </p>
+                )}
               </div>
             </motion.div>
           </AnimatePresence>
         </div>
-      </div>
-
-      {/* Bottom indicator */}
-      <div className="pb-8 text-center">
-        <span className="text-xs text-muted-foreground">
-          {saving ? "Saving..." : `${currentIndex + 1} of ${items.length}`}
-        </span>
       </div>
     </div>
   );

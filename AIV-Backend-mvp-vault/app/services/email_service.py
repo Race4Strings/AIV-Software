@@ -300,7 +300,8 @@ body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
         return await self.send_deal_notification(to, "Payment Issue", f"A payment of ${amount:,.0f} could not be processed. Please update your payment method to avoid service interruption.", "/settings/billing", "Update Payment Method")
 
     async def send_fee_free_expiring(self, to: str, days_left: int) -> bool:
-        return await self.send_deal_notification(to, f"Fee-Free Period Ending in {days_left} Days", f"Your fee-free period ends in {days_left} day{'s' if days_left != 1 else ''}. The $997/month platform partnership fee will activate after this period. Close your first deal or ensure your payment method is on file.", "/settings/billing", "View Billing")
+        fee = int(get_settings().platform_fee_monthly)
+        return await self.send_deal_notification(to, f"Fee-Free Period Ending in {days_left} Days", f"Your fee-free period ends in {days_left} day{'s' if days_left != 1 else ''}. The ${fee:,}/month platform partnership fee will activate after this period. Close your first deal or ensure your payment method is on file.", "/settings/billing", "View Billing")
 
     async def send_payout_processed(self, to: str, amount: float) -> bool:
         return await self.send_deal_notification(to, "Payout Processed", f"A payout of ${amount:,.0f} has been transferred to your connected bank account. It should arrive within 2-3 business days.", "/settings/billing", "View Payout History")

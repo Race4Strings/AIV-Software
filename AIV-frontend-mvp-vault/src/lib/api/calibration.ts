@@ -9,6 +9,8 @@ import apiClient from "./client";
 export interface CalibrationItem {
   item: number;
   text: string;
+  domain?: string;
+  domain_label?: string;
 }
 
 export interface CalibrationRecord {
