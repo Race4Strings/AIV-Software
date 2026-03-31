@@ -29,7 +29,7 @@ class TwinUpdate(BaseModel):
     display_name: Optional[str] = Field(None, max_length=255)
     public_name: Optional[str] = Field(None, max_length=255)
     bio: Optional[str] = None
-    identity_category: Optional[str] = Field(None, max_length=50)
+    identity_category: Optional[List[str]] = Field(None, max_length=3)
 
 
 # ============== Response Schemas ==============
@@ -43,8 +43,7 @@ class TwinResponse(BaseModel):
     display_name: Optional[str] = None
     public_name: Optional[str] = None
     bio: Optional[str] = None
-    identity_category: Optional[str] = None
-    identity_category_secondary: Optional[str] = None
+    identity_category: Optional[List[str]] = None
     clone_type: Optional[str] = None
     status: str
     health_status: Optional[str] = None
@@ -62,7 +61,7 @@ class TwinListResponse(BaseModel):
     id: UUID
     display_name: Optional[str] = None
     public_name: Optional[str] = None
-    identity_category: Optional[str] = None
+    identity_category: Optional[List[str]] = None
     status: str
     health_status: Optional[str] = None
     talent_authorization_at: Optional[datetime] = None

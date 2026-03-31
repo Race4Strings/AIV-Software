@@ -20,12 +20,6 @@ export interface Twin {
   updated_at: string;
 }
 
-export interface TwinCompleteness {
-  twin_id: string;
-  completeness_score: number;
-  missing_sections: string[];
-}
-
 export async function fetchTwins(): Promise<Twin[]> {
   try {
     const res = await apiClient.get("/twins");
@@ -50,14 +44,7 @@ export async function fetchTwin(id: string): Promise<Twin | null> {
   }
 }
 
-export async function fetchCompleteness(id: string): Promise<TwinCompleteness | null> {
-  try {
-    const res = await apiClient.get(`/twins/${id}/completeness`);
-    return res.data;
-  } catch {
-    return null;
-  }
-}
+
 export async function updateTwin(
   id: string,
   data: Partial<Pick<Twin, "name" | "public_name" | "category" | "bio" | "alcm_data" | "commercial_terms" | "governance">>

@@ -309,7 +309,7 @@ async def generate_contract(
     # Get twin and client org names
     twin = (await db.execute(select(Twin).where(Twin.id == deal.twin_id))).scalar_one_or_none()
     twin_name = twin.display_name if twin else "Unknown"
-    twin_category = twin.identity_category if twin else "ENTERTAINMENT"
+    twin_category = (twin.identity_category[0] if twin and twin.identity_category else "ENTERTAINMENT")
 
     client_org = None
     if deal.client_organization_id:

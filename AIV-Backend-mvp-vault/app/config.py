@@ -76,6 +76,10 @@ class Settings(BaseSettings):
     
     # AI
     google_genai_api_key: str = ""
+
+    # Google Custom Search Engine (for discovery)
+    google_cse_api_key: str = ""
+    google_cse_id: str = ""
     
     # Polygon Blockchain
     polygon_rpc_url: str = ""

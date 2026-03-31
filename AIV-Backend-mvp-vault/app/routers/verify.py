@@ -66,7 +66,7 @@ async def verify_seal(
         sealed_at=pkg.seal_generated_at or pkg.created_at,
         twin_name=twin.display_name or "Unknown",
         twin_public_name=twin.public_name,
-        twin_category=twin.identity_category,
+        twin_category=twin.identity_category[0] if twin.identity_category else "ENTERTAINMENT",
         tx_hash=pkg.tx_hash,
         block_number=pkg.block_number,
         network=pkg.network,

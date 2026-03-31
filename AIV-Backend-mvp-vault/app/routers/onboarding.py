@@ -19,7 +19,7 @@ from uuid import UUID
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -54,7 +54,7 @@ class ReviewRequest(BaseModel):
 
 
 class RightsRequest(BaseModel):
-    identity_category: str
+    identity_category: List[str]
     successor: Optional[dict] = None
     consents: List[str] = []
 
@@ -176,6 +176,59 @@ def detect_categories(text: str) -> list[str]:
 
 
 # ------------------------------------------------------------------
+# Background Discovery
+# ------------------------------------------------------------------
+
+async def _run_background_discovery(session_id: str, twin_id: str, discovery_input: str):
+    """Run Wikipedia + Google CSE + Gemini discovery in the background.
+
+    Stores results in the onboarding session's `discovered_profiles` JSON field
+    and updates the twin's bio + categories if Gemini provides them.
+    """
+    from ..services.discovery_service import discover_identity
+    from ..config import get_settings
+    from ..database import async_session_maker
+
+    settings = get_settings()
+    try:
+        result = await discover_identity(
+            name=discovery_input,
+            context=discovery_input,
+            google_cse_api_key=settings.google_cse_api_key,
+            google_cse_id=settings.google_cse_id,
+            gemini_api_key=settings.google_genai_api_key,
+        )
+
+        # Persist results to DB
+        async with async_session_maker() as db:
+            async with db.begin():
+                session_r = await db.execute(
+                    select(OnboardingSession).where(OnboardingSession.id == UUID(session_id))
+                )
+                session = session_r.scalar_one_or_none()
+                if not session:
+                    return
+
+                session.discovered_profiles = result.to_dict()
+                session.discovery_completed_at = datetime.now(timezone.utc)
+                if result.wikipedia and result.wikipedia.get("content_urls"):
+                    session.wikipedia_url = result.wikipedia["content_urls"]
+
+                # Update twin with Gemini-synthesized data
+                twin_r = await db.execute(select(Twin).where(Twin.id == UUID(twin_id)))
+                twin = twin_r.scalar_one_or_none()
+                if twin and result.gemini_profile:
+                    if result.gemini_profile.get("bio") and not twin.bio:
+                        twin.bio = result.gemini_profile["bio"]
+                    if result.detected_categories:
+                        twin.identity_category = result.detected_categories[:3]
+
+        logger.info(f"Discovery completed for session {session_id}: sources={result.sources_used}")
+    except Exception as e:
+        logger.error(f"Background discovery failed for session {session_id}: {e}")
+
+
+# ------------------------------------------------------------------
 # Endpoints
 # ------------------------------------------------------------------
 
@@ -218,6 +271,7 @@ async def get_active_session(
 @router.post("/start")
 async def start_onboarding(
     req: StartRequest,
+    background_tasks: BackgroundTasks,
     user: dict = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
@@ -228,16 +282,16 @@ async def start_onboarding(
         detected_cat = detect_categories(req.discovery_input)
         cat = detected_cat[0] if detected_cat else "ENTERTAINMENT"
         result = await alcm.create_twin(
-            identity_category=cat,
+            identity_category=cat,  # ALCM takes a single primary category
             clone_type=getattr(req, "clone_type", "PUBLIC_FIGURE") or "PUBLIC_FIGURE",
         )
         alcm_twin_id = result.get("alcm_twin_id")
     except Exception as e:
         logger.warning(f"ALCM twin creation failed: {e}")
 
-    # Auto-detect category from discovery input
+    # Auto-detect categories from discovery input (multi-label, max 3)
     detected = detect_categories(req.discovery_input)
-    primary_category = detected[0] if detected else "ENTERTAINMENT"
+    categories = detected[:3] if detected else ["ENTERTAINMENT"]
 
     # Look up user's organization for the twin
     from ..models.organization import OrganizationUser
@@ -256,7 +310,7 @@ async def start_onboarding(
         talent_user_id=UUID(user["id"]),
         organization_id=org_id,
         display_name=req.discovery_input.split("/")[-1].strip("@").title(),
-        identity_category=primary_category,
+        identity_category=categories,
         status="INITIALIZING",
         alcm_twin_id=alcm_twin_id,
     )
@@ -277,12 +331,21 @@ async def start_onboarding(
     ))
     await db.flush()
 
-    # Kick off discovery classification
+    # Kick off discovery classification via ALCM
     if alcm_twin_id and req.onboarding_path != "MANUAL":
         try:
             await alcm.classify(alcm_twin_id, req.discovery_input, "TEXT", 0.6)
         except Exception as e:
             logger.warning(f"Discovery classify failed: {e}")
+
+    # Kick off parallel discovery (Wikipedia + Google CSE + Gemini) in background
+    if req.onboarding_path != "MANUAL":
+        background_tasks.add_task(
+            _run_background_discovery,
+            session_id=str(session.id),
+            twin_id=str(twin.id),
+            discovery_input=req.discovery_input,
+        )
 
     return _serialize(session)
 
@@ -323,29 +386,64 @@ async def get_discovery_results(
     if not twin:
         return results
 
-    # If ALCM twin wasn't created, return mock data immediately
+    # Check if background discovery has completed
+    discovery_data = session.discovered_profiles if isinstance(session.discovered_profiles, dict) else None
+
+    # If ALCM twin wasn't created, use discovery service data or mock fallback
     if not twin.alcm_twin_id:
         name = (session.discovery_input or "").strip().strip("@").replace("_", " ").title()
-        results["status"] = "ready"
-        results["health"] = {
-            "cfs": 0.15,
-            "psychographic_coverage": 0.10,
-            "personality_confidence": 0.12,
-            "health_status": "BUILDING",
-        }
-        results["mock"] = True
-        # Detect categories from available text
-        detection_text = f"{twin.display_name or name} {twin.bio or ''} {session.discovery_input or ''}"
-        detected = detect_categories(detection_text)
-        results["detected_categories"] = detected
-        results["twin"] = {
-            "id": str(twin.id),
-            "display_name": twin.display_name or name,
-            "bio": twin.bio,
-            "identity_category": twin.identity_category,
-            "detected_categories": detected,
-        }
-        return results
+
+        if discovery_data and discovery_data.get("sources_used"):
+            # Real discovery data available
+            results["status"] = "ready"
+            results["health"] = {
+                "cfs": 0.15,
+                "psychographic_coverage": 0.10,
+                "personality_confidence": 0.12,
+                "health_status": "BUILDING",
+            }
+            results["discovery"] = discovery_data
+            results["mock"] = False
+            detected = discovery_data.get("detected_categories") or detect_categories(
+                f"{twin.display_name or name} {twin.bio or ''} {session.discovery_input or ''}"
+            )
+            results["detected_categories"] = detected
+            results["twin"] = {
+                "id": str(twin.id),
+                "display_name": twin.display_name or name,
+                "bio": twin.bio,
+                "identity_category": twin.identity_category,
+                "detected_categories": detected,
+                "wikipedia": discovery_data.get("wikipedia"),
+                "social_profiles": discovery_data.get("social_profiles", []),
+                "gemini_profile": discovery_data.get("gemini_profile"),
+            }
+            return results
+        elif session.discovery_completed_at is None and not discovery_data:
+            # Discovery still running
+            results["status"] = "processing"
+            return results
+        else:
+            # No discovery data — mock fallback
+            results["status"] = "ready"
+            results["health"] = {
+                "cfs": 0.15,
+                "psychographic_coverage": 0.10,
+                "personality_confidence": 0.12,
+                "health_status": "BUILDING",
+            }
+            results["mock"] = True
+            detection_text = f"{twin.display_name or name} {twin.bio or ''} {session.discovery_input or ''}"
+            detected = detect_categories(detection_text)
+            results["detected_categories"] = detected
+            results["twin"] = {
+                "id": str(twin.id),
+                "display_name": twin.display_name or name,
+                "bio": twin.bio,
+                "identity_category": twin.identity_category,
+                "detected_categories": detected,
+            }
+            return results
 
     alcm = get_alcm_client()
     try:
@@ -484,14 +582,19 @@ async def submit_rights(
         if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", email):
             raise HTTPException(status_code=400, detail="Invalid successor email format.")
 
-    # Validate identity category
+    # Validate identity categories (array, max 3)
     valid_categories = {
         "MUSIC", "ENTERTAINMENT", "SPORTS", "BUSINESS", "ACADEMIA", "CULINARY",
         "FASHION", "MEDIA", "GOVERNMENT", "WELLNESS", "ARTS",
         "CHARACTER", "VIRTUAL",
     }
-    if req.identity_category not in valid_categories:
-        raise HTTPException(status_code=400, detail=f"Invalid identity category. Must be one of: {', '.join(sorted(valid_categories))}")
+    if not req.identity_category or len(req.identity_category) == 0:
+        raise HTTPException(status_code=400, detail="At least one identity category is required.")
+    if len(req.identity_category) > 3:
+        raise HTTPException(status_code=400, detail="Maximum 3 identity categories allowed.")
+    invalid = set(req.identity_category) - valid_categories
+    if invalid:
+        raise HTTPException(status_code=400, detail=f"Invalid identity categories: {', '.join(sorted(invalid))}. Must be one of: {', '.join(sorted(valid_categories))}")
 
     if session.twin_id:
         twin_r = await db.execute(select(Twin).where(Twin.id == session.twin_id))

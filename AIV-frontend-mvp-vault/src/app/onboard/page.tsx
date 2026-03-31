@@ -129,8 +129,8 @@ export default function OnboardingPage() {
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Step 3: Identity Classification + Consents
-  const [selectedCategory, setSelectedCategory] = useState("");
+  // Step 3: Identity Classification + Consents (multi-select, max 3)
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [cloneType, setCloneType] = useState("PERSONAL_IDENTITY");
   const [consents, setConsents] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
@@ -236,10 +236,10 @@ export default function OnboardingPage() {
             display_name: (twin.display_name as string) || discoveryInput.split("/").pop()?.replace("@", "").trim() || "",
             bio: (twin.bio as string) || "",
           });
-          // Pre-populate category from detection (user can change in Step 3)
+          // Pre-populate categories from detection (user can change in Step 3)
           const detected = (res.data.detected_categories as string[]) || [];
-          if (detected.length > 0 && !selectedCategory) {
-            setSelectedCategory(detected[0]);
+          if (detected.length > 0 && selectedCategories.length === 0) {
+            setSelectedCategories(detected.slice(0, 3));
           }
         }
       } catch {
@@ -329,7 +329,7 @@ export default function OnboardingPage() {
     try {
       // Submit rights with user-selected category
       await apiClient.post(`/onboarding/${sessionId}/rights`, {
-        identity_category: selectedCategory || "ENTERTAINMENT",
+        identity_category: selectedCategories.length > 0 ? selectedCategories : ["ENTERTAINMENT"],
         successor: null,
         consents: grantedConsents,
       });
@@ -722,14 +722,38 @@ export default function OnboardingPage() {
             <Label className="text-sm font-medium">Identity Classification</Label>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">Category</Label>
+                <Label className="text-xs text-muted-foreground mb-1.5 block">Categories (select up to 3)</Label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {selectedCategories.map((cat) => {
+                    const label = IDENTITY_CATEGORIES.find((c) => c.key === cat)?.label || cat;
+                    return (
+                      <span key={cat} className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                        {label}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCategories((prev) => prev.filter((c) => c !== cat))}
+                          className="ml-0.5 text-primary/60 hover:text-primary"
+                        >
+                          &times;
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
                 <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  value=""
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val && !selectedCategories.includes(val) && selectedCategories.length < 3) {
+                      setSelectedCategories((prev) => [...prev, val]);
+                    }
+                    e.target.value = "";
+                  }}
+                  disabled={selectedCategories.length >= 3}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
                 >
-                  <option value="">Select category...</option>
-                  {IDENTITY_CATEGORIES.map((cat) => (
+                  <option value="">{selectedCategories.length >= 3 ? "Maximum 3 selected" : "Add category..."}</option>
+                  {IDENTITY_CATEGORIES.filter((cat) => !selectedCategories.includes(cat.key)).map((cat) => (
                     <option key={cat.key} value={cat.key}>{cat.label}</option>
                   ))}
                 </select>

@@ -48,7 +48,7 @@ async def create_twin(
         talent_user_id=UUID(user["id"]),
         display_name=data.name,
         public_name=data.public_name,
-        identity_category=data.category or "ENTERTAINMENT",
+        identity_category=[data.category] if data.category else ["ENTERTAINMENT"],
         bio=data.bio,
         status=TwinStatus.INITIALIZING.value,
         alcm_twin_id=alcm_twin_id,

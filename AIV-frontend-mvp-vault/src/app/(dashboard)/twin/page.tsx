@@ -35,7 +35,7 @@ interface TwinData {
   name?: string;
   public_name?: string;
   bio?: string;
-  identity_category?: string;
+  identity_category?: string[];
   clone_type?: string;
   status?: string;
   health_status?: string;
@@ -156,7 +156,8 @@ export default function TwinPage() {
   const HealthIcon = healthCfg.icon;
   const displayName = twin.display_name || twin.name || "Your Twin";
   const isBuilding = ["BUILDING", "INITIALIZING"].includes(twin.status || "");
-  const category = twin.identity_category || "ENTERTAINMENT";
+  const categories = twin.identity_category?.length ? twin.identity_category : ["ENTERTAINMENT"];
+  const category = categories[0];
 
   return (
     <TooltipProvider>
@@ -169,7 +170,9 @@ export default function TwinPage() {
           <div className="flex-1">
             <h1 className="text-xl font-bold">{displayName}</h1>
             <div className="flex items-center gap-3 mt-1 flex-wrap">
-              <Badge variant="outline">{category}</Badge>
+              {categories.map((cat) => (
+                <Badge key={cat} variant="outline">{cat}</Badge>
+              ))}
               <Tooltip><TooltipTrigger asChild>
                 <Badge variant="outline" className="cursor-help">{twin.status || "INITIALIZING"}</Badge>
               </TooltipTrigger><TooltipContent className="max-w-xs">
@@ -249,7 +252,9 @@ export default function TwinPage() {
                     )}
                     {twin.bio && <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{twin.bio}</p>}
                     <div className="flex items-center gap-3 mt-3 flex-wrap">
-                      <Badge>{category}</Badge>
+                      {categories.map((cat) => (
+                        <Badge key={cat}>{cat}</Badge>
+                      ))}
                       <Badge variant="outline">{twin.clone_type || "PUBLIC_FIGURE"}</Badge>
                       {twin.alcm_twin_id && <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">ALCM Connected</Badge>}
                     </div>
@@ -377,8 +382,8 @@ export default function TwinPage() {
 
             <div className="grid grid-cols-3 gap-4">
               <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm">Category</CardTitle></CardHeader>
-                <CardContent><Badge>{category}</Badge></CardContent>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">{categories.length > 1 ? "Categories" : "Category"}</CardTitle></CardHeader>
+                <CardContent><div className="flex flex-wrap gap-1">{categories.map((cat) => <Badge key={cat}>{cat}</Badge>)}</div></CardContent>
               </Card>
               <Card>
                 <CardHeader className="pb-2"><CardTitle className="text-sm">Clone Type</CardTitle></CardHeader>

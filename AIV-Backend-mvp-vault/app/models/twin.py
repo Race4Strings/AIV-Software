@@ -9,7 +9,7 @@ but are NOT defined here — SQLAlchemy ignores them. They'll be dropped in Phas
 import enum
 
 from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Text, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import relationship
 import uuid
 
@@ -47,8 +47,7 @@ class Twin(Base):
     display_name = Column(String(255), nullable=True)
     public_name = Column(String(255), nullable=True)
     bio = Column(Text, nullable=True)
-    identity_category = Column(String(50), nullable=True, default="ENTERTAINMENT")
-    identity_category_secondary = Column(String(50), nullable=True)
+    identity_category = Column(ARRAY(String(50)), nullable=True, default=["ENTERTAINMENT"])
     clone_type = Column(String(50), nullable=True, default="PUBLIC_FIGURE")
 
     # Status: INITIALIZING | BUILDING | ACTIVE | PROTECTED_HOLD | LOCKED | ARCHIVED
