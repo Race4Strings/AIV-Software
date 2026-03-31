@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import apiClient from "@/lib/api/client";
 
 interface AccessCode {
@@ -37,6 +38,8 @@ interface WaitlistEntry {
 }
 
 export default function AdminDashboard() {
+  const router = useRouter();
+  const [authorized, setAuthorized] = useState(false);
   const [codes, setCodes] = useState<AccessCode[]>([]);
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +47,19 @@ export default function AdminDashboard() {
   const [codeLabel, setCodeLabel] = useState("");
   const [codeCount, setCodeCount] = useState(5);
   const [granting, setGranting] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      if (user.role !== "OWNER") {
+        router.replace("/dashboard");
+        return;
+      }
+      setAuthorized(true);
+    } catch {
+      router.replace("/dashboard");
+    }
+  }, [router]);
 
   async function loadData() {
     setLoading(true);
@@ -58,7 +74,7 @@ export default function AdminDashboard() {
     setLoading(false);
   }
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { if (authorized) loadData(); }, [authorized]);
 
   async function generateCodes() {
     setGenerating(true);
@@ -94,6 +110,8 @@ export default function AdminDashboard() {
     navigator.clipboard.writeText(code);
     toast.success("Code copied");
   }
+
+  if (!authorized) return null;
 
   if (loading) {
     return (

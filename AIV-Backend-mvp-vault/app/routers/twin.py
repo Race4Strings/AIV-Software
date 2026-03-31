@@ -1,5 +1,6 @@
 """Twin Router — Core CRUD for digital twins."""
 
+import logging
 from uuid import UUID
 from typing import List
 from datetime import datetime, timezone
@@ -25,6 +26,7 @@ from ..services.alcm_client import get_alcm_client
 class TTSRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=500)
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/twins", tags=["Twins"])
 
 
@@ -41,8 +43,8 @@ async def create_twin(
     try:
         alcm_result = await alcm_client.create_twin()
         alcm_twin_id = alcm_result.get("alcm_twin_id")
-    except Exception:
-        pass  # Graceful — twin still created, ALCM linked later
+    except Exception as e:
+        logger.warning(f"ALCM twin creation failed silently: {e}")
 
     twin = Twin(
         talent_user_id=UUID(user["id"]),
@@ -204,8 +206,8 @@ async def _delete_twin(twin_id: UUID, user: dict, db: AsyncSession):
         try:
             async with db.begin_nested():
                 await db.execute(text(sql), params)
-        except Exception:
-            pass  # Table/column may not exist — skip
+        except Exception as e:
+            logger.debug(f"Twin cleanup skip: {e}")
 
     await safe_delete("DELETE FROM audit_logs WHERE twin_id = :tid", {"tid": twin_id})
     for tbl, col in [

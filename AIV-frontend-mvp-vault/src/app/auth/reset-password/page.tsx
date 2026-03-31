@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Loader2, Lock, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import apiClient from "@/lib/api/client";
+import { authApi } from "@/lib/api";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -32,7 +32,7 @@ function ResetPasswordForm() {
     }
     setSubmitting(true);
     try {
-      await apiClient.post("/auth/reset-password", { token, new_password: password });
+      await authApi.resetPassword({ token, new_password: password });
       setDone(true);
       toast.success("Password reset successfully.");
     } catch {

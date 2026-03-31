@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Mail, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import apiClient from "@/lib/api/client";
+import { authApi } from "@/lib/api";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -19,7 +19,7 @@ export default function ForgotPasswordPage() {
     if (!email.trim()) return;
     setSending(true);
     try {
-      await apiClient.post("/auth/forgot-password", { email });
+      await authApi.forgotPassword({ email });
       setSent(true);
       toast.success("If that email exists, a reset link has been sent.");
     } catch {

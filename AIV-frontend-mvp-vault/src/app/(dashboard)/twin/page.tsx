@@ -124,7 +124,7 @@ export default function TwinPage() {
         if (dealsRes.status === "fulfilled") setDealCount(dealsRes.value);
         if (revenueRes.status === "fulfilled") setRevenue(revenueRes.value);
       })
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 

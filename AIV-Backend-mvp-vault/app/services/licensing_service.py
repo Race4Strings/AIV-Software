@@ -35,11 +35,14 @@ from ..models.licensing_rules_config import LicensingRulesConfig
 from ..models.notification import Notification
 from ..models.audit_log import AuditLog
 
+from ..config import get_settings
+
 logger = logging.getLogger(__name__)
 
-# Commission rates by deal sequence per twin
-COMMISSION_RATES = {1: Decimal("0.30"), 2: Decimal("0.25")}
-DEFAULT_COMMISSION_RATE = Decimal("0.20")  # 3rd deal onward
+# Commission rates by deal sequence per twin — sourced from centralized config
+_settings = get_settings()
+COMMISSION_RATES = {1: Decimal(str(_settings.commission_rate_first_deal)), 2: Decimal(str(_settings.commission_rate_second_deal))}
+DEFAULT_COMMISSION_RATE = Decimal(str(_settings.commission_rate_default))
 
 # Valid status transitions
 VALID_TRANSITIONS = {
@@ -113,11 +116,11 @@ class LicensingService:
         )
         past_deal_count = count_result.scalar() or 0
         if past_deal_count == 0:
-            rate = Decimal("0.30")  # First deal: 30%
+            rate = COMMISSION_RATES[1]  # First deal
         elif past_deal_count == 1:
-            rate = Decimal("0.25")  # Second deal: 25%
+            rate = COMMISSION_RATES[2]  # Second deal
         else:
-            rate = Decimal("0.20")  # Third+: 20%
+            rate = DEFAULT_COMMISSION_RATE  # Third+
         commission = value * rate
 
         # Get grace period from licensing rules

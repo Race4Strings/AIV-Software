@@ -103,6 +103,12 @@ class Settings(BaseSettings):
     stripe_webhook_secret: str = ""
     stripe_platform_fee_price_id: str = ""  # Stripe Price ID for $997/month subscription
 
+    # Business Logic — Commission & Fees
+    commission_rate_first_deal: float = 0.30   # 30% on first deal per twin
+    commission_rate_second_deal: float = 0.25  # 25% on second deal
+    commission_rate_default: float = 0.20      # 20% on third+ deals
+    platform_fee_monthly: float = 997.00       # $997/month platform partnership fee
+
     # Zoho Sign (e-signatures) — replaces Dropbox Sign
     zoho_sign_client_id: str = ""
     zoho_sign_client_secret: str = ""

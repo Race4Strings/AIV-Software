@@ -1,4 +1,5 @@
 """Identity Package endpoints per spec Section 3.8."""
+import logging
 import hashlib
 import json
 from uuid import UUID, uuid4
@@ -14,6 +15,7 @@ from ..models.identity_package_version import IdentityPackageVersion
 from ..services.alcm_client import get_alcm_client
 from ..services.blockchain_service import BlockchainService
 
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Packages"])
 
 
@@ -113,8 +115,8 @@ async def create_snapshot(
             tx_hash = anchor.get("tx_hash")
             block_number = str(anchor.get("block_number", ""))
             network = anchor.get("network")
-    except Exception:
-        pass  # Blockchain optional
+    except Exception as e:
+        logger.warning(f"Blockchain anchoring failed (optional): {e}")
 
     version = IdentityPackageVersion(
         twin_id=tid,
@@ -154,7 +156,6 @@ async def create_snapshot(
                     entity_type="identity_package", entity_id=version.id,
                 )
     except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning(f"Cascade notification failed (non-blocking): {e}")
+        logger.warning(f"Cascade notification failed (non-blocking): {e}")
 
     return _serialize(version)

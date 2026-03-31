@@ -1,3 +1,4 @@
+import logging
 import aiosmtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -5,6 +6,8 @@ from jinja2 import Environment, BaseLoader
 from typing import Optional
 
 from ..config import get_settings
+
+logger = logging.getLogger(__name__)
 
 
 class EmailService:
@@ -43,14 +46,14 @@ class EmailService:
                     )
                     
                     if response.status_code >= 400:
-                        print(f"Resend API Error: {response.text}")
+                        logger.warning(f"Resend API Error: {response.text}")
                         # Fallback to SMTP only if Resend fails? Or just return False?
                         # For now, let's log and return False if Resend was intended but failed.
                         return False
                         
                     return True
             except Exception as e:
-                print(f"Failed to send email via Resend: {e}")
+                logger.error(f"Failed to send email via Resend: {e}")
                 return False
 
         # Fallback to SMTP
@@ -85,7 +88,7 @@ class EmailService:
             
             return True
         except Exception as e:
-            print(f"Failed to send email via SMTP: {e}")
+            logger.error(f"Failed to send email via SMTP: {e}")
             return False
     
     async def send_verification_otp(self, to: str, username: str, otp: str) -> bool:

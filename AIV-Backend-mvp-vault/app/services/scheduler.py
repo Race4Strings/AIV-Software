@@ -16,6 +16,7 @@ from decimal import Decimal
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..config import get_settings
 from ..database import async_session_maker
 from ..models.deal import Deal
 from ..models.twin import Twin
@@ -117,10 +118,11 @@ async def activate_platform_fees():
 
                     # Create first invoice
                     today = date.today()
+                    _settings = get_settings()
                     invoice = Invoice(
                         organization_id=twin.organization_id,
                         type="PLATFORM_FEE",
-                        amount=Decimal("997.00"),
+                        amount=Decimal(str(_settings.platform_fee_monthly)),
                         currency="USD",
                         period_start=today,
                         period_end=today + timedelta(days=30),

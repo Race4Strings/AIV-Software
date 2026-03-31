@@ -8,6 +8,7 @@ Uses boto3 for S3 API compatibility with:
 - Any S3-compatible storage
 """
 
+import logging
 import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
@@ -17,6 +18,8 @@ import mimetypes
 from functools import lru_cache
 
 from ..config import get_settings
+
+logger = logging.getLogger(__name__)
 
 
 class StorageService:
@@ -71,7 +74,7 @@ class StorageService:
             error_code = e.response.get('Error', {}).get('Code', '')
             if error_code in ('404', 'NoSuchBucket'):
                 self.s3_client.create_bucket(Bucket=self.bucket_name)
-                print(f"Created bucket: {self.bucket_name}")
+                logger.info(f"Created bucket: {self.bucket_name}")
             else:
                 raise
     

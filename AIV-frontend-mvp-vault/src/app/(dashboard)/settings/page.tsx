@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { authApi } from "@/lib/api";
+import apiClient from "@/lib/api/client";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -58,7 +59,6 @@ export default function SettingsPage() {
     // Persist to both localStorage (immediate) and backend (durable)
     localStorage.setItem("notification_prefs", JSON.stringify(updated));
     try {
-      const apiClient = (await import("@/lib/api/client")).default;
       await apiClient.post("/notifications/preferences", updated);
     } catch {
       // Silent fallback — localStorage still has the prefs

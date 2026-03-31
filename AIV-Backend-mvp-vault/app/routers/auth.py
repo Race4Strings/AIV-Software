@@ -1,3 +1,4 @@
+import logging
 import uuid
 import string
 import random
@@ -31,6 +32,7 @@ from ..config import get_settings
 from ..models.access_code import AccessCode
 from ..models.waitlist import WaitlistEntry
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
@@ -237,8 +239,8 @@ async def signin(
             org_row = org_result.scalar_one_or_none()
             if org_row:
                 org_name = org_row
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Non-critical auth operation failed: {e}")
 
         # Create session
         settings = get_settings()
@@ -587,7 +589,8 @@ async def grant_access_bulk(
             entry.granted_code = code_str
             entry.granted_at = datetime.now(timezone.utc)
             results.append({"id": str(entry.id), "code": code_str, "email": entry.email})
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Waitlist grant failed for entry: {e}")
             continue
 
     await db.flush()

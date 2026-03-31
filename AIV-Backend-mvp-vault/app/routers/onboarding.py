@@ -303,8 +303,8 @@ async def start_onboarding(
             .limit(1)
         )
         org_id = org_result.scalar_one_or_none()
-    except Exception:
-        logger.warning(f"Could not look up organization for user {user['id']}")
+    except Exception as e:
+        logger.warning(f"Could not look up organization for user {user['id']}: {e}")
 
     twin = Twin(
         talent_user_id=UUID(user["id"]),
@@ -455,8 +455,8 @@ async def get_discovery_results(
         try:
             package = await alcm.get_package(str(twin.alcm_twin_id), ["identity_profile", "knowledge_base"])
             results["profile"] = package
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"ALCM package fetch skip: {e}")
     except Exception as e:
         logger.warning(f"Discovery results fetch failed (ALCM unavailable): {e}")
         # Mock discovery fallback — generate baseline profile from input

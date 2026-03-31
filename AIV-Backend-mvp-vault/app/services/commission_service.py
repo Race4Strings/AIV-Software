@@ -22,10 +22,13 @@ from ..models.invoice import Invoice
 from ..models.payout import Payout
 from ..models.twin import Twin
 
+from ..config import get_settings
+
 logger = logging.getLogger(__name__)
 
-COMMISSION_RATES = {1: Decimal("0.30"), 2: Decimal("0.25")}
-DEFAULT_RATE = Decimal("0.20")
+_settings = get_settings()
+COMMISSION_RATES = {1: Decimal(str(_settings.commission_rate_first_deal)), 2: Decimal(str(_settings.commission_rate_second_deal))}
+DEFAULT_RATE = Decimal(str(_settings.commission_rate_default))
 
 
 class CommissionService:
@@ -56,7 +59,7 @@ class CommissionService:
         invoice = Invoice(
             organization_id=org_id,
             type="PLATFORM_FEE",
-            amount=Decimal("997.00"),
+            amount=Decimal(str(_settings.platform_fee_monthly)),
             currency="USD",
             period_start=today,
             period_end=today + timedelta(days=30),

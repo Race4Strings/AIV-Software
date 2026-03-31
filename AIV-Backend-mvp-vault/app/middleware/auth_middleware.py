@@ -1,10 +1,13 @@
 import json
+import logging
 from typing import Optional
 from uuid import UUID
 from fastapi import Request, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 import redis.asyncio as redis
+
+logger = logging.getLogger(__name__)
 
 from ..config import get_settings
 from ..database import get_db
@@ -26,20 +29,20 @@ class SessionMiddleware(BaseHTTPMiddleware):
                 session_data = await r.get(f"session:{session_id}")
                 if session_data:
                     request.state.session = json.loads(session_data)
-                    print(f"🔓 Session loaded for user: {request.state.session.get('id', 'unknown')}")
+                    logger.debug(f"Session loaded for user: {request.state.session.get('id', 'unknown')}")
                 else:
                     request.state.session = {}
-                    print(f"⚠️ Session ID cookie present but no data in Redis: {session_id[:8]}...")
+                    logger.warning(f"Session ID cookie present but no data in Redis: {session_id[:8]}...")
             except Exception as e:
                 request.state.session = {}
-                print(f"❌ Session load error: {e}")
+                logger.error(f"Session load error: {e}")
             finally:
                 await r.close()
         else:
             request.state.session = {}
             # Only log for protected routes (not static or health checks)
             if request.url.path.startswith("/clone") or request.url.path.startswith("/auth/me"):
-                print(f"🚫 No session cookie received for: {request.url.path}")
+                logger.debug(f"No session cookie for: {request.url.path}")
         
         response = await call_next(request)
         return response
