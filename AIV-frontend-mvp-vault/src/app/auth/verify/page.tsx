@@ -140,6 +140,10 @@ function VerifyPageContent() {
         )}
       </div>
 
+      <p className="text-center text-xs text-white/30">
+        Didn&apos;t receive it? Check your spam or promotions folder.
+      </p>
+
       <div className="text-center text-sm">
         <Link href="/auth/signin" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
           Back to sign in
