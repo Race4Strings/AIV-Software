@@ -13,7 +13,7 @@ from .routers import (
     payments_router, notifications_router,
     guardrails_router, consent_router,
     organizations_router, packages_router,
-    calibration_router,
+    calibration_router, training_router,
 )
 
 from .middleware import SessionMiddleware
@@ -115,6 +115,7 @@ def create_app() -> FastAPI:
     app.include_router(verify_router)
     app.include_router(audit_router)
     app.include_router(calibration_router)
+    app.include_router(training_router)
 
     @app.get("/")
     async def root():

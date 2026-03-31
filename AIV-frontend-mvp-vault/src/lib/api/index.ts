@@ -7,3 +7,5 @@ export { organizationsApi } from "./organizations";
 export { guardrailsApi } from "./guardrails";
 export { adminApi } from "./admin";
 export { notificationsApi } from "./notifications";
+export { assistantApi } from "./assistant";
+export { trainingApi } from "./training";

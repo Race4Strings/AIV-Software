@@ -261,25 +261,59 @@ class AgentService:
         yield response
 
     async def _assistant_response(self, session: AgentSession, content: str) -> str:
-        """ASSISTANT mode: platform DB + docs only. No ALCM call."""
+        """ASSISTANT mode: platform DB + docs only. Uses Anthropic API directly (not ALCM)."""
         history = await self._get_recent_messages(session.id, limit=10)
         context = self._format_history(history)
 
-        # Use ALCM's LLM for now (through generate endpoint with no twin personality)
-        # In production, this would use the platform's own LLM (Anthropic) for assistant mode
-        prompt = f"{ASSISTANT_SYSTEM_PROMPT}\n\nConversation:\n{context}\n\nUser: {content}\n\nAssistant:"
+        from ..config import get_settings
+        settings = get_settings()
 
+        # Use Anthropic API for assistant mode (platform LLM, not identity engine)
+        if settings.anthropic_api_key:
+            try:
+                import httpx
+                messages = []
+                for msg in history:
+                    if msg.role == "USER":
+                        messages.append({"role": "user", "content": msg.content})
+                    elif msg.role == "AGENT":
+                        messages.append({"role": "assistant", "content": msg.content})
+                messages.append({"role": "user", "content": content})
+
+                async with httpx.AsyncClient(timeout=30) as client:
+                    resp = await client.post(
+                        "https://api.anthropic.com/v1/messages",
+                        headers={
+                            "x-api-key": settings.anthropic_api_key,
+                            "anthropic-version": "2023-06-01",
+                            "content-type": "application/json",
+                        },
+                        json={
+                            "model": "claude-haiku-4-5-20251001",
+                            "max_tokens": 1024,
+                            "system": ASSISTANT_SYSTEM_PROMPT,
+                            "messages": messages[-10:],  # Last 10 messages
+                        },
+                    )
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        return data.get("content", [{}])[0].get("text", "")
+            except Exception as e:
+                logger.warning(f"Anthropic API call failed, falling back to ALCM: {e}")
+
+        # Fallback: try ALCM generate if Anthropic unavailable
         if session.twin_id:
             twin = await self._get_twin(session.twin_id)
             if twin and twin.alcm_twin_id:
                 try:
+                    prompt = f"{ASSISTANT_SYSTEM_PROMPT}\n\nConversation:\n{context}\n\nUser: {content}\n\nAssistant:"
                     return await self.alcm.generate(
                         str(twin.alcm_twin_id), prompt, guardrails={}, mode="assistant"
                     )
                 except ALCMError:
                     pass
 
-        return "I'm here to help with your AIV platform questions. The identity engine is currently starting up — try asking again in a moment."
+        return "I'm here to help with your AIV platform questions. Please try again in a moment."
 
     async def _digital_self_response(self, session: AgentSession, content: str) -> str:
         """DIGITAL_SELF mode: calls ALCM /generate with twin personality and conversation history."""
