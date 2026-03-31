@@ -75,7 +75,25 @@ export async function updateTwin(
 
 export async function lockTwin(id: string): Promise<boolean> {
   try {
-    await apiClient.patch(`/twins/${id}`, { status: "LOCKED" });
+    await apiClient.post(`/twins/${id}/lock`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function unlockTwin(id: string): Promise<boolean> {
+  try {
+    await apiClient.post(`/twins/${id}/unlock`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function archiveTwin(id: string): Promise<boolean> {
+  try {
+    await apiClient.post(`/twins/${id}/archive`);
     return true;
   } catch {
     return false;

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { licensingApi } from "@/lib/api/licensing";
-import apiClient from "@/lib/api/client";
+import { paymentsApi } from "@/lib/api/payments";
 import { formatDistanceToNow } from "date-fns";
 
 interface Invoice {
@@ -64,7 +64,7 @@ export default function BillingPage() {
     Promise.allSettled([
       licensingApi.getInvoices(),
       licensingApi.getPayouts(),
-      apiClient.get("/payments/billing-status").then((r) => r.data),
+      paymentsApi.getBillingStatus(),
     ]).then((results) => {
       if (results[0].status === "fulfilled") setInvoices(results[0].value);
       if (results[1].status === "fulfilled") setPayouts(results[1].value);
@@ -121,11 +121,11 @@ export default function BillingPage() {
               size="sm"
               onClick={async () => {
                 try {
-                  const { data } = await apiClient.post("/payments/setup-checkout", {
-                    success_url: `${window.location.origin}/settings/billing?payment=success`,
-                    cancel_url: `${window.location.origin}/settings/billing`,
-                  });
-                  if (data.checkout_url) window.location.href = data.checkout_url;
+                  const result = await paymentsApi.createSetupCheckout(
+                    `${window.location.origin}/settings/billing?payment=success`,
+                    `${window.location.origin}/settings/billing`,
+                  );
+                  if (result.checkout_url) window.location.href = result.checkout_url;
                 } catch {
                   // Toast would go here
                 }
@@ -302,11 +302,11 @@ export default function BillingPage() {
               size="sm"
               onClick={async () => {
                 try {
-                  const { data } = await apiClient.post("/payments/connect-onboard", {
-                    return_url: `${window.location.origin}/settings/billing`,
-                    refresh_url: `${window.location.origin}/settings/billing`,
-                  });
-                  if (data.onboarding_url) window.location.href = data.onboarding_url;
+                  const result = await paymentsApi.createConnectOnboarding(
+                    `${window.location.origin}/settings/billing`,
+                    `${window.location.origin}/settings/billing`,
+                  );
+                  if (result.onboarding_url) window.location.href = result.onboarding_url;
                 } catch {
                   // Toast would go here
                 }

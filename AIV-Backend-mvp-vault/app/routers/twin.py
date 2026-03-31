@@ -160,6 +160,83 @@ async def post_update_twin(
     return await update_twin(twin_id, data, user, db)
 
 
+# ------------------------------------------------------------------
+# Twin Lifecycle: Lock / Unlock / Archive
+# ------------------------------------------------------------------
+
+@router.post("/{twin_id}/lock")
+async def lock_twin(
+    twin_id: UUID,
+    user: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Emergency lock a twin — blocks all licensing and generation."""
+    result = await db.execute(select(Twin).where(Twin.id == twin_id))
+    twin = result.scalar_one_or_none()
+    if not twin:
+        raise HTTPException(status_code=404, detail="Twin not found")
+    if twin.status == "LOCKED":
+        return {"status": "already_locked", "twin_id": str(twin_id)}
+    old_status = twin.status
+    twin.status = "LOCKED"
+    db.add(AuditLog(
+        actor_id=UUID(user["id"]), actor_type="TALENT", action="LOCK",
+        entity_type="twin", entity_id=twin_id, twin_id=twin_id,
+        details={"from": old_status, "reason": "manual_lock"},
+    ))
+    await db.flush()
+    logger.info(f"Twin {twin_id} locked by user {user['id']}")
+    return {"status": "locked", "twin_id": str(twin_id), "previous_status": old_status}
+
+
+@router.post("/{twin_id}/unlock")
+async def unlock_twin(
+    twin_id: UUID,
+    user: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Unlock a previously locked twin — restores to ACTIVE status."""
+    result = await db.execute(select(Twin).where(Twin.id == twin_id))
+    twin = result.scalar_one_or_none()
+    if not twin:
+        raise HTTPException(status_code=404, detail="Twin not found")
+    if twin.status != "LOCKED":
+        raise HTTPException(status_code=400, detail=f"Twin is not locked (current status: {twin.status})")
+    twin.status = "ACTIVE"
+    db.add(AuditLog(
+        actor_id=UUID(user["id"]), actor_type="TALENT", action="UNLOCK",
+        entity_type="twin", entity_id=twin_id, twin_id=twin_id,
+    ))
+    await db.flush()
+    logger.info(f"Twin {twin_id} unlocked by user {user['id']}")
+    return {"status": "active", "twin_id": str(twin_id)}
+
+
+@router.post("/{twin_id}/archive")
+async def archive_twin(
+    twin_id: UUID,
+    user: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Permanently archive a twin — cannot be undone."""
+    result = await db.execute(select(Twin).where(Twin.id == twin_id))
+    twin = result.scalar_one_or_none()
+    if not twin:
+        raise HTTPException(status_code=404, detail="Twin not found")
+    if twin.status == "ARCHIVED":
+        return {"status": "already_archived", "twin_id": str(twin_id)}
+    old_status = twin.status
+    twin.status = "ARCHIVED"
+    db.add(AuditLog(
+        actor_id=UUID(user["id"]), actor_type="TALENT", action="ARCHIVE",
+        entity_type="twin", entity_id=twin_id, twin_id=twin_id,
+        details={"from": old_status},
+    ))
+    await db.flush()
+    logger.info(f"Twin {twin_id} archived by user {user['id']}")
+    return {"status": "archived", "twin_id": str(twin_id), "previous_status": old_status}
+
+
 @router.delete("/{twin_id}")
 async def delete_twin(
     twin_id: UUID,
