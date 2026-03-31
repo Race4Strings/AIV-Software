@@ -9,9 +9,13 @@ import json
 from uuid import UUID
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
@@ -116,8 +120,10 @@ async def list_sessions(
 # ------------------------------------------------------------------
 
 @router.post("/session/{session_id}/message")
+@limiter.limit("30/minute")
 async def send_message_stream(
     session_id: str,
+    request: Request,
     req: MessageRequest,
     user: dict = Depends(require_auth),
     db: AsyncSession = Depends(get_db),

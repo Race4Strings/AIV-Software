@@ -140,3 +140,36 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Get cached settings instance."""
     return Settings()
+
+
+def validate_production_config() -> list[str]:
+    """Check for unsafe defaults that must be changed before production.
+
+    Returns list of warnings. Empty list = safe for production.
+    Called on startup when dev_mode is False.
+    """
+    settings = get_settings()
+    warnings = []
+
+    if settings.dev_mode:
+        return []  # Dev mode — skip validation
+
+    if settings.session_secret == "change-me-in-production":
+        warnings.append("CRITICAL: session_secret is using the default value. Set a cryptographically random string.")
+
+    if settings.alcm_auth_token == "dev-alcm-token-change-in-production":
+        warnings.append("WARNING: alcm_auth_token is using the dev default. Set a production token.")
+
+    if not settings.cookie_secure:
+        warnings.append("WARNING: cookie_secure is False. Must be True for HTTPS in production.")
+
+    if settings.cors_origins == "http://localhost:3000":
+        warnings.append("WARNING: cors_origins is set to localhost. Update to production frontend URL.")
+
+    if not settings.stripe_secret_key:
+        warnings.append("WARNING: stripe_secret_key is empty. Payments will be disabled.")
+
+    if not settings.resend_api_key and settings.smtp_host == "localhost":
+        warnings.append("WARNING: No email provider configured. OTP emails will fail.")
+
+    return warnings

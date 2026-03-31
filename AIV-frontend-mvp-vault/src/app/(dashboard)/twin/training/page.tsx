@@ -108,8 +108,11 @@ export default function TrainingPage() {
     loadData();
   }, [loadData]);
 
+  const [confirmAction, setConfirmAction] = useState<{ id: string; type: "approve" | "reject" } | null>(null);
+
   const handleApprove = async (subId: string) => {
     if (!twin) return;
+    setConfirmAction(null);
     setProcessingId(subId);
     try {
       await trainingApi.approveSubmission(twin.id, subId);
@@ -124,6 +127,7 @@ export default function TrainingPage() {
 
   const handleReject = async (subId: string) => {
     if (!twin) return;
+    setConfirmAction(null);
     setProcessingId(subId);
     try {
       await trainingApi.rejectSubmission(twin.id, subId);
@@ -282,25 +286,48 @@ export default function TrainingPage() {
 
                   {sub.status === "pending" && (
                     <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={processingId === sub.id}
-                        onClick={() => handleReject(sub.id)}
-                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      >
-                        {processingId === sub.id ? <Loader2 className="mr-2 size-4 animate-spin" /> : <XCircle className="mr-2 size-4" />}
-                        Reject
-                      </Button>
-                      <Button
-                        size="sm"
-                        disabled={processingId === sub.id}
-                        onClick={() => handleApprove(sub.id)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                      >
-                        {processingId === sub.id ? <Loader2 className="mr-2 size-4 animate-spin" /> : <CheckCircle className="mr-2 size-4" />}
-                        Approve Data
-                      </Button>
+                      {confirmAction?.id === sub.id ? (
+                        <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-1.5">
+                          <span className="text-xs text-muted-foreground">
+                            {confirmAction.type === "approve" ? "Apply this data to your twin?" : "Reject this submission?"}
+                          </span>
+                          <Button
+                            size="sm"
+                            variant={confirmAction.type === "approve" ? "default" : "destructive"}
+                            className="h-7 text-xs"
+                            disabled={processingId === sub.id}
+                            onClick={() => confirmAction.type === "approve" ? handleApprove(sub.id) : handleReject(sub.id)}
+                          >
+                            {processingId === sub.id ? <Loader2 className="size-3 animate-spin mr-1" /> : null}
+                            Confirm
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setConfirmAction(null)}>
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={processingId === sub.id}
+                            onClick={() => setConfirmAction({ id: sub.id, type: "reject" })}
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            <XCircle className="mr-2 size-4" />
+                            Reject
+                          </Button>
+                          <Button
+                            size="sm"
+                            disabled={processingId === sub.id}
+                            onClick={() => setConfirmAction({ id: sub.id, type: "approve" })}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                          >
+                            <CheckCircle className="mr-2 size-4" />
+                            Approve Data
+                          </Button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>

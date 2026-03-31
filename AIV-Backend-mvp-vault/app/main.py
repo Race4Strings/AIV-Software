@@ -38,6 +38,12 @@ async def lifespan(app: FastAPI):
     logger.info(f"CORS origins: {settings.cors_origins_list}")
     logger.info(f"Cookie: SameSite={settings.cookie_samesite}, Secure={settings.cookie_secure}")
 
+    # Production config safety check
+    from .config import validate_production_config
+    config_warnings = validate_production_config()
+    for warning in config_warnings:
+        logger.warning(f"[CONFIG] {warning}")
+
     import redis.asyncio as redis
     try:
         r = redis.from_url(settings.redis_url, decode_responses=True)

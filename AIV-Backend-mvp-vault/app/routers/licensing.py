@@ -14,9 +14,13 @@ from datetime import date
 
 logger = logging.getLogger(__name__)
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
 
 from ..database import get_db
 from ..middleware import require_auth
@@ -154,7 +158,9 @@ async def list_deals(
 
 
 @router.post("/deals")
+@limiter.limit("10/minute")
 async def create_deal(
+    request: Request,
     req: CreateDealRequest,
     user: dict = Depends(require_auth),
     db: AsyncSession = Depends(get_db),

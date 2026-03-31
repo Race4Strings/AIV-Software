@@ -136,11 +136,13 @@ export default function TwinPage() {
 
   if (!twin) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <Fingerprint className="h-12 w-12 text-muted-foreground/30" />
-        <h3 className="mt-4 text-lg font-medium">No digital twin yet</h3>
-        <p className="mt-1 text-sm text-muted-foreground">Start the onboarding process to create your identity.</p>
-        <Link href="/onboard"><Button className="mt-4">Start Onboarding</Button></Link>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
+        <Fingerprint className="h-16 w-16 text-muted-foreground/30 mb-4" />
+        <h2 className="text-xl font-semibold">No digital twin yet</h2>
+        <p className="text-sm text-muted-foreground mt-2 max-w-md">
+          Start the onboarding process to create your digital twin — your identity, captured, protected, and ready for licensing.
+        </p>
+        <Link href="/onboard"><Button className="mt-6">Start Onboarding</Button></Link>
       </div>
     );
   }
