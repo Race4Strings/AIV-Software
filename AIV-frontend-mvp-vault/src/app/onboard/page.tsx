@@ -163,7 +163,15 @@ export default function OnboardingPage() {
     };
     poll();
     const interval = setInterval(poll, 3000);
-    return () => { cancelled = true; clearInterval(interval); };
+    // Timeout after 90 seconds — stop polling and show what we have
+    const timeout = setTimeout(() => {
+      if (!cancelled) {
+        setDiscoveryPolling(false);
+        setIsMockData(true);
+        toast.error("Discovery is taking longer than expected. You can continue with what we have and enrich your profile later in the Training Area.");
+      }
+    }, 90000);
+    return () => { cancelled = true; clearInterval(interval); clearTimeout(timeout); };
   }, [discoveryPolling, sessionId, discoveryInput]);
 
   // ──────────────────────────────────────────────────────

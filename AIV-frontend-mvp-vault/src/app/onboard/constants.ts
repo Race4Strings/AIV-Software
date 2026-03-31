@@ -10,7 +10,7 @@ import {
 export const STEPS = [
   { label: "Discovery", icon: Search },
   { label: "Review", icon: Sparkles },
-  { label: "Assets", icon: Upload },
+  { label: "Media", icon: Upload },
   { label: "Consents", icon: Shield },
   { label: "Authorize", icon: UserCheck },
 ];
@@ -60,8 +60,8 @@ export const CLONE_TYPES = [
 ];
 
 export const DISCOVERY_STAGES = [
-  "Searching social media profiles...",
-  "Analyzing public content and interviews...",
+  "Searching public profiles...",
+  "Gathering public content and interviews...",
   "Building initial identity profile...",
   "Finalizing results...",
 ];

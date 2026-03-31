@@ -49,9 +49,9 @@ export function AssetsStep({
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
       <div>
-        <h2 className="text-2xl font-bold">Your identity assets</h2>
+        <h2 className="text-2xl font-bold">Your identity media</h2>
         <p className="mt-2 text-muted-foreground">
-          These files form your identity pack &mdash; the assets clients receive to produce accurate representations of you. Higher quality means higher deal value.
+          These files form your identity profile — the media clients use to produce accurate representations of you. Higher quality means higher deal value.
         </p>
       </div>
 
@@ -86,7 +86,11 @@ export function AssetsStep({
             if (f.size > 50 * 1024 * 1024) { toast.error(`${f.name} exceeds 50MB limit`); return false; }
             return true;
           });
-          if (valid.length > 0) setFiles((prev: File[]) => [...prev, ...valid]);
+          if (valid.length > 0) setFiles((prev: File[]) => {
+            const combined = [...prev, ...valid];
+            if (combined.length > 20) { toast.error("Maximum 20 files allowed"); return prev; }
+            return combined;
+          });
         }}
       >
         <CardContent className="flex flex-col items-center gap-4 py-10">
@@ -118,7 +122,11 @@ export function AssetsStep({
               if (f.size > 50 * 1024 * 1024) { toast.error(`${f.name} exceeds 50MB limit`); return false; }
               return true;
             });
-            setFiles((prev: File[]) => [...prev, ...newFiles]);
+            setFiles((prev: File[]) => {
+              const combined = [...prev, ...newFiles];
+              if (combined.length > 20) { toast.error("Maximum 20 files allowed"); return prev; }
+              return combined;
+            });
             e.target.value = "";
           }} />
           <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>

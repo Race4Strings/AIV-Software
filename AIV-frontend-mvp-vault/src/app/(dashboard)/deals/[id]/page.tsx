@@ -197,7 +197,7 @@ export default function DealWorkspacePage() {
           <TabsTrigger value="contract">Contract {deal.contracts?.length ? `(${deal.contracts.length})` : ""}</TabsTrigger>
           <TabsTrigger value="milestones">Milestones {deal.milestones?.length ? `(${deal.milestones.length})` : ""}</TabsTrigger>
           <TabsTrigger value="messages">Messages {messages.length ? `(${messages.length})` : ""}</TabsTrigger>
-          <TabsTrigger value="pul">PUL {deal.pul_records?.length ? `(${deal.pul_records.length})` : ""}</TabsTrigger>
+          <TabsTrigger value="pul">Permitted Use {deal.pul_records?.length ? `(${deal.pul_records.length})` : ""}</TabsTrigger>
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
         </TabsList>
 

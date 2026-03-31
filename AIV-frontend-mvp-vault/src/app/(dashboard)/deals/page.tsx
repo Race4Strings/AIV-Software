@@ -73,6 +73,7 @@ export default function DealsPage() {
 
   async function handleCreateDeal() {
     if (!newDeal.value || creating) return;
+    if (parseFloat(newDeal.value) < 100) { toast.error("Minimum deal value is $100"); return; }
     setCreating(true);
     try {
       const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -129,10 +130,12 @@ export default function DealsPage() {
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Value (USD)</Label>
                 <Input
                   type="number"
+                  min={100}
                   placeholder="50000"
                   value={newDeal.value}
                   onChange={(e) => setNewDeal(prev => ({ ...prev, value: e.target.value }))}
                 />
+                <p className="text-[10px] text-muted-foreground mt-1">Minimum $100. Commission: 30% first deal, 25% second, 20% third+</p>
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground mb-1.5 block">Territory (comma-separated)</Label>

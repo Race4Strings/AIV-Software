@@ -198,7 +198,8 @@ export default function CalibrationPage() {
           </div>
 
           <p className="text-sm text-muted-foreground">
-            60 quick statements. Tap how strongly you agree or disagree.
+            60 quick statements across 6 pages. Takes about 5 minutes.
+            Tap how strongly you agree or disagree.
             Your responses are saved automatically — you can pause and resume anytime.
           </p>
 
