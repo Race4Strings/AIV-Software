@@ -73,6 +73,15 @@ export async function updateTwin(
   }
 }
 
+export async function lockTwin(id: string): Promise<boolean> {
+  try {
+    await apiClient.patch(`/twins/${id}`, { status: "LOCKED" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function deleteTwin(id: string): Promise<boolean> {
   try {
     const res = await apiClient.post(`/twins/${id}/delete`);

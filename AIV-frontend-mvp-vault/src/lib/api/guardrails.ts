@@ -26,4 +26,12 @@ export const guardrailsApi = {
     const { data } = await apiClient.post(`/twins/${twinId}/guardrails`, config);
     return data;
   },
+  async getLicensingRules(twinId: string): Promise<{ config: Record<string, unknown>; history: Record<string, unknown>[] }> {
+    const { data } = await apiClient.get(`/twins/${twinId}/licensing-rules`);
+    return data;
+  },
+  async updateLicensingRules(twinId: string, rules: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const { data } = await apiClient.post(`/twins/${twinId}/licensing-rules`, rules);
+    return data;
+  },
 };

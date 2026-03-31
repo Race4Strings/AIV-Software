@@ -48,7 +48,7 @@ export default function SettingsPage() {
   }, []);
 
   const handleLogout = async () => {
-    try { await fetch("/api/backend/auth/signout", { credentials: "include" }); } catch {}
+    try { await authApi.signout(); } catch {}
     localStorage.removeItem("user");
     router.replace("/auth/signin");
   };

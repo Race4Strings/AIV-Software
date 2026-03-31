@@ -17,17 +17,9 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { fetchTwins, updateTwin } from "@/lib/api/twins";
+import { fetchTwins, fetchTwinHealth, updateTwin, lockTwin } from "@/lib/api/twins";
 import { guardrailsApi, type GuardrailConfig } from "@/lib/api/guardrails";
 import { licensingApi } from "@/lib/api/licensing";
-import apiClient from "@/lib/api/client";
-
-async function saveGuardrails(twinId: string, data: Record<string, unknown>) {
-  return (await apiClient.post(`/twins/${twinId}/guardrails`, data)).data;
-}
-async function saveLicensingRules(twinId: string, data: Record<string, unknown>) {
-  return (await apiClient.post(`/twins/${twinId}/licensing-rules`, data)).data;
-}
 
 interface TwinData {
   id: string;
@@ -111,9 +103,9 @@ export default function TwinPage() {
         setTwin(t);
 
         const [healthRes, guardrailRes, rulesRes, dealsRes, revenueRes] = await Promise.allSettled([
-          apiClient.get(`/twins/${t.id}/health`).then((r) => r.data),
+          fetchTwinHealth(t.id),
           guardrailsApi.get(t.id),
-          apiClient.get(`/twins/${t.id}/licensing-rules`).then((r) => r.data),
+          guardrailsApi.getLicensingRules(t.id),
           licensingApi.getDeals().then((d) => d.length),
           licensingApi.getRevenue(),
         ]);
@@ -197,7 +189,7 @@ export default function TwinPage() {
                   <Button size="sm" variant="destructive" disabled={locking} onClick={async () => {
                     setLocking(true);
                     try {
-                      await apiClient.patch(`/twins/${twin.id}`, { status: "LOCKED" });
+                      await lockTwin(twin.id);
                       setTwin({ ...twin, status: "LOCKED" });
                       toast.success("Identity locked");
                     } catch { toast.error("Failed to lock"); }
@@ -498,7 +490,7 @@ export default function TwinPage() {
                         if (!window.confirm("Save changes to guardrails? This creates a new version and takes effect immediately.")) return;
                         setSaving(true);
                         try {
-                          const result = await saveGuardrails(twin.id, guardrailDraft);
+                          const result = await guardrailsApi.update(twin.id, guardrailDraft);
                           setGuardrails(result.config || result);
                           setEditingGuardrails(false);
                           toast.success("Guardrails updated (new version created)");
@@ -604,7 +596,7 @@ export default function TwinPage() {
                         if (!window.confirm("Save changes to licensing rules? This creates a new version and takes effect immediately.")) return;
                         setSaving(true);
                         try {
-                          const result = await saveLicensingRules(twin.id, rulesDraft);
+                          const result = await guardrailsApi.updateLicensingRules(twin.id, rulesDraft);
                           setLicensingRules(result.config || result);
                           setEditingRules(false);
                           toast.success("Licensing rules updated (new version created)");

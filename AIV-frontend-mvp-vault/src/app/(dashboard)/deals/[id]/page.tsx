@@ -297,9 +297,11 @@ export default function DealWorkspacePage() {
                                         onClick={async () => {
                                           try {
                                             await licensingApi.sendForSignature(dealId, c.id, signEmails.talent, signEmails.client);
-                                            toast.success("Contract sent for signature");
+                                            toast.success("Contract sent for signature — both parties will receive signing links via email");
                                             setShowSignDialog(null);
                                             setSignEmails({ talent: "", client: "" });
+                                            const refreshed = await licensingApi.getDeal(dealId);
+                                            setDeal(refreshed);
                                           } catch { toast.error("Failed to send for signature"); }
                                         }}
                                       >
