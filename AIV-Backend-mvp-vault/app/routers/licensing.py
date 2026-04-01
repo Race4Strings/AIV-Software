@@ -862,3 +862,125 @@ async def get_licensing_info(
         "blacklisted_use_cases": rules.blacklisted_use_cases or [],
         "exclusivity_available": rules.exclusivity_available,
     }
+
+
+# ------------------------------------------------------------------
+# AI Licensing Assistant — Client Qualification
+# ------------------------------------------------------------------
+
+class LicensingAssistantRequest(BaseModel):
+    question: str
+    context: Optional[str] = None
+
+
+@router.post("/twins/{twin_id}/licensing-assistant")
+async def licensing_assistant(
+    twin_id: str,
+    req: LicensingAssistantRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """AI Licensing Assistant — qualifies clients by answering questions
+    based on the talent's licensing rules configuration.
+
+    Per spec Section 9.1: reads licensing_rules_configs, tells clients
+    what's available/not possible, answers questions. Does NOT negotiate
+    or make commitments.
+    """
+    from ..models.guardrail_config import GuardrailConfig
+    from ..config import get_settings
+
+    # Get twin + licensing rules
+    twin = (await db.execute(
+        select(Twin).where(Twin.id == UUID(twin_id))
+    )).scalar_one_or_none()
+    if not twin:
+        raise HTTPException(status_code=404, detail="Twin not found")
+
+    # Get active licensing rules
+    rules = (await db.execute(
+        select(LicensingRulesConfig)
+        .where(LicensingRulesConfig.twin_id == UUID(twin_id), LicensingRulesConfig.is_active.is_(True))
+        .order_by(LicensingRulesConfig.version.desc())
+        .limit(1)
+    )).scalar_one_or_none()
+
+    # Build context from licensing rules
+    rules_context = "No specific licensing rules configured. General licensing is available."
+    if rules:
+        rules_parts = []
+        if rules.pricing_floor:
+            rules_parts.append(f"Minimum deal value: ${float(rules.pricing_floor):,.0f} {rules.currency or 'USD'}")
+        if rules.territory_restrictions:
+            rules_parts.append(f"Territory restrictions: {', '.join(rules.territory_restrictions)}")
+        if rules.permitted_use_cases:
+            rules_parts.append(f"Permitted use cases: {', '.join(rules.permitted_use_cases)}")
+        if rules.blacklisted_use_cases:
+            rules_parts.append(f"Restricted use cases: {', '.join(rules.blacklisted_use_cases)}")
+        if hasattr(rules, 'exclusivity_available'):
+            rules_parts.append(f"Exclusivity: {'Available' if rules.exclusivity_available else 'Not available'}")
+        if rules_parts:
+            rules_context = "\n".join(rules_parts)
+
+    available_modules = ["Identity Profile", "Knowledge Base", "Voice Identity", "Visual Identity"]
+
+    system_prompt = f"""You are the AI Licensing Assistant for {twin.display_name or 'this talent'} on the AIV platform.
+
+Your role: Qualify potential clients by answering questions about licensing this talent's digital identity. Be professional, helpful, and transparent.
+
+LICENSING RULES:
+{rules_context}
+
+AVAILABLE MODULES: {', '.join(available_modules)}
+IDENTITY CATEGORY: {', '.join(twin.identity_category) if twin.identity_category else 'General'}
+
+COMMISSION STRUCTURE:
+- 30% on first deal, 25% on second, 20% on third and beyond
+- Commission is calculated on gross deal value
+
+RULES:
+- You can INFORM about what's available and what's restricted
+- You can ANSWER questions about the licensing process
+- You CANNOT negotiate terms, make commitments, or close deals
+- You CANNOT share internal pricing strategies or negotiation patterns
+- Direct the client to submit a formal deal request for specific terms"""
+
+    settings = get_settings()
+
+    # Use Anthropic for the assistant (same as ASSISTANT mode in agent service)
+    if settings.anthropic_api_key:
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=30) as client:
+                resp = await client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": settings.anthropic_api_key,
+                        "anthropic-version": "2023-06-01",
+                        "content-type": "application/json",
+                    },
+                    json={
+                        "model": "claude-haiku-4-5-20251001",
+                        "max_tokens": 1024,
+                        "system": system_prompt,
+                        "messages": [{"role": "user", "content": req.question}],
+                    },
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    answer = data.get("content", [{}])[0].get("text", "")
+                    return {
+                        "answer": answer,
+                        "twin_name": twin.display_name,
+                        "category": twin.identity_category,
+                        "available_modules": available_modules,
+                    }
+        except Exception as e:
+            logger.warning(f"Licensing assistant LLM call failed: {e}")
+
+    # Fallback: rule-based response
+    return {
+        "answer": f"Thank you for your interest in licensing {twin.display_name or 'this talent'}'s digital identity. {rules_context}. To proceed, please submit a formal deal request through the platform.",
+        "twin_name": twin.display_name,
+        "category": twin.identity_category,
+        "available_modules": available_modules,
+    }

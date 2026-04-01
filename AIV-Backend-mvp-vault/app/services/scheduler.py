@@ -164,6 +164,49 @@ async def activate_platform_fees():
             await db.rollback()
 
 
+async def check_quarterly_audits():
+    """Check for twins due for quarterly audit. Notify talent team.
+
+    Per spec Section 21: First audit at 90 days post-Stage-1 completion,
+    then every 90 days thereafter.
+    """
+    logger.info("Running quarterly audit check...")
+    async with async_session_maker() as db:
+        try:
+            now = datetime.now(timezone.utc)
+            result = await db.execute(
+                select(Twin).where(
+                    Twin.status == "ACTIVE",
+                    Twin.next_quarterly_audit.isnot(None),
+                    Twin.next_quarterly_audit <= now,
+                )
+            )
+            due_twins = list(result.scalars().all())
+
+            for twin in due_twins:
+                if twin.talent_user_id:
+                    notif = Notification(
+                        user_id=twin.talent_user_id,
+                        type="HEALTH_ALERT",
+                        title="Quarterly Identity Audit Due",
+                        body=f"Your digital twin '{twin.display_name or 'unnamed'}' is due for its quarterly audit. This ensures your identity data remains accurate and up-to-date.",
+                        action_url=f"/twin#health",
+                        entity_type="twin",
+                        entity_id=twin.id,
+                    )
+                    db.add(notif)
+
+                    # Schedule next audit in 90 days
+                    twin.last_quarterly_audit = now
+                    twin.next_quarterly_audit = now + timedelta(days=90)
+
+            await db.commit()
+            logger.info(f"Quarterly audit check complete. {len(due_twins)} twins due for audit.")
+        except Exception as e:
+            logger.error(f"Quarterly audit check failed: {e}", exc_info=True)
+            await db.rollback()
+
+
 def start_scheduler():
     """Start the APScheduler background scheduler."""
     from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -176,6 +219,9 @@ def start_scheduler():
     # Run platform fee activation daily at 3 AM UTC
     scheduler.add_job(activate_platform_fees, "cron", hour=3, minute=0)
 
+    # Run quarterly audit check daily at 4 AM UTC
+    scheduler.add_job(check_quarterly_audits, "cron", hour=4, minute=0)
+
     scheduler.start()
-    logger.info("Scheduler started (deal expiry: 2AM UTC, platform fees: 3AM UTC)")
+    logger.info("Scheduler started (deal expiry: 2AM, platform fees: 3AM, quarterly audits: 4AM UTC)")
     return scheduler

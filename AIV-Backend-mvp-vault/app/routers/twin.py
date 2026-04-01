@@ -372,14 +372,61 @@ async def text_to_speech_demo(
     return StreamingResponse(io.BytesIO(audio_bytes), media_type="audio/mpeg")
 
 
+class VoiceCloneRequest(BaseModel):
+    audio_url: str = Field(..., description="S3/MinIO URL of uploaded audio file for voice cloning")
+
+
 @router.post("/{twin_id}/voice/reclone")
 async def reclone_voice(
     twin_id: UUID,
+    data: VoiceCloneRequest,
     user: dict = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
-    """Re-initiate voice cloning. Coming soon."""
-    raise HTTPException(status_code=501, detail="Voice re-cloning coming soon")
+    """Re-initiate voice cloning from uploaded audio via ALCM API.
+
+    Flow: Upload audio → ALCM analyze_media → voice profile created/updated.
+    The ALCM API abstracts the voice provider (ElevenLabs or equivalent).
+    """
+    result = await db.execute(
+        select(Twin).where(Twin.id == twin_id, Twin.talent_user_id == UUID(user["id"]))
+    )
+    twin = result.scalar_one_or_none()
+    if not twin:
+        raise HTTPException(status_code=404, detail="Twin not found")
+    if not twin.alcm_twin_id:
+        raise HTTPException(status_code=400, detail="No ALCM identity linked to this twin")
+
+    client = get_alcm_client()
+    try:
+        analysis = await client.analyze_media(
+            str(twin.alcm_twin_id),
+            media_url=data.audio_url,
+            media_type="AUDIO",
+        )
+        if analysis.get("_alcm_unavailable"):
+            raise HTTPException(
+                status_code=503,
+                detail="Voice processing service temporarily unavailable. Your audio has been saved and will be processed when the service is back.",
+            )
+
+        db.add(AuditLog(
+            actor_id=UUID(user["id"]), actor_type="TALENT", action="VOICE_RECLONE",
+            entity_type="twin", entity_id=twin_id, twin_id=twin_id,
+            details={"audio_url": data.audio_url, "processing_id": analysis.get("processing_id")},
+        ))
+        await db.flush()
+
+        return {
+            "status": "processing",
+            "processing_id": analysis.get("processing_id"),
+            "message": "Voice cloning initiated. Your voice profile will be updated once processing completes.",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Voice reclone failed for twin {twin_id}: {e}")
+        raise HTTPException(status_code=500, detail="Voice cloning failed. Please try again.")
 
 
 @router.get("/{twin_id}/export")
