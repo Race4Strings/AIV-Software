@@ -128,6 +128,7 @@ function SignupForm() {
               onChange={(e) => { setName(e.target.value); if (touched.name) validateField('name', e.target.value); }}
               onBlur={(e) => handleBlur('name', e.target.value)}
               placeholder="Full name"
+              maxLength={255}
               disabled={signupMutation.isPending}
               className={`w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border ${touched.name && fieldErrors.name ? 'border-red-500/50' : 'border-white/12'} text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors`}
               autoFocus={!!codeFromUrl}
@@ -142,6 +143,7 @@ function SignupForm() {
               onChange={(e) => { const v = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''); setUsername(v); if (touched.username) validateField('username', v); }}
               onBlur={(e) => handleBlur('username', e.target.value)}
               placeholder="johndoe"
+              maxLength={50}
               disabled={signupMutation.isPending}
               className={`w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border ${touched.username && fieldErrors.username ? 'border-red-500/50' : 'border-white/12'} text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors`}
             />
@@ -158,6 +160,7 @@ function SignupForm() {
             onChange={(e) => { setEmail(e.target.value); if (touched.email) validateField('email', e.target.value); }}
             onBlur={(e) => handleBlur('email', e.target.value)}
             placeholder="you@example.com"
+            maxLength={255}
             disabled={signupMutation.isPending}
             className={`w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border ${touched.email && fieldErrors.email ? 'border-red-500/50' : 'border-white/12'} text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors`}
           />

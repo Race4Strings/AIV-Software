@@ -310,8 +310,8 @@ class AgentService:
                     return await self.alcm.generate(
                         str(twin.alcm_twin_id), prompt, guardrails={}, mode="assistant"
                     )
-                except ALCMError:
-                    pass
+                except ALCMError as e:
+                    logger.warning(f"ALCM fallback also failed in assistant mode: {e}")
 
         return "I'm here to help with your AIV platform questions. Please try again in a moment."
 

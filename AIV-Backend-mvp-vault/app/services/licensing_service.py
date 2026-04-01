@@ -94,6 +94,8 @@ class LicensingService:
             )
 
         # Validate data_scope
+        if not data_scope:
+            raise ValueError("data_scope must include at least one module (e.g., identity_profile)")
         invalid = set(data_scope) - VALID_DATA_SCOPE
         if invalid:
             raise ValueError(f"Invalid data_scope modules: {invalid}. Valid: {VALID_DATA_SCOPE}")
