@@ -1,31 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Video, Monitor, Mic, PlayCircle, Fingerprint, Loader2, CheckCircle2, ArrowRight } from "lucide-react";
+import { Fingerprint, Loader2, ArrowRight, Link2, FileText, Upload } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import Link from "next/link";
 import { fetchTwins } from "@/lib/api/twins";
 import { integrationsApi } from "@/lib/api/integrations";
 
-const SOURCES = [
-  { id: "google_meet", name: "Google Meet", icon: Video, color: "text-blue-500", bg: "bg-blue-500/10", available: true },
-  { id: "zoom", name: "Zoom", icon: Monitor, color: "text-indigo-500", bg: "bg-indigo-500/10", available: false },
-  { id: "podcast", name: "Podcast", icon: Mic, color: "text-amber-500", bg: "bg-amber-500/10", available: true },
-  { id: "youtube", name: "YouTube", icon: PlayCircle, color: "text-red-500", bg: "bg-red-500/10", available: false },
-];
-
 export default function IntegrationsPage() {
   const [twinId, setTwinId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedSource, setSelectedSource] = useState("google_meet");
-  const [transcript, setTranscript] = useState("");
-  const [recordingUrl, setRecordingUrl] = useState("");
+  const [content, setContent] = useState("");
+  const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -52,39 +43,42 @@ export default function IntegrationsPage() {
         <Fingerprint className="h-16 w-16 text-muted-foreground/30 mb-4" />
         <h2 className="text-xl font-semibold">No digital twin yet</h2>
         <p className="text-sm text-muted-foreground mt-2 max-w-md">
-          Create your digital twin first, then use integrations to feed content from meetings, podcasts, and interviews.
+          Create your digital twin first, then feed it content from interviews, meetings, and media appearances.
         </p>
         <Link href="/onboard"><Button className="mt-6">Start Onboarding</Button></Link>
       </div>
     );
   }
 
-  const isMeetOrZoom = selectedSource === "google_meet" || selectedSource === "zoom";
+  // Auto-detect source from URL
+  function detectSource(inputUrl: string): string {
+    const lower = inputUrl.toLowerCase();
+    if (lower.includes("youtube.com") || lower.includes("youtu.be")) return "YOUTUBE";
+    if (lower.includes("meet.google.com")) return "GOOGLE_MEET";
+    if (lower.includes("zoom.us") || lower.includes("zoom.com")) return "ZOOM";
+    if (lower.includes("spotify.com") || lower.includes("podcasts.apple.com") || lower.includes("anchor.fm")) return "PODCAST";
+    return "OTHER";
+  }
 
   async function handleSubmit() {
-    if (!transcript.trim() && !recordingUrl.trim()) {
-      toast.error("Provide a transcript or recording URL");
+    if (!content.trim() && !url.trim()) {
+      toast.error("Paste a transcript, article, or drop a link");
       return;
     }
     setSubmitting(true);
     try {
-      const result = isMeetOrZoom
-        ? await integrationsApi.ingestMeeting(twinId!, {
-            transcript_text: transcript || undefined,
-            recording_url: recordingUrl || undefined,
-            meeting_title: title || undefined,
-          })
-        : await integrationsApi.ingestTranscript(twinId!, {
-            transcript_text: transcript,
-            source: selectedSource.toUpperCase(),
-            title: title || undefined,
-          });
-      toast.success(result.message || "Content ingested successfully");
-      setTranscript("");
-      setRecordingUrl("");
+      const result = await integrationsApi.ingest(twinId!, {
+        content: content.trim() || undefined,
+        url: url.trim() || undefined,
+        title: title.trim() || undefined,
+      });
+
+      toast.success(result.message || "Content submitted — your twin is learning from it");
+      setContent("");
+      setUrl("");
       setTitle("");
     } catch {
-      toast.error("Failed to ingest content. Please try again.");
+      toast.error("Failed to submit content. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -93,99 +87,88 @@ export default function IntegrationsPage() {
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Ingest Content</h1>
+        <h1 className="text-2xl font-bold">Feed Your Twin</h1>
         <p className="text-muted-foreground mt-1">
-          Feed meetings, interviews, and podcasts into your twin's identity profile.
+          Paste transcripts, articles, or links. Your twin automatically learns from everything you share.
         </p>
       </div>
 
-      {/* Source Selector */}
-      <div>
-        <Label className="text-sm font-medium mb-3 block">Select source</Label>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {SOURCES.map((source) => {
-            const Icon = source.icon;
-            const isActive = selectedSource === source.id;
-            const isComingSoon = !source.available;
-            return (
-              <button
-                key={source.id}
-                onClick={() => source.available && setSelectedSource(source.id)}
-                disabled={isComingSoon}
-                className={`relative flex flex-col items-center gap-2 rounded-xl border p-4 transition-all ${
-                  isComingSoon
-                    ? "border-border/50 opacity-50 cursor-not-allowed"
-                    : isActive
-                    ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                    : "border-border hover:border-primary/30 hover:bg-muted/30"
-                }`}
-              >
-                {isComingSoon && (
-                  <span className="absolute -top-2 -right-2 rounded-full bg-muted px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground border">
-                    Soon
-                  </span>
-                )}
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${source.bg}`}>
-                  <Icon className={`h-5 w-5 ${source.color}`} />
-                </div>
-                <span className="text-xs font-medium">{source.name}</span>
-              </button>
-            );
-          })}
+      {/* Quick context */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="flex flex-col items-center gap-2 rounded-xl border border-border/50 p-3 text-center">
+          <FileText className="h-5 w-5 text-muted-foreground" />
+          <span className="text-xs font-medium">Paste transcripts</span>
+          <span className="text-[10px] text-muted-foreground">Meetings, interviews, podcasts</span>
+        </div>
+        <div className="flex flex-col items-center gap-2 rounded-xl border border-border/50 p-3 text-center">
+          <Link2 className="h-5 w-5 text-muted-foreground" />
+          <span className="text-xs font-medium">Drop links</span>
+          <span className="text-[10px] text-muted-foreground">YouTube, articles, media</span>
+        </div>
+        <div className="flex flex-col items-center gap-2 rounded-xl border border-border/50 p-3 text-center">
+          <Upload className="h-5 w-5 text-muted-foreground" />
+          <span className="text-xs font-medium">Or use the chat</span>
+          <span className="text-[10px] text-muted-foreground">Training Area handles it all</span>
         </div>
       </div>
 
-      {/* Ingestion Form */}
+      {/* Single unified form */}
       <Card>
         <CardContent className="space-y-4 pt-6">
           <div>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Content</Label>
+            <Textarea
+              placeholder="Paste a transcript, article text, interview notes, or any content about you..."
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={8}
+              className="resize-y"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="h-px flex-1 bg-border" />
+            <span>or</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          <div>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Link</Label>
+            <Input
+              placeholder="https://youtube.com/watch?v=... or any URL"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+            />
+            {url && (
+              <p className="text-[10px] text-primary mt-1">
+                Detected: {detectSource(url).replace("_", " ").toLowerCase()}
+              </p>
+            )}
+          </div>
+
+          <div>
             <Label className="text-xs text-muted-foreground mb-1.5 block">Title (optional)</Label>
             <Input
-              placeholder={isMeetOrZoom ? "Meeting title" : "Episode or interview title"}
+              placeholder="What is this? e.g., 'Joe Rogan Podcast Episode 412'"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={255}
             />
           </div>
 
-          <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Transcript</Label>
-            <Textarea
-              placeholder="Paste the full transcript here..."
-              value={transcript}
-              onChange={(e) => setTranscript(e.target.value)}
-              rows={8}
-              className="resize-y"
-            />
-            <p className="text-[10px] text-muted-foreground mt-1">
-              The transcript will be analyzed to extract personality traits, communication patterns, and knowledge.
-            </p>
-          </div>
-
-          {isMeetOrZoom && (
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Recording URL (optional)</Label>
-              <Input
-                placeholder="https://meet.google.com/... or recording link"
-                value={recordingUrl}
-                onChange={(e) => setRecordingUrl(e.target.value)}
-              />
-            </div>
-          )}
-
           <Button
             onClick={handleSubmit}
-            disabled={submitting || (!transcript.trim() && !recordingUrl.trim())}
+            disabled={submitting || (!content.trim() && !url.trim())}
             className="w-full"
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowRight className="h-4 w-4 mr-2" />}
-            Ingest Content
+            Feed to Twin
           </Button>
         </CardContent>
       </Card>
 
       <p className="text-xs text-muted-foreground text-center">
-        Content is processed through the identity engine and automatically applied to your twin's profile.
+        Everything you share is analyzed by the identity engine and applied to your twin's personality, knowledge, and communication style. You can also do this directly in the <Link href="/twin/training-area" className="text-primary hover:underline">Training Area</Link> chat.
       </p>
     </div>
   );

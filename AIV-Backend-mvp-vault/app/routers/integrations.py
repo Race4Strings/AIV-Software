@@ -51,6 +51,103 @@ class TranscriptIngestionRequest(BaseModel):
     date: Optional[str] = None
 
 
+class UnifiedIngestRequest(BaseModel):
+    """Unified content ingestion — auto-detects source from URL or content."""
+    twin_id: str
+    content: Optional[str] = None
+    url: Optional[str] = None
+    title: Optional[str] = None
+
+
+def _detect_source_from_url(url: str) -> str:
+    """Auto-detect content source from URL."""
+    lower = url.lower()
+    if "youtube.com" in lower or "youtu.be" in lower:
+        return "YOUTUBE"
+    if "meet.google.com" in lower:
+        return "GOOGLE_MEET"
+    if "zoom.us" in lower or "zoom.com" in lower:
+        return "ZOOM"
+    if "spotify.com" in lower or "podcasts.apple.com" in lower or "anchor.fm" in lower:
+        return "PODCAST"
+    if "twitter.com" in lower or "x.com" in lower:
+        return "SOCIAL_MEDIA"
+    if "instagram.com" in lower or "tiktok.com" in lower:
+        return "SOCIAL_MEDIA"
+    return "WEB_ARTICLE"
+
+
+# ------------------------------------------------------------------
+# Unified Ingest (recommended — auto-detects source)
+# ------------------------------------------------------------------
+
+@router.post("/ingest")
+async def unified_ingest(
+    req: UnifiedIngestRequest,
+    background_tasks: BackgroundTasks,
+    user: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Unified content ingestion — paste text or a URL, system auto-classifies.
+
+    Accepts:
+    - Raw text (transcripts, articles, interview notes)
+    - URLs (YouTube, Google Meet, Zoom, podcasts, articles)
+    - Or both (text + source URL for attribution)
+
+    The system auto-detects the source type and routes to ALCM for classification.
+    """
+    twin = (await db.execute(
+        select(Twin).where(Twin.id == UUID(req.twin_id))
+    )).scalar_one_or_none()
+    if not twin:
+        raise HTTPException(status_code=404, detail="Twin not found")
+
+    if not req.content and not req.url:
+        raise HTTPException(status_code=400, detail="Provide content text or a URL")
+
+    # Auto-detect source
+    source = _detect_source_from_url(req.url) if req.url else "TRANSCRIPT"
+    content_text = req.content or f"[Content from URL: {req.url}]"
+    modality = "TEXT" if req.content else "URL"
+
+    contribution = TrainingContribution(
+        twin_id=UUID(req.twin_id),
+        contributor_id=UUID(user["id"]),
+        contributor_type=user.get("role", "TALENT"),
+        modality=modality,
+        content=content_text,
+        source_description=f"{source}: {req.title or 'Untitled'}",
+        source_url=req.url,
+        agent_mode="TRAINING",
+        alcm_processing_status="PENDING",
+        approval_status="AUTO_APPROVED",
+    )
+    db.add(contribution)
+
+    db.add(AuditLog(
+        actor_id=UUID(user["id"]), actor_type="TALENT", action="CONTENT_INGEST",
+        entity_type="training_contribution", twin_id=UUID(req.twin_id),
+        details={"source": source, "has_text": bool(req.content), "has_url": bool(req.url)},
+    ))
+    await db.flush()
+
+    if content_text and twin.alcm_twin_id:
+        background_tasks.add_task(
+            _classify_meeting_content,
+            str(contribution.id),
+            str(twin.alcm_twin_id),
+            content_text,
+        )
+
+    return {
+        "status": "ingested",
+        "contribution_id": str(contribution.id),
+        "detected_source": source,
+        "message": "Content submitted — your twin is learning from it.",
+    }
+
+
 # ------------------------------------------------------------------
 # Google Meet Integration
 # ------------------------------------------------------------------
