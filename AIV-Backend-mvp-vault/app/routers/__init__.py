@@ -15,6 +15,7 @@ from .organizations import router as organizations_router
 from .packages import router as packages_router
 from .calibration import router as calibration_router
 from .training import router as training_router
+from .integrations import router as integrations_router
 
 __all__ = [
     "auth_router", "upload_router", "twin_router",
@@ -24,4 +25,5 @@ __all__ = [
     "guardrails_router", "consent_router",
     "organizations_router", "packages_router",
     "calibration_router", "training_router",
+    "integrations_router",
 ]

@@ -429,6 +429,73 @@ async def reclone_voice(
         raise HTTPException(status_code=500, detail="Voice cloning failed. Please try again.")
 
 
+# ------------------------------------------------------------------
+# Avatar Generation (Stage 2 — provider abstraction)
+# ------------------------------------------------------------------
+
+class AvatarRequest(BaseModel):
+    prompt: str = Field("professional headshot", description="Description of desired avatar")
+    style: str = Field("realistic", description="Style: realistic, stylized, artistic")
+
+
+class AnimatedAvatarRequest(BaseModel):
+    text: str = Field(..., description="Text for the avatar to speak")
+    emotion: str = Field("neutral", description="Emotion: neutral, happy, serious, excited")
+
+
+@router.post("/{twin_id}/avatar/generate")
+async def generate_avatar(
+    twin_id: UUID,
+    data: AvatarRequest,
+    user: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate a static avatar from the twin's visual identity data.
+
+    Uses the avatar service abstraction — provider-agnostic.
+    Currently returns visual identity data; actual rendering available
+    when a provider (Synthesia, D-ID, HeyGen) is configured.
+    """
+    result = await db.execute(
+        select(Twin).where(Twin.id == twin_id, Twin.talent_user_id == UUID(user["id"]))
+    )
+    twin = result.scalar_one_or_none()
+    if not twin:
+        raise HTTPException(status_code=404, detail="Twin not found")
+    if not twin.alcm_twin_id:
+        raise HTTPException(status_code=400, detail="No ALCM identity linked")
+
+    from ..services.avatar_service import get_avatar_service
+    avatar_svc = get_avatar_service()
+    return await avatar_svc.generate_static(str(twin.alcm_twin_id), data.prompt, data.style)
+
+
+@router.post("/{twin_id}/avatar/animated")
+async def generate_animated_avatar(
+    twin_id: UUID,
+    data: AnimatedAvatarRequest,
+    user: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate an animated avatar (speaking) from visual + voice identity.
+
+    Requires both visual_identity and voice_identity modules.
+    Provider-agnostic abstraction — actual rendering when provider configured.
+    """
+    result = await db.execute(
+        select(Twin).where(Twin.id == twin_id, Twin.talent_user_id == UUID(user["id"]))
+    )
+    twin = result.scalar_one_or_none()
+    if not twin:
+        raise HTTPException(status_code=404, detail="Twin not found")
+    if not twin.alcm_twin_id:
+        raise HTTPException(status_code=400, detail="No ALCM identity linked")
+
+    from ..services.avatar_service import get_avatar_service
+    avatar_svc = get_avatar_service()
+    return await avatar_svc.generate_animated(str(twin.alcm_twin_id), data.text, data.emotion)
+
+
 @router.get("/{twin_id}/export")
 async def export_twin_data(
     twin_id: UUID,
