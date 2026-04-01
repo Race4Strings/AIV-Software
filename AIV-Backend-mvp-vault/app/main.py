@@ -4,6 +4,17 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
 from .database import init_db
+
+# Sentry error tracking (optional — enabled when SENTRY_DSN is set)
+_settings_init = get_settings()
+if _settings_init.sentry_dsn:
+    import sentry_sdk
+    sentry_sdk.init(
+        dsn=_settings_init.sentry_dsn,
+        traces_sample_rate=0.1,
+        profiles_sample_rate=0.1,
+        environment="production" if not _settings_init.dev_mode else "development",
+    )
 from fastapi.staticfiles import StaticFiles
 from .routers import (
     auth_router, upload_router,

@@ -128,6 +128,9 @@ class Settings(BaseSettings):
     api_base_url: str = "http://localhost:8000"
     frontend_url: str = "http://localhost:3001"
 
+    # Error Tracking
+    sentry_dsn: str = ""  # Sentry DSN for error tracking (leave empty to disable)
+
     # Dev mode — exposes OTP in API responses for testing without email
     dev_mode: bool = False
     

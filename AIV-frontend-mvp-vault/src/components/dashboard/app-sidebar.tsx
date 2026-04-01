@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
-  Shield, Fingerprint, BadgeCheck, Briefcase,
+  Shield, Fingerprint, BadgeCheck, Briefcase, Plug,
   PanelLeft, Settings,
 } from "lucide-react";
 
@@ -21,6 +21,7 @@ const navItems = [
   { title: "Identity", href: "/twin", icon: Fingerprint },
   { title: "Deals", href: "/deals", icon: Briefcase },
   { title: "Certification", href: "/twin/certification", icon: BadgeCheck },
+  { title: "Integrations", href: "/twin/integrations", icon: Plug },
 ];
 
 const secondaryItems = [

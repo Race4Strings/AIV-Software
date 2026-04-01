@@ -9,3 +9,4 @@ export { adminApi } from "./admin";
 export { notificationsApi } from "./notifications";
 export { assistantApi } from "./assistant";
 export { trainingApi } from "./training";
+export { integrationsApi } from "./integrations";
