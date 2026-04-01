@@ -193,8 +193,8 @@ async def list_integration_sources(
             {
                 "id": "zoom",
                 "name": "Zoom",
-                "status": "available",
-                "description": "Ingest Zoom meeting transcripts",
+                "status": "coming_soon",
+                "description": "Direct Zoom integration coming soon — paste transcripts manually for now",
                 "supports": ["transcript"],
             },
             {
@@ -207,8 +207,8 @@ async def list_integration_sources(
             {
                 "id": "youtube",
                 "name": "YouTube",
-                "status": "available",
-                "description": "Ingest YouTube video transcripts",
+                "status": "coming_soon",
+                "description": "Automatic YouTube transcript extraction coming soon — paste transcripts manually for now",
                 "supports": ["transcript", "video_url"],
             },
         ],

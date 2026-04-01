@@ -65,11 +65,11 @@ class ALCMAvatarProvider(AvatarProvider):
                 }
             visual_data = package.get("modules", {}).get("visual_identity", {})
             return {
-                "status": "ready",
+                "status": "coming_soon",
                 "visual_identity": visual_data,
                 "prompt": prompt,
                 "style": style,
-                "message": "Visual identity data retrieved. Avatar generation will be available when a provider is configured.",
+                "message": "Avatar generation is coming soon. Your visual identity data is being collected and will be ready when this feature launches.",
                 "provider": "pending_selection",
             }
         except Exception as e:
@@ -88,12 +88,12 @@ class ALCMAvatarProvider(AvatarProvider):
                     "message": "Identity data not available for animated avatar.",
                 }
             return {
-                "status": "ready",
+                "status": "coming_soon",
                 "visual_identity": package.get("modules", {}).get("visual_identity", {}),
                 "voice_identity": package.get("modules", {}).get("voice_identity", {}),
                 "text": text,
                 "emotion": emotion,
-                "message": "Identity data retrieved. Animated avatar generation will be available when a provider is configured.",
+                "message": "Animated avatar generation is coming soon. Your visual and voice identity data is being collected for when this feature launches.",
                 "provider": "pending_selection",
             }
         except Exception as e:

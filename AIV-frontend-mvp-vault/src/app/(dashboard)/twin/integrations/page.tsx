@@ -14,10 +14,10 @@ import { fetchTwins } from "@/lib/api/twins";
 import { integrationsApi } from "@/lib/api/integrations";
 
 const SOURCES = [
-  { id: "google_meet", name: "Google Meet", icon: Video, color: "text-blue-500", bg: "bg-blue-500/10" },
-  { id: "zoom", name: "Zoom", icon: Monitor, color: "text-indigo-500", bg: "bg-indigo-500/10" },
-  { id: "podcast", name: "Podcast", icon: Mic, color: "text-amber-500", bg: "bg-amber-500/10" },
-  { id: "youtube", name: "YouTube", icon: PlayCircle, color: "text-red-500", bg: "bg-red-500/10" },
+  { id: "google_meet", name: "Google Meet", icon: Video, color: "text-blue-500", bg: "bg-blue-500/10", available: true },
+  { id: "zoom", name: "Zoom", icon: Monitor, color: "text-indigo-500", bg: "bg-indigo-500/10", available: false },
+  { id: "podcast", name: "Podcast", icon: Mic, color: "text-amber-500", bg: "bg-amber-500/10", available: true },
+  { id: "youtube", name: "YouTube", icon: PlayCircle, color: "text-red-500", bg: "bg-red-500/10", available: false },
 ];
 
 export default function IntegrationsPage() {
@@ -106,16 +106,25 @@ export default function IntegrationsPage() {
           {SOURCES.map((source) => {
             const Icon = source.icon;
             const isActive = selectedSource === source.id;
+            const isComingSoon = !source.available;
             return (
               <button
                 key={source.id}
-                onClick={() => setSelectedSource(source.id)}
-                className={`flex flex-col items-center gap-2 rounded-xl border p-4 transition-all ${
-                  isActive
+                onClick={() => source.available && setSelectedSource(source.id)}
+                disabled={isComingSoon}
+                className={`relative flex flex-col items-center gap-2 rounded-xl border p-4 transition-all ${
+                  isComingSoon
+                    ? "border-border/50 opacity-50 cursor-not-allowed"
+                    : isActive
                     ? "border-primary bg-primary/5 ring-2 ring-primary/20"
                     : "border-border hover:border-primary/30 hover:bg-muted/30"
                 }`}
               >
+                {isComingSoon && (
+                  <span className="absolute -top-2 -right-2 rounded-full bg-muted px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground border">
+                    Soon
+                  </span>
+                )}
                 <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${source.bg}`}>
                   <Icon className={`h-5 w-5 ${source.color}`} />
                 </div>
