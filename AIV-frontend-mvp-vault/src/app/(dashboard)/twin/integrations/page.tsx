@@ -50,14 +50,9 @@ export default function IntegrationsPage() {
     );
   }
 
-  // Auto-detect source from URL
-  function detectSource(inputUrl: string): string {
+  function isYouTubeUrl(inputUrl: string): boolean {
     const lower = inputUrl.toLowerCase();
-    if (lower.includes("youtube.com") || lower.includes("youtu.be")) return "YOUTUBE";
-    if (lower.includes("meet.google.com")) return "GOOGLE_MEET";
-    if (lower.includes("zoom.us") || lower.includes("zoom.com")) return "ZOOM";
-    if (lower.includes("spotify.com") || lower.includes("podcasts.apple.com") || lower.includes("anchor.fm")) return "PODCAST";
-    return "OTHER";
+    return lower.includes("youtube.com") || lower.includes("youtu.be");
   }
 
   async function handleSubmit() {
@@ -102,8 +97,8 @@ export default function IntegrationsPage() {
         </div>
         <div className="flex flex-col items-center gap-2 rounded-xl border border-border/50 p-3 text-center">
           <Link2 className="h-5 w-5 text-muted-foreground" />
-          <span className="text-xs font-medium">Drop links</span>
-          <span className="text-[10px] text-muted-foreground">YouTube, articles, media</span>
+          <span className="text-xs font-medium">YouTube links</span>
+          <span className="text-[10px] text-muted-foreground">Auto-extracts transcripts</span>
         </div>
         <div className="flex flex-col items-center gap-2 rounded-xl border border-border/50 p-3 text-center">
           <Upload className="h-5 w-5 text-muted-foreground" />
@@ -135,13 +130,17 @@ export default function IntegrationsPage() {
           <div>
             <Label className="text-xs text-muted-foreground mb-1.5 block">Link</Label>
             <Input
-              placeholder="https://youtube.com/watch?v=... or any URL"
+              placeholder="Paste a YouTube link — transcript auto-extracted"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
             />
             {url && (
-              <p className="text-[10px] text-primary mt-1">
-                Detected: {detectSource(url).replace("_", " ").toLowerCase()}
+              <p className="text-[10px] mt-1">
+                {isYouTubeUrl(url) ? (
+                  <span className="text-primary">YouTube detected — transcript will be auto-extracted</span>
+                ) : (
+                  <span className="text-muted-foreground">URL saved for reference. For best results, paste the text content above.</span>
+                )}
               </p>
             )}
           </div>

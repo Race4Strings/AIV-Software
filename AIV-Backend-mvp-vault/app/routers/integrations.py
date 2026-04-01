@@ -59,6 +59,31 @@ class UnifiedIngestRequest(BaseModel):
     title: Optional[str] = None
 
 
+def _extract_youtube_video_id(url: str) -> Optional[str]:
+    """Extract video ID from various YouTube URL formats."""
+    import re
+    patterns = [
+        r'(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([a-zA-Z0-9_-]{11})',
+        r'youtube\.com/shorts/([a-zA-Z0-9_-]{11})',
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, url)
+        if match:
+            return match.group(1)
+    return None
+
+
+def _fetch_youtube_transcript(video_id: str) -> Optional[str]:
+    """Fetch auto-generated transcript from YouTube video."""
+    try:
+        from youtube_transcript_api import YouTubeTranscriptApi
+        transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+        return " ".join([entry["text"] for entry in transcript_list])
+    except Exception as e:
+        logger.warning(f"YouTube transcript extraction failed for {video_id}: {e}")
+        return None
+
+
 def _detect_source_from_url(url: str) -> str:
     """Auto-detect content source from URL."""
     lower = url.lower()
@@ -106,10 +131,28 @@ async def unified_ingest(
     if not req.content and not req.url:
         raise HTTPException(status_code=400, detail="Provide content text or a URL")
 
-    # Auto-detect source
+    # Auto-detect source and extract content from URL if possible
     source = _detect_source_from_url(req.url) if req.url else "TRANSCRIPT"
-    content_text = req.content or f"[Content from URL: {req.url}]"
-    modality = "TEXT" if req.content else "URL"
+    content_text = req.content or ""
+    extracted_from_url = False
+
+    # YouTube: auto-extract transcript from video
+    if source == "YOUTUBE" and req.url and not content_text:
+        video_id = _extract_youtube_video_id(req.url)
+        if video_id:
+            transcript = _fetch_youtube_transcript(video_id)
+            if transcript:
+                content_text = transcript
+                extracted_from_url = True
+                logger.info(f"Extracted YouTube transcript ({len(transcript)} chars) from {video_id}")
+            else:
+                content_text = f"[YouTube video: {req.url} — transcript not available (may be disabled or private)]"
+        else:
+            content_text = f"[YouTube URL could not be parsed: {req.url}]"
+    elif not content_text:
+        content_text = f"[Content from URL: {req.url}]"
+
+    modality = "TEXT" if (req.content or extracted_from_url) else "URL"
 
     contribution = TrainingContribution(
         twin_id=UUID(req.twin_id),
@@ -140,11 +183,18 @@ async def unified_ingest(
             content_text,
         )
 
+    message = "Content submitted — your twin is learning from it."
+    if extracted_from_url:
+        message = f"YouTube transcript extracted and submitted — your twin is learning from it."
+    elif source != "TRANSCRIPT" and not req.content:
+        message = "URL saved. For best results, paste the text content directly — automatic extraction is available for YouTube links."
+
     return {
         "status": "ingested",
         "contribution_id": str(contribution.id),
         "detected_source": source,
-        "message": "Content submitted — your twin is learning from it.",
+        "extracted_from_url": extracted_from_url,
+        "message": message,
     }
 
 
