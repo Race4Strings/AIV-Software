@@ -1,12 +1,28 @@
 from contextlib import asynccontextmanager
+import logging
+import sys
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
 from .database import init_db
 
-# Sentry error tracking (optional — enabled when SENTRY_DSN is set)
+# Structured logging — JSON in production, human-readable in dev
 _settings_init = get_settings()
+if not _settings_init.dev_mode:
+    try:
+        from pythonjsonlogger import json as jsonlogger
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(jsonlogger.JsonFormatter(
+            fmt="%(asctime)s %(name)s %(levelname)s %(message)s",
+            rename_fields={"asctime": "timestamp", "levelname": "level", "name": "logger"},
+        ))
+        logging.root.handlers = [handler]
+        logging.root.setLevel(logging.INFO)
+    except ImportError:
+        pass  # Fall back to default logging if json logger not installed
+
+# Sentry error tracking (optional — enabled when SENTRY_DSN is set)
 if _settings_init.sentry_dsn:
     import sentry_sdk
     sentry_sdk.init(
