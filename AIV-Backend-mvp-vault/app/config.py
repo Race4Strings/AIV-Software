@@ -85,6 +85,7 @@ class Settings(BaseSettings):
     polygon_rpc_url: str = ""
     polygon_private_key: str = ""
     cert_contract_address: str = ""
+    polygon_network: str = "polygon-amoy"  # "polygon-amoy" for testnet, "polygon-mainnet" for production
     
     # ElevenLabs (Voice Cloning)
     elevenlabs_api_key: str = ""

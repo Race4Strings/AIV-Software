@@ -116,7 +116,7 @@ class BlockchainService:
         return {
             "tx_hash": receipt.transactionHash.hex(),
             "block_number": receipt.blockNumber,
-            "network": "polygon-amoy",
+            "network": settings.polygon_network,
         }
 
     async def anchor_hash(self, data_hash: str, twin_id: str) -> Optional[Dict]:
@@ -258,7 +258,7 @@ class BlockchainService:
                 "balance_matic": float(balance_matic),
                 "balance_wei": balance_wei,
                 "low_balance": low_balance,
-                "network": "polygon-amoy",
+                "network": settings.polygon_network,
             }
 
             if low_balance:

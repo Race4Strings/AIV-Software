@@ -55,6 +55,18 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Redis connection failed: {e}")
 
+    # Check ALCM API connectivity
+    try:
+        from .services.alcm_client import get_alcm_client
+        alcm = get_alcm_client()
+        alcm_health = await alcm.health_check()
+        if alcm_health.get("_alcm_unavailable"):
+            logger.warning(f"ALCM API not reachable at {settings.alcm_api_url} — platform will use fallback data")
+        else:
+            logger.info(f"ALCM API connected: {settings.alcm_api_url} (status: {alcm_health.get('status', 'ok')})")
+    except Exception as e:
+        logger.warning(f"ALCM health check failed: {e} — platform will use fallback data")
+
     # Start scheduled jobs (deal expiry + platform fee activation)
     from .services.scheduler import start_scheduler
     scheduler = start_scheduler()
