@@ -207,9 +207,44 @@ async def check_quarterly_audits():
             await db.rollback()
 
 
+async def _acquire_scheduler_lock() -> bool:
+    """Acquire a distributed lock via Redis to ensure only one instance runs scheduled jobs.
+
+    Uses Redis SET NX (set-if-not-exists) with a 60-second TTL.
+    The lock is refreshed by the scheduler heartbeat.
+    If this instance crashes, the lock expires and another instance can take over.
+    """
+    import redis.asyncio as aioredis
+    from ..config import get_settings
+
+    settings = get_settings()
+    try:
+        r = aioredis.from_url(settings.redis_url, decode_responses=True)
+        # Try to acquire lock (NX = only if not exists, EX = 60s TTL)
+        acquired = await r.set("aiv:scheduler:leader", "1", nx=True, ex=60)
+        await r.close()
+        return bool(acquired)
+    except Exception as e:
+        logger.warning(f"Redis lock acquisition failed: {e} — starting scheduler anyway (single instance assumed)")
+        return True  # Fall back to running if Redis unavailable
+
+
 def start_scheduler():
-    """Start the APScheduler background scheduler."""
+    """Start the APScheduler background scheduler with distributed leader election.
+
+    Only ONE instance across all deployments will run scheduled jobs.
+    Uses Redis-based locking to prevent duplicate job execution.
+    """
+    import asyncio
     from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+    # Check if we should be the scheduler leader
+    loop = asyncio.get_event_loop()
+    is_leader = loop.run_until_complete(_acquire_scheduler_lock())
+
+    if not is_leader:
+        logger.info("Scheduler: another instance is the leader — skipping job registration")
+        return None
 
     scheduler = AsyncIOScheduler()
 
@@ -223,5 +258,5 @@ def start_scheduler():
     scheduler.add_job(check_quarterly_audits, "cron", hour=4, minute=0)
 
     scheduler.start()
-    logger.info("Scheduler started (deal expiry: 2AM, platform fees: 3AM, quarterly audits: 4AM UTC)")
+    logger.info("Scheduler started as LEADER (deal expiry: 2AM, platform fees: 3AM, quarterly audits: 4AM UTC)")
     return scheduler

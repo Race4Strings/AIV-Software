@@ -79,45 +79,54 @@ class ALCMClient:
     error types or the base ALCMError for blanket handling.
     """
 
+    _shared_client: Optional[httpx.AsyncClient] = None
+
     def __init__(self, base_url: str, timeout: int = 30, auth_token: str = ""):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.auth_token = auth_token
 
-    def _client(self, timeout_override: Optional[float] = None) -> httpx.AsyncClient:
-        t = timeout_override or self.timeout
-        headers = {}
-        if self.auth_token:
-            headers["Authorization"] = f"Bearer {self.auth_token}"
-        return httpx.AsyncClient(
-            base_url=self.base_url,
-            timeout=httpx.Timeout(t, connect=10.0),
-            headers=headers,
-        )
+    def _get_client(self) -> httpx.AsyncClient:
+        """Get or create a persistent httpx client with connection pooling.
+
+        Reuses TCP connections across requests for better performance.
+        The client is shared across the ALCMClient instance lifetime.
+        """
+        if ALCMClient._shared_client is None or ALCMClient._shared_client.is_closed:
+            headers = {}
+            if self.auth_token:
+                headers["Authorization"] = f"Bearer {self.auth_token}"
+            ALCMClient._shared_client = httpx.AsyncClient(
+                base_url=self.base_url,
+                timeout=httpx.Timeout(self.timeout, connect=10.0),
+                headers=headers,
+                limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+            )
+        return ALCMClient._shared_client
 
     async def _request(self, method: str, path: str, **kwargs) -> dict:
         """Central request method with unified error handling."""
         try:
-            async with self._client() as client:
-                response = await client.request(method, path, **kwargs)
+            client = self._get_client()
+            response = await client.request(method, path, **kwargs)
 
-                if response.status_code == 404:
-                    raise ALCMNotFoundError(f"Not found: {path}")
-                if response.status_code == 423:
-                    raise ALCMLockedError(f"Twin is locked: {path}")
-                if 400 <= response.status_code < 500:
-                    detail = response.json() if response.headers.get("content-type", "").startswith("application/json") else {}
-                    raise ALCMValidationError(
-                        f"ALCM validation error on {path}: {response.status_code}",
-                        status_code=response.status_code,
-                        details=detail,
-                    )
-                if response.status_code >= 500:
-                    raise ALCMServerError(f"ALCM server error on {path}: {response.status_code}")
+            if response.status_code == 404:
+                raise ALCMNotFoundError(f"Not found: {path}")
+            if response.status_code == 423:
+                raise ALCMLockedError(f"Twin is locked: {path}")
+            if 400 <= response.status_code < 500:
+                detail = response.json() if response.headers.get("content-type", "").startswith("application/json") else {}
+                raise ALCMValidationError(
+                    f"ALCM validation error on {path}: {response.status_code}",
+                    status_code=response.status_code,
+                    details=detail,
+                )
+            if response.status_code >= 500:
+                raise ALCMServerError(f"ALCM server error on {path}: {response.status_code}")
 
-                if response.headers.get("content-type", "").startswith("application/json"):
-                    return response.json()
-                return {"raw": response.text}
+            if response.headers.get("content-type", "").startswith("application/json"):
+                return response.json()
+            return {"raw": response.text}
 
         except httpx.ConnectError:
             raise ALCMConnectionError(f"Cannot reach ALCM API at {self.base_url}")

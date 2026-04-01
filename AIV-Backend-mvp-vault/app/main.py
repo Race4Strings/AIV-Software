@@ -80,13 +80,15 @@ async def lifespan(app: FastAPI):
         logger.warning(f"ALCM health check failed: {e} — platform will use fallback data")
 
     # Start scheduled jobs (deal expiry + platform fee activation)
+    # Uses Redis leader election — only one instance runs jobs
     from .services.scheduler import start_scheduler
     scheduler = start_scheduler()
 
     yield
 
     # Shutdown
-    scheduler.shutdown(wait=False)
+    if scheduler:
+        scheduler.shutdown(wait=False)
     logger.info("Shutting down AIV Backend...")
 
 
