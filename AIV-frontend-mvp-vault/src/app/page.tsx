@@ -25,30 +25,55 @@ export default function HomePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalInitialStep, setModalInitialStep] = useState(0);
   const [howItWorksOpen, setHowItWorksOpen] = useState(false);
-  const [descVariant, setDescVariant] = useState<1 | 2 | 3 | 4>(1);
+  const [descVariant, setDescVariant] = useState<1 | 2 | 3>(1);
 
-  // Aurora
+  // Aurora — brightens on SHAKING (direction reversals), not straight-line movement
   const [auroraOpacity, setAuroraOpacity] = useState(0.03);
   const mouseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastMouseRef = useRef({ x: 0, y: 0, time: 0 });
-  const velocityRef = useRef(0);
+  const lastMouseRef = useRef({ x: 0, y: 0, time: 0, dx: 0, dy: 0 });
+  const shakeScoreRef = useRef(0);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const now = Date.now();
     const last = lastMouseRef.current;
     const dt = now - last.time;
+
     if (dt > 0 && dt < 100) {
       const dx = e.clientX - last.x;
       const dy = e.clientY - last.y;
+
+      // Detect direction reversal (sign change = shake)
+      const reversalX = (dx > 0 && last.dx < 0) || (dx < 0 && last.dx > 0);
+      const reversalY = (dy > 0 && last.dy < 0) || (dy < 0 && last.dy > 0);
       const speed = Math.sqrt(dx * dx + dy * dy) / dt;
-      velocityRef.current = velocityRef.current * 0.7 + speed * 0.3;
+
+      if ((reversalX || reversalY) && speed > 0.5) {
+        // Shaking: rapid direction change + speed → boost shake score
+        shakeScoreRef.current = Math.min(5, shakeScoreRef.current + 0.8);
+      } else {
+        // Straight movement: decay shake score
+        shakeScoreRef.current = Math.max(0, shakeScoreRef.current - 0.15);
+      }
+
+      lastMouseRef.current = { x: e.clientX, y: e.clientY, time: now, dx, dy };
+    } else {
+      lastMouseRef.current = { ...last, x: e.clientX, y: e.clientY, time: now };
     }
-    lastMouseRef.current = { x: e.clientX, y: e.clientY, time: now };
-    const vel = velocityRef.current;
-    const targetOpacity = vel > 1.5 ? Math.min(0.65, 0.2 + vel * 0.25) : Math.min(0.08, 0.03 + vel * 0.03);
+
+    // Shake score → aurora opacity
+    const shake = shakeScoreRef.current;
+    // shake 0 = normal browsing (very subtle), shake 3+ = bright
+    const targetOpacity = shake > 1.5
+      ? Math.min(0.7, 0.15 + shake * 0.12) // shaking: bright, up to 0.7
+      : Math.min(0.06, 0.02 + shake * 0.02); // navigating: barely visible
+
     setAuroraOpacity(targetOpacity);
+
     if (mouseTimerRef.current) clearTimeout(mouseTimerRef.current);
-    mouseTimerRef.current = setTimeout(() => { velocityRef.current = 0; setAuroraOpacity(0.03); }, 800);
+    mouseTimerRef.current = setTimeout(() => {
+      shakeScoreRef.current = 0;
+      setAuroraOpacity(0.03);
+    }, 600);
   }, []);
 
   useEffect(() => { return () => { if (mouseTimerRef.current) clearTimeout(mouseTimerRef.current); }; }, []);
@@ -104,10 +129,10 @@ export default function HomePage() {
 
         {/* Variant Selector */}
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 rounded-full border border-white/[0.08] bg-black/70 backdrop-blur-xl px-1.5 py-1 shadow-2xl shadow-black/40">
-          {([1, 2, 3, 4] as const).map((v) => (
+          {([1, 2, 3] as const).map((v) => (
             <button key={v} onClick={() => setDescVariant(v)}
-              className={`px-3 py-2 rounded-full text-[10px] font-medium tracking-wider transition-all duration-200 cursor-pointer ${descVariant === v ? "bg-white/90 text-black shadow-sm" : "text-white/40 hover:text-white/60 hover:bg-white/[0.05]"}`}>
-              {v === 1 && "Hover"}{v === 2 && "Stacked"}{v === 3 && "Personal"}{v === 4 && "Minimal"}
+              className={`px-4 py-2 rounded-full text-[10px] font-medium tracking-wider transition-all duration-200 cursor-pointer ${descVariant === v ? "bg-white/90 text-black shadow-sm" : "text-white/40 hover:text-white/60 hover:bg-white/[0.05]"}`}>
+              {v === 1 && "Clean"}{v === 2 && "Stacked"}{v === 3 && "Motion"}
             </button>
           ))}
         </div>

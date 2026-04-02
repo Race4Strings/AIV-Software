@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from "framer-motion";
 import {
   FileText, Globe, Shield, Lock, DollarSign,
   BookOpen, Clock, BarChart3, Fingerprint, Users,
@@ -19,18 +19,19 @@ interface Signal {
   accentColor: "blue" | "green" | "red" | "amber" | "purple";
   metric?: string;
   metricLabel?: string;
+  metricPercent?: number;
 }
 
 const SIGNALS: Signal[] = [
-  { id: "deal-inquiry", icon: "FileText", title: "New Deal Inquiry", description: "A brand wants to license your voice for a global campaign. Terms match your pre-approved rules.", badge: "Review", accentColor: "blue", metric: "$45K", metricLabel: "Deal Value" },
-  { id: "revenue", icon: "DollarSign", title: "Revenue Received", description: "Your latest licensing deal payment has been processed and settled to your account.", badge: "Settled", accentColor: "green", metric: "$12,500", metricLabel: "Net Payment" },
-  { id: "misuse", icon: "Shield", title: "Misuse Blocked", description: "An unauthorized use of your likeness was detected, flagged, and evidence sealed automatically.", badge: "Protected", accentColor: "red" },
-  { id: "verified", icon: "Lock", title: "Identity Verified", description: "A Fortune 500 brand verified your certified identity before finalizing a licensing agreement.", accentColor: "purple", metric: "47", metricLabel: "Verifications" },
-  { id: "twin-updated", icon: "BookOpen", title: "Twin Updated", description: "Your digital twin just got sharper. New data from your latest podcast was processed.", accentColor: "amber" },
-  { id: "contract", icon: "Clock", title: "Contract Ready", description: "Your team's contract for a voice licensing deal is ready for signature.", badge: "Sign", accentColor: "blue" },
-  { id: "cross-platform", icon: "Globe", title: "Cross-Platform Ready", description: "Your identity is governed by your rules across every integration — voice, video, and text.", badge: "Live", accentColor: "green" },
-  { id: "profile", icon: "Fingerprint", title: "Identity Certified", description: "Your digital identity has been certified with blockchain-anchored proof of ownership.", accentColor: "purple", metric: "97%", metricLabel: "Accuracy" },
-  { id: "marketplace", icon: "BarChart3", title: "Brand Interest", description: "New brands in your vertical are exploring identity licensing through the AIV marketplace.", accentColor: "blue", metric: "8", metricLabel: "Inquiries" },
+  { id: "deal-inquiry", icon: "FileText", title: "New Deal Inquiry", description: "A brand wants to license your voice for a global campaign. Terms match your pre-approved rules.", badge: "Review", accentColor: "blue", metric: "$45K", metricLabel: "Deal Value", metricPercent: 72 },
+  { id: "revenue", icon: "DollarSign", title: "Revenue Received", description: "Your latest licensing deal payment has been processed and settled to your account.", badge: "Settled", accentColor: "green", metric: "$12,500", metricLabel: "Net Payment", metricPercent: 85 },
+  { id: "misuse", icon: "Shield", title: "Misuse Blocked", description: "An unauthorized use of your likeness was detected, flagged, and evidence sealed automatically.", badge: "Protected", accentColor: "red", metricPercent: 100 },
+  { id: "verified", icon: "Lock", title: "Identity Verified", description: "A Fortune 500 brand verified your certified identity before finalizing a licensing agreement.", accentColor: "purple", metric: "47", metricLabel: "Verifications", metricPercent: 82 },
+  { id: "twin-updated", icon: "BookOpen", title: "Twin Updated", description: "Your digital twin just got sharper. New data from your latest podcast was processed.", accentColor: "amber", metric: "97%", metricLabel: "Accuracy", metricPercent: 97 },
+  { id: "contract", icon: "Clock", title: "Contract Ready", description: "Your team's contract for a voice licensing deal is ready for signature.", badge: "Sign", accentColor: "blue", metricPercent: 60 },
+  { id: "cross-platform", icon: "Globe", title: "Cross-Platform Ready", description: "Your identity is governed by your rules across every integration — voice, video, and text.", badge: "Live", accentColor: "green", metricPercent: 90 },
+  { id: "profile", icon: "Fingerprint", title: "Identity Certified", description: "Your digital identity has been certified with blockchain-anchored proof of ownership.", accentColor: "purple", metric: "Certified", metricLabel: "Status", metricPercent: 100 },
+  { id: "marketplace", icon: "BarChart3", title: "Brand Interest", description: "New brands in your vertical are exploring identity licensing through the AIV marketplace.", accentColor: "blue", metric: "8", metricLabel: "Inquiries", metricPercent: 65 },
 ];
 
 const ACCENT_COLORS = {
@@ -41,34 +42,56 @@ const ACCENT_COLORS = {
   purple: { dot: "bg-purple-500", bg: "bg-purple-500/10", text: "text-purple-400", badge: "bg-purple-500/15 text-purple-400" },
 };
 
-// 6 evenly distributed positions around the viewport edges
-// Each position is far from the others — no overlap possible
-const ALL_POSITIONS = [
-  { top: "15%", left: "2%" },    // top-left
-  { top: "50%", left: "2%" },    // mid-left
-  { top: "80%", left: "3%" },    // bottom-left
-  { top: "15%", right: "2%" },   // top-right
-  { top: "50%", right: "2%" },   // mid-right
-  { top: "80%", right: "3%" },   // bottom-right
+// 6 positions: 2 left, 2 right, 1 top-corner, 1 bottom-corner
+// Each has a jitter range so they don't sit in perfect alignment
+function getJitteredPosition(base: { top: string; left?: string; right?: string }) {
+  const jitterY = Math.floor(Math.random() * 6) - 3; // ±3%
+  const jitterX = Math.floor(Math.random() * 2); // 0-1%
+  const topNum = parseInt(base.top) + jitterY;
+  const result: Record<string, string> = { top: `${topNum}%` };
+  if (base.left) result.left = `${parseInt(base.left) + jitterX}%`;
+  if (base.right) result.right = `${parseInt(base.right) + jitterX}%`;
+  return result;
+}
+
+const BASE_POSITIONS = [
+  { top: "18%", left: "2%" },
+  { top: "55%", left: "3%" },
+  { top: "82%", left: "2%" },
+  { top: "20%", right: "2%" },
+  { top: "52%", right: "3%" },
+  { top: "78%", right: "2%" },
 ];
 
 function SignalPill({
   signal,
-  onHoverStart,
-  onHoverEnd,
+  onHoverSignal,
+  onLeaveSignal,
 }: {
   signal: Signal;
-  onHoverStart?: (signal: Signal) => void;
-  onHoverEnd?: () => void;
+  onHoverSignal?: () => void;
+  onLeaveSignal?: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
   const Icon = ICONS[signal.icon];
   const colors = ACCENT_COLORS[signal.accentColor];
+  const barWidth = useMotionValue(0);
+  const springWidth = useSpring(barWidth, { damping: 20, stiffness: 100 });
+  const barWidthStr = useTransform(springWidth, (v) => `${v}%`);
+
+  useEffect(() => {
+    if (hovered) {
+      // Animate to target with slight overshoot feel via spring
+      barWidth.set(signal.metricPercent ?? 70);
+    } else {
+      barWidth.set(0);
+    }
+  }, [hovered, barWidth, signal.metricPercent]);
 
   return (
     <motion.div
-      onMouseEnter={() => { setHovered(true); onHoverStart?.(signal); }}
-      onMouseLeave={() => { setHovered(false); onHoverEnd?.(); }}
+      onMouseEnter={() => { setHovered(true); onHoverSignal?.(); }}
+      onMouseLeave={() => { setHovered(false); onLeaveSignal?.(); }}
       layout
       className="rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl cursor-default overflow-hidden"
       style={{ minWidth: hovered ? 260 : 180, maxWidth: 280 }}
@@ -103,13 +126,8 @@ function SignalPill({
                   {signal.metricLabel && <span className="text-[9px] text-white/30 uppercase tracking-wider">{signal.metricLabel}</span>}
                 </div>
               )}
-              <div className="mt-2 h-1 w-full rounded-full bg-white/[0.06] overflow-hidden">
-                <motion.div
-                  className={`h-full rounded-full ${colors.dot}`}
-                  initial={{ width: "0%" }}
-                  animate={{ width: `${55 + Math.floor(Math.random() * 35)}%` }}
-                  transition={{ duration: 0.8, ease: "easeOut" }}
-                />
+              <div className="mt-2 h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
+                <motion.div className={`h-full rounded-full ${colors.dot}`} style={{ width: barWidthStr }} />
               </div>
               {signal.badge && (
                 <span className={`mt-2 inline-block text-[9px] font-semibold px-2 py-0.5 rounded-full ${colors.badge}`}>
@@ -124,74 +142,94 @@ function SignalPill({
   );
 }
 
-export function SignalNotifications({
-  onSignalHover,
-  onSignalLeave,
-}: {
-  onSignalHover?: (signal: { title: string; description: string; metric?: string; metricLabel?: string }) => void;
-  onSignalLeave?: () => void;
-}) {
+export function SignalNotifications() {
   const reducedMotion = useReducedMotion();
-
-  // Each signal slot: { signalIdx, position }
-  type Pos = typeof ALL_POSITIONS[number];
-  const [slots, setSlots] = useState<Array<{ signalIdx: number; pos: Pos }>>([]);
+  type SlotType = { signalIdx: number; pos: Record<string, string> };
+  const [slots, setSlots] = useState<SlotType[]>([]);
   const usedSignalsRef = useRef(new Set<number>());
+  const usedPosRef = useRef(new Set<number>());
+  const pausedRef = useRef(false);
 
-  // Add one random signal to a random available position
   const addSignal = useCallback(() => {
+    if (pausedRef.current) return;
     setSlots(prev => {
       if (prev.length >= 3) return prev;
-      // Pick a random signal not already shown
+
+      // Pick signal not in use
       let sigIdx: number;
       let attempts = 0;
       do { sigIdx = Math.floor(Math.random() * SIGNALS.length); attempts++; }
       while (usedSignalsRef.current.has(sigIdx) && attempts < 20);
       usedSignalsRef.current.add(sigIdx);
 
-      // Pick a position not already in use — guarantees no overlap
-      const usedPosIndices = new Set(prev.map(s => ALL_POSITIONS.indexOf(s.pos)));
-      // Randomize among unused positions
-      const unused = ALL_POSITIONS.map((p, i) => ({ p, i })).filter(x => !usedPosIndices.has(x.i));
-      const pick = unused.length > 0 ? unused[Math.floor(Math.random() * unused.length)] : { p: ALL_POSITIONS[0], i: 0 };
+      // Count left vs right in current slots
+      const leftCount = prev.filter(s => "left" in s.pos).length;
+      const rightCount = prev.filter(s => "right" in s.pos).length;
 
-      return [...prev, { signalIdx: sigIdx, pos: pick.p }];
+      // Pick position: avoid 3 on same side, prefer unused base positions
+      const available = BASE_POSITIONS.map((p, i) => ({ p, i })).filter(x => {
+        if (usedPosRef.current.has(x.i)) return false;
+        const isLeft = "left" in x.p;
+        if (isLeft && leftCount >= 2) return false;
+        if (!isLeft && rightCount >= 2) return false;
+        return true;
+      });
+
+      const pick = available.length > 0
+        ? available[Math.floor(Math.random() * available.length)]
+        : { p: BASE_POSITIONS[Math.floor(Math.random() * BASE_POSITIONS.length)], i: 0 };
+
+      usedPosRef.current.add(pick.i);
+      const jitteredPos = getJitteredPosition(pick.p);
+
+      return [...prev, { signalIdx: sigIdx, pos: jitteredPos }];
     });
   }, []);
 
-  // Remove oldest signal
   const removeOldest = useCallback(() => {
+    if (pausedRef.current) return;
     setSlots(prev => {
       if (prev.length === 0) return prev;
       const removed = prev[0];
       usedSignalsRef.current.delete(removed.signalIdx);
+      // Find which base position this was closest to and free it
+      const posTop = parseInt(removed.pos.top || "0");
+      let closestIdx = 0;
+      let closestDist = 999;
+      BASE_POSITIONS.forEach((bp, i) => {
+        const dist = Math.abs(parseInt(bp.top) - posTop);
+        if (dist < closestDist) { closestDist = dist; closestIdx = i; }
+      });
+      usedPosRef.current.delete(closestIdx);
       return prev.slice(1);
     });
   }, []);
 
-  // Staggered appearance: add one every 2-3s, remove oldest when at 3
   useEffect(() => {
-    // Initial: add signals one by one
     const t1 = setTimeout(addSignal, 1500);
     const t2 = setTimeout(addSignal, 3500);
     const t3 = setTimeout(addSignal, 5500);
 
-    // Then cycle: every 4-6s, remove oldest and add new
     const interval = setInterval(() => {
-      removeOldest();
-      setTimeout(addSignal, 800); // brief gap before new one appears
-    }, 5000 + Math.random() * 2000);
+      if (!pausedRef.current) {
+        removeOldest();
+        setTimeout(() => { if (!pausedRef.current) addSignal(); }, 800);
+      }
+    }, 6000 + Math.random() * 2000);
 
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearInterval(interval); };
   }, [addSignal, removeOldest]);
 
+  const handleHover = useCallback(() => { pausedRef.current = true; }, []);
+  const handleLeave = useCallback(() => { pausedRef.current = false; }, []);
+
   if (reducedMotion) {
-    const staticPos = [ALL_POSITIONS[0], ALL_POSITIONS[3], ALL_POSITIONS[5]];
     return (
       <div className="hidden lg:block fixed inset-0 z-30 pointer-events-none">
         {SIGNALS.slice(0, 3).map((signal, i) => (
-          <div key={signal.id} className="absolute pointer-events-auto" style={staticPos[i]}>
-            <SignalPill signal={signal} onHoverStart={onSignalHover} onHoverEnd={onSignalLeave} />
+          <div key={signal.id} className="absolute pointer-events-auto"
+            style={getJitteredPosition(BASE_POSITIONS[i * 2])}>
+            <SignalPill signal={signal} />
           </div>
         ))}
       </div>
@@ -209,12 +247,12 @@ export function SignalNotifications({
               key={signal.id}
               className="absolute pointer-events-auto"
               style={slot.pos}
-              initial={{ opacity: 0, scale: 0.9, y: 10 }}
+              initial={{ opacity: 0, scale: 0.85, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: -10 }}
-              transition={{ type: "spring", damping: 25, stiffness: 250 }}
+              exit={{ opacity: 0, scale: 0.85, y: -8 }}
+              transition={{ type: "spring", damping: 22, stiffness: 200 }}
             >
-              <SignalPill signal={signal} onHoverStart={onSignalHover} onHoverEnd={onSignalLeave} />
+              <SignalPill signal={signal} onHoverSignal={handleHover} onLeaveSignal={handleLeave} />
             </motion.div>
           );
         })}
@@ -228,23 +266,19 @@ export function MobileSignalNotifications() {
   const reducedMotion = useReducedMotion();
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % SIGNALS.length);
-    }, 4000);
+    const interval = setInterval(() => setCurrentIndex((prev) => (prev + 1) % SIGNALS.length), 4000);
     return () => clearInterval(interval);
   }, []);
 
   return (
     <div className="lg:hidden flex justify-center px-6 pb-6">
       <AnimatePresence mode="wait">
-        <motion.div
-          key={currentIndex}
+        <motion.div key={currentIndex}
           initial={reducedMotion ? {} : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={reducedMotion ? {} : { opacity: 0, y: -8 }}
           transition={{ duration: 0.25 }}
-          className="max-w-[280px] w-full"
-        >
+          className="max-w-[280px] w-full">
           <SignalPill signal={SIGNALS[currentIndex]} />
         </motion.div>
       </AnimatePresence>
