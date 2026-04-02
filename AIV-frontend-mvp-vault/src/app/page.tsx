@@ -8,6 +8,7 @@ import { EarlyAccessModal } from "@/components/landing/early-access-modal";
 import { SignalNotifications, MobileSignalNotifications } from "@/components/landing/signal-notification";
 import Aurora from "@/components/ui/Aurora";
 import { HeroFinal } from "@/components/landing/hero-final";
+import { HeroFinalV2 } from "@/components/landing/hero-final-v2";
 
 export default function HomePage() {
   const router = useRouter();
@@ -70,6 +71,7 @@ export default function HomePage() {
   }, [router]);
 
   const [overlayOpen, setOverlayOpen] = useState(false);
+  const [experimentalMode, setExperimentalMode] = useState(false);
 
   function handleRequestAccess() { setModalInitialStep(0); setModalOpen(true); }
 
@@ -104,12 +106,32 @@ export default function HomePage() {
           </button>
         </header>
 
-        {/* Hero */}
-        <HeroFinal
-          containerRef={containerRef}
-          onRequestAccess={handleRequestAccess}
-          onOverlayChange={setOverlayOpen}
-        />
+        {/* Hero — toggle between approved (v1) and experimental (v2) */}
+        {experimentalMode ? (
+          <HeroFinalV2
+            containerRef={containerRef}
+            onRequestAccess={handleRequestAccess}
+            onOverlayChange={setOverlayOpen}
+          />
+        ) : (
+          <HeroFinal
+            containerRef={containerRef}
+            onRequestAccess={handleRequestAccess}
+            onOverlayChange={setOverlayOpen}
+          />
+        )}
+
+        {/* Option toggle — bottom-right */}
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-1 rounded-full border border-white/[0.08] bg-black/70 backdrop-blur-xl px-1.5 py-1 shadow-2xl shadow-black/40 pointer-events-auto">
+          <button onClick={() => setExperimentalMode(false)}
+            className={`px-3 py-1.5 rounded-full text-[10px] font-medium tracking-wider transition-all duration-200 cursor-pointer ${!experimentalMode ? "bg-white/90 text-black shadow-sm" : "text-white/40 hover:text-white/60"}`}>
+            v1
+          </button>
+          <button onClick={() => setExperimentalMode(true)}
+            className={`px-3 py-1.5 rounded-full text-[10px] font-medium tracking-wider transition-all duration-200 cursor-pointer ${experimentalMode ? "bg-white/90 text-black shadow-sm" : "text-white/40 hover:text-white/60"}`}>
+            v2
+          </button>
+        </div>
 
         {/* Mobile Signals — hidden when overlay is open */}
         {!overlayOpen && <MobileSignalNotifications />}
