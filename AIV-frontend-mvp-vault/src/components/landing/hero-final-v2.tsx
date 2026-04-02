@@ -37,13 +37,15 @@ const PROCESS_ICONS = [
 function AnimatedLockBadge() {
   const [hovered, setHovered] = useState(false);
   const [phase, setPhase] = useState<"idle" | "opening" | "closing" | "colors" | "green">("idle");
+  const [hoverCount, setHoverCount] = useState(0); // forces CSS animation restart
 
   useEffect(() => {
     if (!hovered) { setPhase("idle"); return; }
+    setHoverCount(c => c + 1); // new key = new DOM element = animation restarts
     setPhase("opening");
     const t1 = setTimeout(() => setPhase("closing"), 300);
     const t2 = setTimeout(() => setPhase("colors"), 600);
-    const t3 = setTimeout(() => setPhase("green"), 3600);
+    const t3 = setTimeout(() => setPhase("green"), 2100);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [hovered]);
 
@@ -78,7 +80,7 @@ function AnimatedLockBadge() {
             opacity: showDot ? 1 : 0,
             transform: showDot ? "scale(1)" : "scale(0)",
           }}>
-          <div className={`h-2.5 w-2.5 rounded-full ${phase === "green"
+          <div key={hoverCount} className={`h-2.5 w-2.5 rounded-full ${phase === "green"
             ? "bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.5)] v2-green-pulse"
             : "v2-dot-cycle"
           }`} />
@@ -87,7 +89,7 @@ function AnimatedLockBadge() {
       <span className="text-xs font-medium text-white/50 tracking-widest uppercase">Identity Infrastructure</span>
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes v2-dot-colors{0%{background:#3b82f6}20%{background:#10b981}40%{background:#ef4444}60%{background:#f59e0b}80%{background:#8b5cf6}100%{background:#10b981}}
-        .v2-dot-cycle{animation:v2-dot-colors 3s ease-in-out forwards}
+        .v2-dot-cycle{animation:v2-dot-colors 1.5s ease-in-out forwards}
         @keyframes v2-green-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
         .v2-green-pulse{animation:v2-green-breathe 2s ease-in-out infinite}
       ` }} />
