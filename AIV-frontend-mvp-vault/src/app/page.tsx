@@ -9,6 +9,8 @@ import { SignalNotifications, MobileSignalNotifications } from "@/components/lan
 import Aurora from "@/components/ui/Aurora";
 import { HeroFinal } from "@/components/landing/hero-final";
 import { HeroFinalV2 } from "@/components/landing/hero-final-v2";
+import { HeroFinalV3 } from "@/components/landing/hero-final-v3";
+import { AutoPlaySignalNotifications } from "@/components/landing/signal-notification";
 
 export default function HomePage() {
   const router = useRouter();
@@ -71,7 +73,7 @@ export default function HomePage() {
   }, [router]);
 
   const [overlayOpen, setOverlayOpen] = useState(false);
-  const [experimentalMode, setExperimentalMode] = useState(false);
+  const [version, setVersion] = useState<1 | 2 | 3>(1);
 
   function handleRequestAccess() { setModalInitialStep(0); setModalOpen(true); }
 
@@ -83,14 +85,14 @@ export default function HomePage() {
     >
       {/* Aurora */}
       <div className="pointer-events-none fixed inset-0 z-0"
-        style={{ opacity: auroraOpacity, transition: auroraOpacity > 0.4 ? "opacity 300ms ease-out" : "opacity 800ms ease-out" }}>
+        style={{ opacity: auroraOpacity, transition: "opacity 1000ms cubic-bezier(0.4, 0, 0.2, 1)" }}>
         <Aurora colorStops={["#0a1e42", "#2563eb", "#0a1e42"]} amplitude={0.8} blend={0.5} speed={0.3} />
       </div>
       <div className="pointer-events-none fixed inset-0 z-0"
         style={{ background: "radial-gradient(ellipse 50% 40% at 50% 50%, rgba(59,130,246,0.07) 0%, transparent 60%)" }} />
 
       {/* Signals — hidden when motion overlay is open */}
-      {!overlayOpen && <SignalNotifications />}
+      {!overlayOpen && (version === 3 ? <AutoPlaySignalNotifications /> : <SignalNotifications />)}
 
       {/* Main */}
       <div className="relative z-10 max-w-[1920px] mx-auto">
@@ -106,31 +108,25 @@ export default function HomePage() {
           </button>
         </header>
 
-        {/* Hero — toggle between approved (v1) and experimental (v2) */}
-        {experimentalMode ? (
-          <HeroFinalV2
-            containerRef={containerRef}
-            onRequestAccess={handleRequestAccess}
-            onOverlayChange={setOverlayOpen}
-          />
-        ) : (
-          <HeroFinal
-            containerRef={containerRef}
-            onRequestAccess={handleRequestAccess}
-            onOverlayChange={setOverlayOpen}
-          />
+        {/* Hero — 3 versions */}
+        {version === 1 && (
+          <HeroFinal containerRef={containerRef} onRequestAccess={handleRequestAccess} onOverlayChange={setOverlayOpen} />
+        )}
+        {version === 2 && (
+          <HeroFinalV2 containerRef={containerRef} onRequestAccess={handleRequestAccess} onOverlayChange={setOverlayOpen} />
+        )}
+        {version === 3 && (
+          <HeroFinalV3 containerRef={containerRef} onRequestAccess={handleRequestAccess} onOverlayChange={setOverlayOpen} />
         )}
 
-        {/* Option toggle — bottom-right */}
+        {/* Version toggle — bottom-right */}
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-1 rounded-full border border-white/[0.08] bg-black/70 backdrop-blur-xl px-1.5 py-1 shadow-2xl shadow-black/40 pointer-events-auto">
-          <button onClick={() => setExperimentalMode(false)}
-            className={`px-3 py-1.5 rounded-full text-[10px] font-medium tracking-wider transition-all duration-200 cursor-pointer ${!experimentalMode ? "bg-white/90 text-black shadow-sm" : "text-white/40 hover:text-white/60"}`}>
-            v1
-          </button>
-          <button onClick={() => setExperimentalMode(true)}
-            className={`px-3 py-1.5 rounded-full text-[10px] font-medium tracking-wider transition-all duration-200 cursor-pointer ${experimentalMode ? "bg-white/90 text-black shadow-sm" : "text-white/40 hover:text-white/60"}`}>
-            v2
-          </button>
+          {([1, 2, 3] as const).map(v => (
+            <button key={v} onClick={() => setVersion(v)}
+              className={`px-3 py-1.5 rounded-full text-[10px] font-medium tracking-wider transition-all duration-200 cursor-pointer ${version === v ? "bg-white/90 text-black shadow-sm" : "text-white/40 hover:text-white/60"}`}>
+              v{v}
+            </button>
+          ))}
         </div>
 
         {/* Mobile Signals — hidden when overlay is open */}

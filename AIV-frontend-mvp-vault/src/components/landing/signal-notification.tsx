@@ -281,3 +281,152 @@ export function MobileSignalNotifications() {
     </div>
   );
 }
+
+
+// ─── AUTO-PLAY SIGNALS (Option 3) ───
+export function AutoPlaySignalNotifications() {
+  const reducedMotion = useReducedMotion();
+  type Slot = { id: string; signalIdx: number; pos: Record<string, string>; side: "left" | "right" };
+  const [slots, setSlots] = useState<Slot[]>([]);
+  const [expandedSlotIdx, setExpandedSlotIdx] = useState(-1);
+  const pausedRef = useRef(false);
+  const signalCounterRef = useRef(0);
+  const stepRef = useRef(0);
+
+  const tick = useCallback(() => {
+    if (pausedRef.current) return;
+    const step = stepRef.current;
+    stepRef.current++;
+    if (step < 4) {
+      const sigIdx = signalCounterRef.current;
+      signalCounterRef.current = (sigIdx + 1) % SIGNALS.length;
+      const pos = pickFromSlot(step);
+      setSlots(prev => [...prev, { id: `${step}-${sigIdx}`, signalIdx: sigIdx, pos, side: step % 2 === 0 ? "left" : "right" }]);
+    } else {
+      setSlots(prev => {
+        if (prev.length === 0) return prev;
+        const slotIndex = (step - 4) % 4;
+        const remaining = prev.slice(1);
+        const sigIdx = signalCounterRef.current;
+        signalCounterRef.current = (sigIdx + 1) % SIGNALS.length;
+        const pos = pickFromSlot(slotIndex);
+        return [...remaining, { id: `${step}-${sigIdx}`, signalIdx: sigIdx, pos, side: slotIndex % 2 === 0 ? "left" : "right" }];
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => tick(), 2000);
+    return () => clearInterval(timer);
+  }, [tick]);
+
+  // Sequential auto-expand: cycle through slots 0→1→2→3→0...
+  useEffect(() => {
+    let idx = 0;
+    const expandCycle = setInterval(() => {
+      if (pausedRef.current) return;
+      setExpandedSlotIdx(idx % 4);
+      // Collapse after 1.5s
+      setTimeout(() => setExpandedSlotIdx(-1), 1500);
+      idx++;
+    }, 2500);
+    return () => clearInterval(expandCycle);
+  }, []);
+
+  const handleHover = useCallback(() => { pausedRef.current = true; setExpandedSlotIdx(-1); }, []);
+  const handleLeave = useCallback(() => { pausedRef.current = false; }, []);
+
+  if (reducedMotion) {
+    return (
+      <div className="hidden lg:block fixed inset-0 z-30 pointer-events-none">
+        {[0, 1, 2, 3].map(g => (
+          <div key={g} className="absolute pointer-events-auto" style={SLOT_POSITIONS[g][0]}>
+            <SignalPill signal={SIGNALS[g]} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="hidden lg:block fixed inset-0 z-30 pointer-events-none">
+      <AnimatePresence>
+        {slots.map((slot, slotArrayIdx) => {
+          const isAutoExpanded = !pausedRef.current && slotArrayIdx === expandedSlotIdx;
+          return (
+            <motion.div key={slot.id} className="absolute pointer-events-auto" style={slot.pos}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.6, ease: "easeInOut" }}>
+              <AutoExpandPill
+                signal={SIGNALS[slot.signalIdx]}
+                autoExpanded={isAutoExpanded}
+                onHover={handleHover}
+                onLeave={handleLeave}
+              />
+            </motion.div>
+          );
+        })}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function AutoExpandPill({ signal, autoExpanded, onHover, onLeave }: {
+  signal: Signal; autoExpanded: boolean; onHover?: () => void; onLeave?: () => void;
+}) {
+  const [manualHovered, setManualHovered] = useState(false);
+  const pillRef = useRef<HTMLDivElement>(null);
+  const Icon = ICONS[signal.icon];
+  const colors = ACCENT_COLORS[signal.accentColor];
+  const barWidth = useMotionValue(0);
+  const springWidth = useSpring(barWidth, { damping: 20, stiffness: 100 });
+  const barWidthStr = useTransform(springWidth, (v) => `${v}%`);
+  const isExpanded = manualHovered || autoExpanded;
+
+  useEffect(() => {
+    barWidth.set(isExpanded ? (signal.metricPercent ?? 90) : 0);
+  }, [isExpanded, barWidth, signal.metricPercent]);
+
+  return (
+    <motion.div ref={pillRef}
+      onMouseEnter={() => { setManualHovered(true); onHover?.(); }}
+      onMouseLeave={() => { setManualHovered(false); onLeave?.(); }}
+      layout
+      className="rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl cursor-default overflow-hidden"
+      style={{ minWidth: isExpanded ? 260 : 180, maxWidth: 280 }}
+      transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}>
+      <div className="flex items-center gap-2.5 px-3 py-2.5">
+        <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg ${colors.bg}`}>
+          <Icon className={`h-3 w-3 ${colors.text}`} />
+        </div>
+        <span className="text-[11px] font-medium text-white/70 truncate">{signal.title}</span>
+        {signal.badge && !isExpanded && (
+          <span className={`ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${colors.badge} shrink-0`}>{signal.badge}</span>
+        )}
+      </div>
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+            className="overflow-hidden">
+            <div className="px-3 pb-3 pt-0.5">
+              <p className="text-[11px] text-white/40 leading-relaxed">{signal.description}</p>
+              {signal.metric && (
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-lg font-bold text-white font-mono tabular-nums">{signal.metric}</span>
+                  {signal.metricLabel && <span className="text-[9px] text-white/30 uppercase tracking-wider">{signal.metricLabel}</span>}
+                </div>
+              )}
+              <div className="mt-2 h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
+                <motion.div className={`h-full rounded-full ${colors.dot}`} style={{ width: barWidthStr }} />
+              </div>
+              {signal.badge && (
+                <span className={`mt-2 inline-block text-[9px] font-semibold px-2 py-0.5 rounded-full ${colors.badge}`}>{signal.badge}</span>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}

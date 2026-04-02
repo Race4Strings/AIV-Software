@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Lock, Unlock, Fingerprint, Shield, Briefcase, Search, Brain, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export interface HeroFinalV2Props {
+export interface HeroFinalV3Props {
   containerRef: React.RefObject<HTMLDivElement | null>;
   onRequestAccess: () => void;
   onOverlayChange?: (open: boolean) => void;
@@ -131,7 +131,7 @@ function HowItWorksCard({ item, index, autoFlash }: { item: typeof REVEAL_STEPS[
   );
 }
 
-export function HeroFinalV2({ onRequestAccess, onOverlayChange }: HeroFinalV2Props) {
+export function HeroFinalV3({ onRequestAccess, onOverlayChange }: HeroFinalV3Props) {
   const [showMotion, setShowMotion] = useState(false);
   const [motionStage, setMotionStage] = useState(0);
   const [cardFlashTriggered, setCardFlashTriggered] = useState(false);
