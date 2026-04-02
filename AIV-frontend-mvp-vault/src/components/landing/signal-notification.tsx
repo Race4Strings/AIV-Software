@@ -43,16 +43,19 @@ const ACCENT_COLORS = {
   purple: { dot: "bg-purple-500", bg: "bg-purple-500/10", text: "text-purple-400", badge: "bg-purple-500/15 text-purple-400" },
 };
 
-// Left positions are HIGH, right positions are LOW — guarantees they're never on the same y-axis
+// Left spots high/mid, right spots mid/low — never same y-axis
+// Positions can be closer to center (8-12%) for more organic spread
 const LEFT_SPOTS = [
-  { top: "14%", left: "2%" },
-  { top: "28%", left: "3%" },
-  { top: "42%", left: "2%" },
+  { top: "15%", left: "2%" },
+  { top: "30%", left: "5%" },
+  { top: "50%", left: "3%" },
+  { top: "22%", left: "8%" },
 ];
 const RIGHT_SPOTS = [
-  { top: "32%", right: "2%" },
-  { top: "48%", right: "3%" },
-  { top: "58%", right: "2%" },
+  { top: "35%", right: "2%" },
+  { top: "55%", right: "6%" },
+  { top: "45%", right: "3%" },
+  { top: "65%", right: "8%" },
 ];
 
 function jitter(pos: { top: string; left?: string; right?: string }) {
@@ -155,23 +158,20 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
 
 export function SignalNotifications() {
   const reducedMotion = useReducedMotion();
-  const [currentIdx, setCurrentIdx] = useState(0); // sequential index into SIGNALS
+  const currentIdxRef = useRef(0);
   const [leftSignal, setLeftSignal] = useState<{ idx: number; pos: Record<string, string> } | null>(null);
   const [rightSignal, setRightSignal] = useState<{ idx: number; pos: Record<string, string> } | null>(null);
   const pausedRef = useRef(false);
 
   const advance = useCallback(() => {
     if (pausedRef.current) return;
-    setCurrentIdx(prev => {
-      const next = (prev + 1) % SIGNALS.length;
-      // Alternate: even indices go left, odd go right
-      if (next % 2 === 0) {
-        setLeftSignal({ idx: next, pos: jitter(LEFT_SPOTS[Math.floor(Math.random() * LEFT_SPOTS.length)]) });
-      } else {
-        setRightSignal({ idx: next, pos: jitter(RIGHT_SPOTS[Math.floor(Math.random() * RIGHT_SPOTS.length)]) });
-      }
-      return next;
-    });
+    const next = (currentIdxRef.current + 1) % SIGNALS.length;
+    currentIdxRef.current = next;
+    if (next % 2 === 0) {
+      setLeftSignal({ idx: next, pos: jitter(LEFT_SPOTS[Math.floor(Math.random() * LEFT_SPOTS.length)]) });
+    } else {
+      setRightSignal({ idx: next, pos: jitter(RIGHT_SPOTS[Math.floor(Math.random() * RIGHT_SPOTS.length)]) });
+    }
   }, []);
 
   useEffect(() => {
@@ -181,13 +181,13 @@ export function SignalNotifications() {
     }, 1500);
     const t2 = setTimeout(() => {
       setRightSignal({ idx: 1, pos: jitter(RIGHT_SPOTS[0]) });
-      setCurrentIdx(1);
+      currentIdxRef.current = 1;
     }, 3000);
 
     // Rotate every 3.5-5s
     const interval = setInterval(() => {
       if (!pausedRef.current) advance();
-    }, 2800 + Math.random() * 1200);
+    }, 4000 + Math.random() * 2000);
 
     return () => { clearTimeout(t1); clearTimeout(t2); clearInterval(interval); };
   }, [advance]);
@@ -213,19 +213,19 @@ export function SignalNotifications() {
       <AnimatePresence>
         {leftSignal && (
           <motion.div key={`left-${leftSignal.idx}`} className="absolute pointer-events-auto" style={leftSignal.pos}
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.96 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}>
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6, ease: "easeInOut" }}>
             <SignalPill signal={SIGNALS[leftSignal.idx]} onHover={handleHover} onLeave={handleLeave} />
           </motion.div>
         )}
         {rightSignal && (
           <motion.div key={`right-${rightSignal.idx}`} className="absolute pointer-events-auto" style={rightSignal.pos}
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.96 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}>
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6, ease: "easeInOut" }}>
             <SignalPill signal={SIGNALS[rightSignal.idx]} onHover={handleHover} onLeave={handleLeave} />
           </motion.div>
         )}

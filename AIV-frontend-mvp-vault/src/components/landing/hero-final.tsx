@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lock, Fingerprint, Shield, Briefcase, Search, Brain, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Aurora from "@/components/ui/Aurora";
 
 export interface HeroFinalProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
@@ -32,6 +33,31 @@ const PROCESS_ICONS = [
 export function HeroFinal({ onRequestAccess, onOverlayChange }: HeroFinalProps) {
   const [showMotion, setShowMotion] = useState(false);
   const [motionStage, setMotionStage] = useState(0);
+  const [overlayAurora, setOverlayAurora] = useState(0);
+  const overlayMouseRef = useRef({ x: 0, y: 0, time: 0, dx: 0, dy: 0 });
+  const overlayScoreRef = useRef(0);
+  const overlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleOverlayMouse = useCallback((e: React.MouseEvent) => {
+    const now = Date.now();
+    const last = overlayMouseRef.current;
+    const dt = now - last.time;
+    if (dt > 0 && dt < 100) {
+      const dx = e.clientX - last.x;
+      const dy = e.clientY - last.y;
+      const speed = Math.sqrt(dx * dx + dy * dy) / dt;
+      const rev = ((dx > 0 && last.dx < 0) || (dx < 0 && last.dx > 0) || (dy > 0 && last.dy < 0) || (dy < 0 && last.dy > 0));
+      const speedBoost = Math.min(0.4, speed * 0.15);
+      const shakeBoost = rev && speed > 0.3 ? 0.6 : 0;
+      overlayScoreRef.current = Math.min(5, overlayScoreRef.current * 0.85 + speedBoost + shakeBoost);
+      overlayMouseRef.current = { x: e.clientX, y: e.clientY, time: now, dx, dy };
+    } else {
+      overlayMouseRef.current = { ...last, x: e.clientX, y: e.clientY, time: now };
+    }
+    setOverlayAurora(Math.min(0.85, overlayScoreRef.current * 0.22));
+    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+    overlayTimerRef.current = setTimeout(() => { overlayScoreRef.current = 0; setOverlayAurora(0); }, 600);
+  }, []);
 
   useEffect(() => { onOverlayChange?.(showMotion); }, [showMotion, onOverlayChange]);
 
@@ -92,9 +118,15 @@ export function HeroFinal({ onRequestAccess, onOverlayChange }: HeroFinalProps) 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5, ease: "easeInOut" }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center"
-            style={{ backgroundColor: "oklch(0.05 0.008 262 / 0.92)" }}
+            onMouseMove={handleOverlayMouse}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[oklch(0.06_0.008_262)]"
           >
+            {/* Aurora inside overlay */}
+            <div className="pointer-events-none absolute inset-0 z-0"
+              style={{ opacity: overlayAurora, transition: overlayAurora > 0.1 ? "opacity 300ms ease-out" : "opacity 800ms ease-in" }}>
+              <Aurora colorStops={["#0a1e42", "#2563eb", "#0a1e42"]} amplitude={0.8} blend={0.5} speed={0.3} />
+            </div>
+
             <div className="absolute top-6 left-6 flex items-center gap-3 pointer-events-auto z-10">
               <button onClick={() => setShowMotion(false)}
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] text-white/40 hover:text-white/70 hover:bg-white/[0.1] transition-colors duration-150 cursor-pointer">
