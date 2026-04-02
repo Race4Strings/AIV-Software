@@ -100,7 +100,7 @@ export default function HomePage() {
         </Link>
         <button
           onClick={() => { setModalInitialStep(8); setModalOpen(true); }}
-          className="text-sm font-medium text-white/60 hover:text-white transition-colors duration-200 cursor-pointer"
+          className="text-sm font-medium text-white/60 hover:text-white transition-colors duration-200 cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
         >
           Sign In
         </button>
@@ -151,7 +151,7 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.6 }}
-          className="text-lg sm:text-xl text-white/45 max-w-[540px] mb-12 leading-relaxed"
+          className="text-lg sm:text-xl text-white/60 max-w-[540px] mb-12 leading-relaxed"
         >
           AIV certifies, protects, and helps you monetize your digital twin with cryptographic proof-of-ownership, custom behavioral guardrails, and a global licensing rail that generates recurring revenue on autopilot.
         </motion.p>

@@ -11,6 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { adminApi, type AccessCode, type WaitlistEntry } from "@/lib/api/admin";
@@ -27,6 +31,7 @@ export default function AdminDashboard() {
   const [granting, setGranting] = useState<string | null>(null);
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
   const [batchGranting, setBatchGranting] = useState(false);
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -78,12 +83,12 @@ export default function AdminDashboard() {
   }
 
   async function removeFromWaitlist(entryId: string) {
-    if (!window.confirm("Remove this entry from the waitlist?")) return;
     try {
       await adminApi.removeFromWaitlist(entryId);
       toast.success("Removed from waitlist");
       await loadData();
     } catch { toast.error("Failed to remove"); }
+    setConfirmRemoveId(null);
   }
 
   function toggleSelectEntry(entryId: string) {
@@ -106,16 +111,12 @@ export default function AdminDashboard() {
   async function batchGrant() {
     if (selectedEntries.size === 0) return;
     setBatchGranting(true);
-    let succeeded = 0;
-    for (const entryId of selectedEntries) {
-      try {
-        await adminApi.grantAccess(entryId);
-        succeeded++;
-      } catch {
-        // Continue with remaining
-      }
-    }
-    toast.success(`Access granted to ${succeeded} of ${selectedEntries.size} entries`);
+    const total = selectedEntries.size;
+    const results = await Promise.allSettled(
+      Array.from(selectedEntries).map((entryId) => adminApi.grantAccess(entryId))
+    );
+    const succeeded = results.filter((r) => r.status === "fulfilled").length;
+    toast.success(`${succeeded} of ${total} granted successfully`);
     setSelectedEntries(new Set());
     await loadData();
     setBatchGranting(false);
@@ -159,25 +160,25 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-5 pb-4 text-center">
-            <div className="text-2xl font-bold">{unusedCodes.length}</div>
+            <div className="text-2xl font-bold font-mono tabular-nums">{unusedCodes.length}</div>
             <div className="text-xs text-muted-foreground mt-1">Available Codes</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-5 pb-4 text-center">
-            <div className="text-2xl font-bold">{usedCodes.length}</div>
+            <div className="text-2xl font-bold font-mono tabular-nums">{usedCodes.length}</div>
             <div className="text-xs text-muted-foreground mt-1">Used Codes</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-5 pb-4 text-center">
-            <div className="text-2xl font-bold text-yellow-500">{pendingWaitlist.length}</div>
+            <div className="text-2xl font-bold text-yellow-500 font-mono tabular-nums">{pendingWaitlist.length}</div>
             <div className="text-xs text-muted-foreground mt-1">Pending Applications</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-5 pb-4 text-center">
-            <div className="text-2xl font-bold text-emerald-500">{grantedWaitlist.length}</div>
+            <div className="text-2xl font-bold text-emerald-500 font-mono tabular-nums">{grantedWaitlist.length}</div>
             <div className="text-xs text-muted-foreground mt-1">Access Granted</div>
           </CardContent>
         </Card>
@@ -297,7 +298,7 @@ export default function AdminDashboard() {
                       {granting === w.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserPlus className="h-3.5 w-3.5 mr-1" />}
                       Grant Access
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => removeFromWaitlist(w.id)} className="text-muted-foreground hover:text-destructive">
+                    <Button variant="ghost" size="sm" onClick={() => setConfirmRemoveId(w.id)} className="text-muted-foreground hover:text-destructive">
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
@@ -336,6 +337,27 @@ export default function AdminDashboard() {
           </Card>
         )}
       </section>
+
+      {/* Remove from waitlist confirmation */}
+      <AlertDialog open={!!confirmRemoveId} onOpenChange={(open) => { if (!open) setConfirmRemoveId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove from waitlist?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove this entry from the waitlist. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { if (confirmRemoveId) removeFromWaitlist(confirmRemoveId); }}
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

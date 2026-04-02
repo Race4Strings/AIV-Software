@@ -7,6 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Pencil, Save, X } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { updateTwin } from "@/lib/api/twins";
 import { toast } from "sonner";
 
@@ -63,9 +68,25 @@ export function TwinTabIdentity({ twin, displayName, categories, onTwinUpdate }:
             <Button variant="ghost" size="sm" onClick={() => setEditing(false)} disabled={saving}>
               <X className="h-4 w-4 mr-1" /> Cancel
             </Button>
-            <Button size="sm" disabled={saving} onClick={handleSave}>
-              <Save className="h-4 w-4 mr-1" /> {saving ? "Saving..." : "Save"}
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="sm" disabled={saving}>
+                  <Save className="h-4 w-4 mr-1" /> {saving ? "Saving..." : "Save"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Save identity changes?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will update your public identity profile. Changes take effect immediately across all active deals and licensing outputs.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleSave}>Save changes</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         ) : (
           <Button variant="outline" size="sm" onClick={startEdit}>

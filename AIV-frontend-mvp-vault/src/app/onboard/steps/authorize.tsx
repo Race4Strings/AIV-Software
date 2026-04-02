@@ -138,7 +138,7 @@ export function AuthorizeStep({
         <Button
           onClick={submitGate2}
           disabled={loading}
-          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-base font-semibold active:scale-[0.97] transition-transform duration-150"
+          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-base font-semibold active:scale-[0.97] transition-[transform,background-color] duration-150"
         >
           {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <UserCheck className="h-5 w-5 mr-2" />}
           I Authorize This Identity

@@ -205,6 +205,7 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
     } finally {
       setIsStreaming(false);
       abortRef.current = null;
+      textareaRef.current?.focus();
     }
   }
 
@@ -349,7 +350,7 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
       )}
 
       {/* Messages */}
-      <ScrollArea className="flex-1 px-4" aria-live="polite" aria-label="Conversation messages">
+      <ScrollArea className="flex-1 px-4" aria-label="Conversation messages">
         {messages.length === 0 && !isStreaming && (
           <div className="flex h-full flex-col items-center justify-center py-12 text-center">
             <Sparkles className="h-8 w-8 text-primary/40 mb-3" />
@@ -413,6 +414,11 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
         )}
 
         <div ref={messagesEndRef} />
+        <div aria-live="polite" className="sr-only">
+          {messages.length > 0 && messages[messages.length - 1].role === "AGENT"
+            ? messages[messages.length - 1].content
+            : streamingContent || ""}
+        </div>
       </ScrollArea>
 
       {/* Input */}

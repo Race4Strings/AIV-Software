@@ -110,7 +110,7 @@ export default function SettingsPage() {
               </div>
               <Badge variant="outline">{(user?.role as string) || "TALENT"}</Badge>
             </div>
-            <div className="grid grid-cols-3 gap-4 pt-2 border-t border-border/30">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-border/30">
               <div className="flex items-center gap-2 text-sm">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
                 <div>

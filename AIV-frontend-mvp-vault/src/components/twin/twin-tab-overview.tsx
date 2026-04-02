@@ -60,7 +60,7 @@ export function TwinTabOverview({
       {/* Hero identity card */}
       <Card className="overflow-hidden shadow-lg shadow-primary/5">
         <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6">
-          <div className="flex items-start gap-6">
+          <div className="flex flex-col sm:flex-row items-start gap-6">
             <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-background/80 border border-border/50 shadow-sm">
               <Fingerprint className="h-10 w-10 text-primary/60" />
             </div>

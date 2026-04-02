@@ -167,6 +167,33 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
     }
   }, [open])
 
+  // Focus trap: keep focus within modal when open
+  useEffect(() => {
+    if (!open) return;
+    const modal = document.querySelector('[role="dialog"]');
+    if (!modal) return;
+    const focusable = modal.querySelectorAll('button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (focusable.length === 0) return;
+    const first = focusable[0] as HTMLElement;
+    const last = focusable[focusable.length - 1] as HTMLElement;
+    first.focus();
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open, step]);
+
+  // Escape key closes modal
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open]);
+
   // Sync step when modal opens with a specific initialStep
   useEffect(() => {
     if (open) setStep(initialStep)
@@ -380,7 +407,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
   const successCopy = role ? SUCCESS_COPY[role] : SUCCESS_COPY.creator
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Early Access Signup">
       {/* Backdrop */}
       <motion.div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -418,7 +445,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                       setRole(r.key)
                       setTimeout(() => setStep(1), 250)
                     }}
-                    className={`text-left rounded-xl p-4 border-[1.5px] transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer ${
+                    className={`text-left rounded-xl p-4 border-[1.5px] transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none ${
                       role === r.key
                         ? 'bg-blue-500/15 border-blue-500'
                         : 'bg-white/[0.03] border-transparent hover:bg-blue-500/10 hover:border-blue-500/30'
@@ -433,13 +460,13 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
               <div className="text-center mt-4 space-y-1.5">
                 <div className="text-xs text-white/40">
                   Already have an access code?{' '}
-                  <button onClick={() => setStep(4)} className="text-blue-400 hover:underline cursor-pointer bg-transparent border-none p-0 text-xs">
+                  <button onClick={() => setStep(4)} className="text-blue-400 hover:underline cursor-pointer bg-transparent border-none p-0 text-xs focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none rounded">
                     Enter it here &rarr;
                   </button>
                 </div>
                 <div className="text-xs text-white/40">
                   Already have an account?{' '}
-                  <button onClick={() => setStep(8)} className="text-blue-400 hover:underline cursor-pointer bg-transparent border-none p-0 text-xs">
+                  <button onClick={() => setStep(8)} className="text-blue-400 hover:underline cursor-pointer bg-transparent border-none p-0 text-xs focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none rounded">
                     Sign in &rarr;
                   </button>
                 </div>
@@ -468,7 +495,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 ))}
               </div>
               <div className="flex gap-2.5">
-                <button onClick={() => setStep(0)} className="px-5 py-3 rounded-xl bg-white/[0.06] border border-white/10 text-white/70 text-sm hover:bg-white/10 transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer">
+                <button onClick={() => setStep(0)} className="px-5 py-3 rounded-xl bg-white/[0.06] border border-white/10 text-white/70 text-sm hover:bg-white/10 transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none">
                   <ArrowLeft className="h-4 w-4 inline mr-1" />Back
                 </button>
                 <button
@@ -492,29 +519,32 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
               />
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="block text-xs text-white/70 font-medium mb-1.5">Email *</label>
+                  <label htmlFor="ea-email" className="block text-xs text-white/70 font-medium mb-1.5">Email *</label>
                   <input
+                    id="ea-email"
                     type="email"
                     value={fields.email || ''}
                     onChange={e => setField('email', e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none transition-colors"
                     autoFocus
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-white/70 font-medium mb-1.5">Best phone / WhatsApp</label>
+                  <label htmlFor="ea-phone" className="block text-xs text-white/70 font-medium mb-1.5">Best phone / WhatsApp</label>
                   <input
+                    id="ea-phone"
                     type="tel"
                     value={fields.phone || ''}
                     onChange={e => setField('phone', e.target.value)}
                     placeholder="+1 (555) 000-0000"
-                    className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-white/70 font-medium mb-1.5">How did you hear about us?</label>
+                  <label htmlFor="ea-referral" className="block text-xs text-white/70 font-medium mb-1.5">How did you hear about us?</label>
                   <select
+                    id="ea-referral"
                     value={fields.referral || ''}
                     onChange={e => setField('referral', e.target.value)}
                     className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm focus:outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer"
@@ -530,13 +560,13 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 </div>
               </div>
               <div className="flex gap-2.5">
-                <button onClick={() => setStep(1)} className="px-5 py-3 rounded-xl bg-white/[0.06] border border-white/10 text-white/70 text-sm hover:bg-white/10 transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer">
+                <button onClick={() => setStep(1)} className="px-5 py-3 rounded-xl bg-white/[0.06] border border-white/10 text-white/70 text-sm hover:bg-white/10 transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none">
                   <ArrowLeft className="h-4 w-4 inline mr-1" />Back
                 </button>
                 <button
                   onClick={handleSubmit}
                   disabled={submitting || !fields.email?.trim()}
-                  className="flex-1 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none flex items-center justify-center gap-2"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Request Access <ArrowRight className="h-4 w-4" /></>}
                 </button>
@@ -569,7 +599,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
               </div>
               <button
                 onClick={handleClose}
-                className="w-full mt-5 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer"
+                className="w-full mt-5 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
               >
                 Done
               </button>
@@ -584,8 +614,9 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 description="Enter your access code to begin."
               />
               <div className="mb-6">
-                <label className="block text-xs text-white/70 font-medium mb-1.5">Access Code</label>
+                <label htmlFor="ea-code" className="block text-xs text-white/70 font-medium mb-1.5">Access Code</label>
                 <input
+                  id="ea-code"
                   type="text"
                   value={fields.code || ''}
                   onChange={e => {
@@ -595,7 +626,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                     setCodeError(null)
                   }}
                   placeholder="AIV-XXXXXXXX"
-                  className={`w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border text-white text-sm placeholder:text-white/30 focus:outline-none transition-colors font-mono tracking-wider ${
+                  className={`w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border text-white text-sm placeholder:text-white/30 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none transition-colors font-mono tracking-wider ${
                     codeError ? 'border-red-500/60' : 'border-white/[0.12] focus:border-blue-500'
                   }`}
                   autoFocus
@@ -609,20 +640,20 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 )}
               </div>
               <div className="flex gap-2.5">
-                <button onClick={() => { setStep(0); setCodeError(null) }} className="px-5 py-3 rounded-xl bg-white/[0.06] border border-white/10 text-white/70 text-sm hover:bg-white/10 transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer">
+                <button onClick={() => { setStep(0); setCodeError(null) }} className="px-5 py-3 rounded-xl bg-white/[0.06] border border-white/10 text-white/70 text-sm hover:bg-white/10 transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none">
                   <ArrowLeft className="h-4 w-4 inline mr-1" />Back
                 </button>
                 <button
                   onClick={handleValidateCode}
                   disabled={validatingCode || !fields.code?.trim() || (fields.code?.trim().length || 0) < 6}
-                  className="flex-1 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none flex items-center justify-center gap-2"
                 >
                   {validatingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Verify &amp; Enter &rarr;</>}
                 </button>
               </div>
               <div className="text-center mt-4 text-xs text-white/40">
                 Already have an account?{' '}
-                <button onClick={() => setStep(8)} className="text-blue-400 hover:underline cursor-pointer bg-transparent border-none p-0 text-xs">
+                <button onClick={() => setStep(8)} className="text-blue-400 hover:underline cursor-pointer bg-transparent border-none p-0 text-xs focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none rounded">
                   Sign in &rarr;
                 </button>
               </div>
@@ -643,41 +674,45 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
               <div className="space-y-3 mt-4 mb-6">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-white/70 font-medium mb-1.5">Name *</label>
+                    <label htmlFor="ea-signup-name" className="block text-xs text-white/70 font-medium mb-1.5">Name *</label>
                     <input
+                      id="ea-signup-name"
                       type="text"
                       value={fields.signupName || ''}
                       onChange={e => setField('signupName', e.target.value)}
                       placeholder="Full name"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none transition-colors"
                       autoFocus
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-white/70 font-medium mb-1.5">Username *</label>
+                    <label htmlFor="ea-signup-username" className="block text-xs text-white/70 font-medium mb-1.5">Username *</label>
                     <input
+                      id="ea-signup-username"
                       type="text"
                       value={fields.signupUsername || ''}
                       onChange={e => setField('signupUsername', e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
                       placeholder="johndoe"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none transition-colors"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-white/70 font-medium mb-1.5">Email *</label>
+                  <label htmlFor="ea-signup-email" className="block text-xs text-white/70 font-medium mb-1.5">Email *</label>
                   <input
+                    id="ea-signup-email"
                     type="email"
                     value={fields.signupEmail || ''}
                     onChange={e => setField('signupEmail', e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-white/70 font-medium mb-1.5">Password *</label>
+                  <label htmlFor="ea-signup-password" className="block text-xs text-white/70 font-medium mb-1.5">Password *</label>
                   <div className="relative">
                     <input
+                      id="ea-signup-password"
                       type={showPassword ? 'text' : 'password'}
                       value={fields.signupPassword || ''}
                       onChange={e => setField('signupPassword', e.target.value)}
@@ -687,33 +722,34 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                     <button
                       type="button"
                       onClick={() => setShowPassword(p => !p)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
-                      tabIndex={-1}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none rounded"
+                      aria-label="Toggle password visibility"
                     >
                       {showPassword ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-white/70 font-medium mb-1.5">Confirm Password *</label>
+                  <label htmlFor="ea-signup-confirm-password" className="block text-xs text-white/70 font-medium mb-1.5">Confirm Password *</label>
                   <input
+                    id="ea-signup-confirm-password"
                     type="password"
                     value={fields.signupConfirmPassword || ''}
                     onChange={e => setField('signupConfirmPassword', e.target.value)}
                     placeholder="Confirm your password"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none transition-colors"
                     onKeyDown={e => { if (e.key === 'Enter') handleSignup() }}
                   />
                 </div>
               </div>
               <div className="flex gap-2.5">
-                <button onClick={() => setStep(4)} className="px-5 py-3 rounded-xl bg-white/[0.06] border border-white/10 text-white/70 text-sm hover:bg-white/10 transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer">
+                <button onClick={() => setStep(4)} className="px-5 py-3 rounded-xl bg-white/[0.06] border border-white/10 text-white/70 text-sm hover:bg-white/10 transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none">
                   <ArrowLeft className="h-4 w-4 inline mr-1" />Back
                 </button>
                 <button
                   onClick={handleSignup}
                   disabled={submitting || !fields.signupName?.trim() || !fields.signupUsername?.trim() || !fields.signupEmail?.trim() || !fields.signupPassword?.trim()}
-                  className="flex-1 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none flex items-center justify-center gap-2"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Create Account &rarr;</>}
                 </button>
@@ -729,8 +765,9 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 description={`We sent a 6-digit code to ${signupEmail}. Enter it below.`}
               />
               <div className="mb-6">
-                <label className="block text-xs text-white/70 font-medium mb-1.5">Verification Code</label>
+                <label htmlFor="ea-otp" className="block text-xs text-white/70 font-medium mb-1.5">Verification Code</label>
                 <input
+                  id="ea-otp"
                   type="text"
                   value={fields.otp || ''}
                   onChange={e => setField('otp', e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
@@ -749,7 +786,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                       toast.error('Failed to resend code')
                     }
                   }}
-                  className="text-[11px] text-blue-400 hover:underline mt-2 bg-transparent border-none p-0 cursor-pointer"
+                  className="text-[11px] text-blue-400 hover:underline mt-2 bg-transparent border-none p-0 cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none rounded"
                 >
                   Didn&apos;t receive it? Resend code
                 </button>
@@ -757,7 +794,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
               <button
                 onClick={handleVerifyEmail}
                 disabled={submitting || (fields.otp?.length || 0) < 6}
-                className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none flex items-center justify-center gap-2"
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Verify &amp; Enter &rarr;</>}
               </button>
@@ -775,7 +812,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
               </div>
               <button
                 onClick={() => { window.location.href = '/onboard' }}
-                className="w-full mt-4 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer"
+                className="w-full mt-4 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
               >
                 Get Started &rarr;
               </button>
@@ -791,28 +828,30 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
               />
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="block text-xs text-white/70 font-medium mb-1.5">Email or Username</label>
+                  <label htmlFor="ea-signin-identifier" className="block text-xs text-white/70 font-medium mb-1.5">Email or Username</label>
                   <input
+                    id="ea-signin-identifier"
                     type="text"
                     value={fields.signinIdentifier || ''}
                     onChange={e => setField('signinIdentifier', e.target.value)}
                     placeholder="john@example.com or johndoe"
-                    className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none transition-colors"
                     autoFocus
                   />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs text-white/70 font-medium">Password</label>
+                    <label htmlFor="ea-signin-password" className="block text-xs text-white/70 font-medium">Password</label>
                     <button
                       onClick={() => { setForgotPasswordSent(false); setStep(9) }}
-                      className="text-[11px] text-blue-400 hover:underline bg-transparent border-none p-0 cursor-pointer"
+                      className="text-[11px] text-blue-400 hover:underline bg-transparent border-none p-0 cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none rounded"
                     >
                       Forgot password?
                     </button>
                   </div>
                   <div className="relative">
                     <input
+                      id="ea-signin-password"
                       type={showSigninPassword ? 'text' : 'password'}
                       value={fields.signinPassword || ''}
                       onChange={e => setField('signinPassword', e.target.value)}
@@ -823,8 +862,8 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                     <button
                       type="button"
                       onClick={() => setShowSigninPassword(p => !p)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
-                      tabIndex={-1}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none rounded"
+                      aria-label="Toggle password visibility"
                     >
                       {showSigninPassword ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                     </button>
@@ -834,13 +873,13 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
               <button
                 onClick={handleSignin}
                 disabled={submitting || !fields.signinIdentifier?.trim() || !fields.signinPassword?.trim()}
-                className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none flex items-center justify-center gap-2"
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Sign In &rarr;</>}
               </button>
               <div className="text-center mt-4 text-xs text-white/40">
                 Don&apos;t have an account?{' '}
-                <button onClick={() => setStep(4)} className="text-blue-400 hover:underline cursor-pointer bg-transparent border-none p-0 text-xs">
+                <button onClick={() => setStep(4)} className="text-blue-400 hover:underline cursor-pointer bg-transparent border-none p-0 text-xs focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none rounded">
                   Enter access code &rarr;
                 </button>
               </div>
@@ -859,13 +898,14 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
               />
               {!forgotPasswordSent ? (
                 <div className="mb-6">
-                  <label className="block text-xs text-white/70 font-medium mb-1.5">Email</label>
+                  <label htmlFor="ea-forgot-email" className="block text-xs text-white/70 font-medium mb-1.5">Email</label>
                   <input
+                    id="ea-forgot-email"
                     type="email"
                     value={fields.forgotEmail || ''}
                     onChange={e => setField('forgotEmail', e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none transition-colors"
                     autoFocus
                     onKeyDown={e => { if (e.key === 'Enter') handleForgotPassword() }}
                   />
@@ -882,13 +922,13 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 <button
                   onClick={handleForgotPassword}
                   disabled={submitting || !fields.forgotEmail?.trim()}
-                  className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none flex items-center justify-center gap-2"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Send Reset Link &rarr;</>}
                 </button>
               ) : null}
               <div className="text-center mt-4">
-                <button onClick={() => setStep(8)} className="text-xs text-blue-400 hover:underline bg-transparent border-none p-0 cursor-pointer inline-flex items-center gap-1">
+                <button onClick={() => setStep(8)} className="text-xs text-blue-400 hover:underline bg-transparent border-none p-0 cursor-pointer inline-flex items-center gap-1 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none rounded">
                   <ArrowLeft className="h-3 w-3" /> Back to Sign In
                 </button>
               </div>
@@ -941,14 +981,16 @@ function StepHeader({ label, title, description }: { label: string; title: strin
 }
 
 function FieldInput({ field, value, onChange }: { field: FieldDef; value: string; onChange: (v: string) => void }) {
+  const fieldId = `ea-field-${field.key}`
   if (field.type === 'select' && field.options) {
     return (
       <div>
-        <label className="block text-xs text-white/70 font-medium mb-1.5">{field.label}</label>
+        <label htmlFor={fieldId} className="block text-xs text-white/70 font-medium mb-1.5">{field.label}</label>
         <select
+          id={fieldId}
           value={value}
           onChange={e => onChange(e.target.value)}
-          className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm focus:outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer"
+          className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm focus:outline-none focus:border-blue-500 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none transition-colors appearance-none cursor-pointer"
           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
         >
           <option value="" className="bg-popover">Select&hellip;</option>
@@ -962,15 +1004,16 @@ function FieldInput({ field, value, onChange }: { field: FieldDef; value: string
 
   return (
     <div>
-      <label className="block text-xs text-white/70 font-medium mb-1.5">
+      <label htmlFor={fieldId} className="block text-xs text-white/70 font-medium mb-1.5">
         {field.label}{field.required && ' *'}
       </label>
       <input
+        id={fieldId}
         type="text"
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={field.placeholder}
-        className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+        className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none transition-colors"
       />
     </div>
   )

@@ -438,10 +438,10 @@ export function CommandCenter() {
               const { label, color } = getPillarStateLabel(info.state);
               const Icon = pillar.icon;
               return (
-                <Card key={pillar.key} className="border-border/50 hover:shadow-md hover:border-primary/20 transition-all duration-200 cursor-pointer">
+                <Card key={pillar.key} className="border-border/50 transition-colors duration-200">
                   <CardContent className="pt-5 pb-4">
                     <div className="flex items-center gap-2.5 mb-2">
-                      <Icon className="h-4.5 w-4.5 text-muted-foreground" />
+                      <Icon className="h-5 w-5 text-muted-foreground" />
                       <span className="text-sm font-medium">{pillar.label}</span>
                     </div>
                     <p className="text-xs text-muted-foreground mb-2">{pillar.desc}</p>

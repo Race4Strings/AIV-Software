@@ -228,19 +228,19 @@ export default function DealsPage() {
           <Card>
             <CardContent className="pt-6">
               <div className="text-sm text-muted-foreground">Gross Revenue</div>
-              <div className="text-2xl font-bold">${revenue.gross_revenue.toLocaleString()}</div>
+              <div className="text-2xl font-bold font-mono tabular-nums">${revenue.gross_revenue.toLocaleString()}</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="text-sm text-muted-foreground">Commission</div>
-              <div className="text-2xl font-bold">${revenue.total_commission.toLocaleString()}</div>
+              <div className="text-2xl font-bold font-mono tabular-nums">${revenue.total_commission.toLocaleString()}</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6">
               <div className="text-sm text-muted-foreground">Net Revenue</div>
-              <div className="text-2xl font-bold text-emerald-500">
+              <div className="text-2xl font-bold text-emerald-500 font-mono tabular-nums">
                 ${revenue.net_revenue.toLocaleString()}
               </div>
             </CardContent>
@@ -254,7 +254,7 @@ export default function DealsPage() {
           <Card className="border-border/50">
             <CardContent className="pt-5 pb-4">
               <div className="text-xs text-muted-foreground">Pipeline Value</div>
-              <div className="text-lg font-bold mt-1">
+              <div className="text-lg font-bold mt-1 font-mono tabular-nums">
                 ${deals.reduce((sum, d) => sum + (d.value || 0), 0).toLocaleString()}
               </div>
               <div className="text-[10px] text-muted-foreground mt-0.5">Across {deals.length} deal{deals.length !== 1 ? "s" : ""}</div>
@@ -263,7 +263,7 @@ export default function DealsPage() {
           <Card className="border-border/50">
             <CardContent className="pt-5 pb-4">
               <div className="text-xs text-muted-foreground">Average Deal Size</div>
-              <div className="text-lg font-bold mt-1">
+              <div className="text-lg font-bold mt-1 font-mono tabular-nums">
                 ${deals.length > 0 ? Math.round(deals.reduce((sum, d) => sum + (d.value || 0), 0) / deals.length).toLocaleString() : "0"}
               </div>
             </CardContent>
@@ -271,7 +271,7 @@ export default function DealsPage() {
           <Card className="border-border/50">
             <CardContent className="pt-5 pb-4">
               <div className="text-xs text-muted-foreground">Conversion</div>
-              <div className="text-lg font-bold mt-1">
+              <div className="text-lg font-bold mt-1 font-mono tabular-nums">
                 {deals.length > 0
                   ? `${Math.round((deals.filter(d => ["EXECUTED", "ACTIVE", "COMPLETED"].includes(d.status)).length / deals.length) * 100)}%`
                   : "—"}
@@ -404,7 +404,7 @@ export default function DealsPage() {
                           )}
                         </div>
                         <div className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
+                          <span className="flex items-center gap-1 font-mono tabular-nums">
                             <DollarSign className="h-3.5 w-3.5" />
                             {deal.value.toLocaleString()} {deal.currency}
                           </span>

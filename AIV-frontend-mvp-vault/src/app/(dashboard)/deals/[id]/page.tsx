@@ -11,10 +11,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { licensingApi, type Deal } from "@/lib/api/licensing";
+
+const STATUS_COLORS: Record<string, string> = {
+  SUBMITTED: "bg-blue-500/10 text-blue-500",
+  UNDER_REVIEW: "bg-yellow-500/10 text-yellow-500",
+  APPROVED: "bg-emerald-500/10 text-emerald-500",
+  CONTRACT_SENT: "bg-purple-500/10 text-purple-500",
+  EXECUTED: "bg-teal-500/10 text-teal-500",
+  ACTIVE: "bg-green-600/10 text-green-600",
+  COMPLETED: "bg-gray-500/10 text-gray-500",
+  EXPIRED: "bg-orange-500/10 text-orange-500",
+  TERMINATED: "bg-red-500/10 text-red-500",
+};
 
 interface DealMessage {
   id: string;
@@ -134,12 +147,12 @@ export default function DealWorkspacePage() {
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold">{deal.deal_type.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())} — Deal #{deal.deal_number}</h1>
-            <Badge variant="outline">{deal.status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</Badge>
+            <Badge variant="outline" className={STATUS_COLORS[deal.status] || ""}>{deal.status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</Badge>
             {allOk === true && <span className="flex items-center gap-1 text-xs text-emerald-500"><CheckCircle2 className="h-4 w-4" /> All parameters within range</span>}
             {allOk === false && <span className="flex items-center gap-1 text-xs text-yellow-500"><AlertTriangle className="h-4 w-4" /> Parameters flagged</span>}
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            ${deal.value.toLocaleString()} {deal.currency} | Commission: {(deal.commission_rate * 100).toFixed(0)}% (${deal.commission_amount.toLocaleString()})
+            <span className="font-mono tabular-nums">${deal.value.toLocaleString()}</span> {deal.currency} | Commission: <span className="font-mono tabular-nums">{(deal.commission_rate * 100).toFixed(0)}%</span> (<span className="font-mono tabular-nums">${deal.commission_amount.toLocaleString()}</span>)
             {deal.territory?.length > 0 && ` | ${deal.territory.join(", ")}`}
           </p>
         </div>
@@ -219,9 +232,9 @@ export default function DealWorkspacePage() {
             <Card>
               <CardHeader className="pb-2"><CardTitle className="text-sm">Financial</CardTitle></CardHeader>
               <CardContent className="space-y-1 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Deal Value</span><span className="font-medium">${deal.value.toLocaleString()}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Commission ({(deal.commission_rate * 100).toFixed(0)}%)</span><span>${deal.commission_amount.toLocaleString()}</span></div>
-                <div className="flex justify-between border-t pt-1"><span className="text-muted-foreground">Net to Talent</span><span className="font-medium text-emerald-500">${(deal.value - deal.commission_amount).toLocaleString()}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Deal Value</span><span className="font-medium font-mono tabular-nums">${deal.value.toLocaleString()}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Commission (<span className="font-mono tabular-nums">{(deal.commission_rate * 100).toFixed(0)}%</span>)</span><span className="font-mono tabular-nums">${deal.commission_amount.toLocaleString()}</span></div>
+                <div className="flex justify-between border-t pt-1"><span className="text-muted-foreground">Net to Talent</span><span className="font-medium text-emerald-500 font-mono tabular-nums">${(deal.value - deal.commission_amount).toLocaleString()}</span></div>
               </CardContent>
             </Card>
           </div>
@@ -281,20 +294,28 @@ export default function DealWorkspacePage() {
                               <div className="mt-3 flex items-center gap-2">
                                 {showSignDialog === c.id ? (
                                   <div className="flex flex-col gap-2 w-full" onClick={(e) => e.stopPropagation()}>
-                                    <Input
-                                      placeholder="Talent representative email"
-                                      type="email"
-                                      value={signEmails.talent}
-                                      onChange={(e) => setSignEmails(prev => ({ ...prev, talent: e.target.value }))}
-                                      className="text-sm"
-                                    />
-                                    <Input
-                                      placeholder="Client representative email"
-                                      type="email"
-                                      value={signEmails.client}
-                                      onChange={(e) => setSignEmails(prev => ({ ...prev, client: e.target.value }))}
-                                      className="text-sm"
-                                    />
+                                    <div>
+                                      <Label htmlFor="sign-talent-email" className="text-xs text-muted-foreground mb-1 block">Talent representative email</Label>
+                                      <Input
+                                        id="sign-talent-email"
+                                        placeholder="talent@example.com"
+                                        type="email"
+                                        value={signEmails.talent}
+                                        onChange={(e) => setSignEmails(prev => ({ ...prev, talent: e.target.value }))}
+                                        className="text-sm"
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label htmlFor="sign-client-email" className="text-xs text-muted-foreground mb-1 block">Client representative email</Label>
+                                      <Input
+                                        id="sign-client-email"
+                                        placeholder="client@example.com"
+                                        type="email"
+                                        value={signEmails.client}
+                                        onChange={(e) => setSignEmails(prev => ({ ...prev, client: e.target.value }))}
+                                        className="text-sm"
+                                      />
+                                    </div>
                                     <div className="flex gap-2">
                                       <Button
                                         size="sm"
@@ -548,10 +569,22 @@ export default function DealWorkspacePage() {
             {showRdaForm && (
               <Card className="mb-3">
                 <CardContent className="py-4 space-y-3">
-                  <Input placeholder="Recipient organization" value={rdaForm.recipient_org} onChange={(e) => setRdaForm(p => ({ ...p, recipient_org: e.target.value }))} />
-                  <Input placeholder="Recipient contact email" value={rdaForm.recipient_contact} onChange={(e) => setRdaForm(p => ({ ...p, recipient_contact: e.target.value }))} />
-                  <Input placeholder="Purpose of data transfer" value={rdaForm.purpose} onChange={(e) => setRdaForm(p => ({ ...p, purpose: e.target.value }))} />
-                  <Input placeholder="Restrictions (optional)" value={rdaForm.restrictions} onChange={(e) => setRdaForm(p => ({ ...p, restrictions: e.target.value }))} />
+                  <div>
+                    <Label htmlFor="rda-recipient-org" className="text-xs text-muted-foreground mb-1 block">Recipient organization</Label>
+                    <Input id="rda-recipient-org" placeholder="Organization name" value={rdaForm.recipient_org} onChange={(e) => setRdaForm(p => ({ ...p, recipient_org: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="rda-recipient-contact" className="text-xs text-muted-foreground mb-1 block">Recipient contact email</Label>
+                    <Input id="rda-recipient-contact" placeholder="contact@example.com" value={rdaForm.recipient_contact} onChange={(e) => setRdaForm(p => ({ ...p, recipient_contact: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="rda-purpose" className="text-xs text-muted-foreground mb-1 block">Purpose of data transfer</Label>
+                    <Input id="rda-purpose" placeholder="Describe the purpose" value={rdaForm.purpose} onChange={(e) => setRdaForm(p => ({ ...p, purpose: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="rda-restrictions" className="text-xs text-muted-foreground mb-1 block">Restrictions (optional)</Label>
+                    <Input id="rda-restrictions" placeholder="Any restrictions" value={rdaForm.restrictions} onChange={(e) => setRdaForm(p => ({ ...p, restrictions: e.target.value }))} />
+                  </div>
                   <Button size="sm" disabled={!rdaForm.recipient_org || !rdaForm.purpose} onClick={async () => {
                     try {
                       await licensingApi.createRDA(dealId, rdaForm);
@@ -598,9 +631,18 @@ export default function DealWorkspacePage() {
             {showPartnerForm && (
               <Card className="mb-3">
                 <CardContent className="py-4 space-y-3">
-                  <Input placeholder="Partner name" value={partnerForm.partner_name} onChange={(e) => setPartnerForm(p => ({ ...p, partner_name: e.target.value }))} />
-                  <Input placeholder="Partner role (e.g., Voice synthesis provider)" value={partnerForm.partner_role} onChange={(e) => setPartnerForm(p => ({ ...p, partner_role: e.target.value }))} />
-                  <Input placeholder="Data access scope" value={partnerForm.data_access_scope} onChange={(e) => setPartnerForm(p => ({ ...p, data_access_scope: e.target.value }))} />
+                  <div>
+                    <Label htmlFor="partner-name" className="text-xs text-muted-foreground mb-1 block">Partner name</Label>
+                    <Input id="partner-name" placeholder="Partner name" value={partnerForm.partner_name} onChange={(e) => setPartnerForm(p => ({ ...p, partner_name: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="partner-role" className="text-xs text-muted-foreground mb-1 block">Partner role</Label>
+                    <Input id="partner-role" placeholder="e.g., Voice synthesis provider" value={partnerForm.partner_role} onChange={(e) => setPartnerForm(p => ({ ...p, partner_role: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="partner-data-scope" className="text-xs text-muted-foreground mb-1 block">Data access scope</Label>
+                    <Input id="partner-data-scope" placeholder="Data access scope" value={partnerForm.data_access_scope} onChange={(e) => setPartnerForm(p => ({ ...p, data_access_scope: e.target.value }))} />
+                  </div>
                   <Button size="sm" disabled={!partnerForm.partner_name || !partnerForm.partner_role} onClick={async () => {
                     try {
                       await licensingApi.addPartner(dealId, partnerForm);

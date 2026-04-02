@@ -100,7 +100,7 @@ function SignupForm() {
       <form onSubmit={handleSubmit} className="grid gap-4">
         {/* Access Code */}
         <div>
-          <label className="block text-xs text-white/70 font-medium mb-1.5">Access Code</label>
+          <label htmlFor="signup-access-code" className="block text-xs text-white/70 font-medium mb-1.5">Access Code</label>
           {codeFromUrl ? (
             <div className="inline-flex items-center gap-2 rounded-full bg-green-500/10 border border-green-500/20 px-3 py-1.5 text-xs text-green-400 font-mono">
               <ShieldCheck className="h-3.5 w-3.5" />
@@ -109,6 +109,7 @@ function SignupForm() {
             </div>
           ) : (
             <input
+              id="signup-access-code"
               type="text"
               value={accessCode}
               onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
@@ -121,8 +122,9 @@ function SignupForm() {
         {/* Name + Username */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs text-white/70 font-medium mb-1.5">Name *</label>
+            <label htmlFor="signup-name" className="block text-xs text-white/70 font-medium mb-1.5">Name *</label>
             <input
+              id="signup-name"
               type="text"
               value={name}
               onChange={(e) => { setName(e.target.value); if (touched.name) validateField('name', e.target.value); }}
@@ -136,8 +138,9 @@ function SignupForm() {
             {touched.name && fieldErrors.name && <p className="text-[10px] text-red-400 mt-1">{fieldErrors.name}</p>}
           </div>
           <div>
-            <label className="block text-xs text-white/70 font-medium mb-1.5">Username *</label>
+            <label htmlFor="signup-username" className="block text-xs text-white/70 font-medium mb-1.5">Username *</label>
             <input
+              id="signup-username"
               type="text"
               value={username}
               onChange={(e) => { const v = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''); setUsername(v); if (touched.username) validateField('username', v); }}
@@ -153,8 +156,9 @@ function SignupForm() {
 
         {/* Email */}
         <div>
-          <label className="block text-xs text-white/70 font-medium mb-1.5">Email *</label>
+          <label htmlFor="signup-email" className="block text-xs text-white/70 font-medium mb-1.5">Email *</label>
           <input
+            id="signup-email"
             type="email"
             value={email}
             onChange={(e) => { setEmail(e.target.value); if (touched.email) validateField('email', e.target.value); }}
@@ -169,9 +173,10 @@ function SignupForm() {
 
         {/* Password */}
         <div>
-          <label className="block text-xs text-white/70 font-medium mb-1.5">Password *</label>
+          <label htmlFor="signup-password" className="block text-xs text-white/70 font-medium mb-1.5">Password *</label>
           <div className="relative">
             <input
+              id="signup-password"
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -221,8 +226,9 @@ function SignupForm() {
 
         {/* Confirm Password */}
         <div>
-          <label className="block text-xs text-white/70 font-medium mb-1.5">Confirm Password *</label>
+          <label htmlFor="signup-password-confirm" className="block text-xs text-white/70 font-medium mb-1.5">Confirm Password *</label>
           <input
+            id="signup-password-confirm"
             type="password"
             value={passwordConfirm}
             onChange={(e) => setPasswordConfirm(e.target.value)}

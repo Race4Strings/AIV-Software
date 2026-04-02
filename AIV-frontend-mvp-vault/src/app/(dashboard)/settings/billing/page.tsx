@@ -60,6 +60,7 @@ export default function BillingPage() {
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [billing, setBilling] = useState<BillingStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [stripeLoading, setStripeLoading] = useState(false);
 
   useEffect(() => {
     Promise.allSettled([
@@ -120,7 +121,9 @@ export default function BillingPage() {
             <Button
               variant="outline"
               size="sm"
+              disabled={stripeLoading}
               onClick={async () => {
+                setStripeLoading(true);
                 try {
                   const result = await paymentsApi.createSetupCheckout(
                     `${window.location.origin}/settings/billing?payment=success`,
@@ -129,9 +132,12 @@ export default function BillingPage() {
                   if (result.checkout_url) window.location.href = result.checkout_url;
                 } catch {
                   toast.error("Failed to connect payment method. Please try again.");
+                } finally {
+                  setStripeLoading(false);
                 }
               }}
             >
+              {stripeLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
               {billing?.has_payment_method ? "Update Card" : "Add Card"}
             </Button>
           </CardContent>
@@ -149,7 +155,7 @@ export default function BillingPage() {
                   <CheckCircle2 className="h-6 w-6 text-emerald-500" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium">$997/month — Active</p>
+                  <p className="font-medium"><span className="font-mono tabular-nums">$997</span>/month — Active</p>
                   <p className="text-sm text-muted-foreground">
                     Covers AI training infrastructure, identity hosting, licensing operations, misuse monitoring, and account management.
                   </p>
@@ -181,15 +187,15 @@ export default function BillingPage() {
           <CardContent className="py-5">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
               <div>
-                <div className="text-2xl font-bold">30%</div>
+                <div className="text-2xl font-bold font-mono tabular-nums">30%</div>
                 <div className="text-xs text-muted-foreground mt-1">First deal</div>
               </div>
               <div>
-                <div className="text-2xl font-bold">25%</div>
+                <div className="text-2xl font-bold font-mono tabular-nums">25%</div>
                 <div className="text-xs text-muted-foreground mt-1">Second deal</div>
               </div>
               <div>
-                <div className="text-2xl font-bold">20%</div>
+                <div className="text-2xl font-bold font-mono tabular-nums">20%</div>
                 <div className="text-xs text-muted-foreground mt-1">Third deal onward</div>
               </div>
             </div>
@@ -224,7 +230,7 @@ export default function BillingPage() {
                         {inv.paid_at ? ` · Paid ${new Date(inv.paid_at).toLocaleDateString()}` : ""}
                       </div>
                     </div>
-                    <span className="font-semibold text-sm">${inv.amount.toLocaleString()}</span>
+                    <span className="font-semibold text-sm font-mono tabular-nums">${inv.amount.toLocaleString()}</span>
                     {inv.stripe_invoice_url && (
                       <a href={inv.stripe_invoice_url} target="_blank" rel="noopener noreferrer">
                         <Button variant="ghost" size="sm" className="text-xs">
@@ -264,11 +270,11 @@ export default function BillingPage() {
                         <span className={`text-xs font-semibold ${style.color}`}>{style.label}</span>
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5">
-                        Gross: ${p.gross_amount.toLocaleString()} · Commission: ${p.commission_amount.toLocaleString()}
+                        Gross: <span className="font-mono tabular-nums">${p.gross_amount.toLocaleString()}</span> · Commission: <span className="font-mono tabular-nums">${p.commission_amount.toLocaleString()}</span>
                         {p.processed_at ? ` · Processed ${new Date(p.processed_at).toLocaleDateString()}` : ""}
                       </div>
                     </div>
-                    <span className="font-semibold text-sm text-emerald-500">${p.net_amount.toLocaleString()}</span>
+                    <span className="font-semibold text-sm text-emerald-500 font-mono tabular-nums">${p.net_amount.toLocaleString()}</span>
                   </CardContent>
                 </Card>
               );
@@ -301,7 +307,9 @@ export default function BillingPage() {
             <Button
               variant="outline"
               size="sm"
+              disabled={stripeLoading}
               onClick={async () => {
+                setStripeLoading(true);
                 try {
                   const result = await paymentsApi.createConnectOnboarding(
                     `${window.location.origin}/settings/billing`,
@@ -310,9 +318,12 @@ export default function BillingPage() {
                   if (result.onboarding_url) window.location.href = result.onboarding_url;
                 } catch {
                   toast.error("Failed to set up payouts. Please try again.");
+                } finally {
+                  setStripeLoading(false);
                 }
               }}
             >
+              {stripeLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
               Set Up Payouts
             </Button>
           </CardContent>

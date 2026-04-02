@@ -120,6 +120,8 @@ export default function CalibrationPage() {
 
   // Track per-item responses as a map for the current page
   const [pageResponses, setPageResponses] = useState<Record<number, number>>({});
+  // Persistent store: pageIndex → { itemNumber → value } — survives navigation
+  const [allResponses, setAllResponses] = useState<Record<number, Record<number, number>>>({});
 
   // Keyboard shortcuts: press 1-5 to answer the next unanswered item
   useEffect(() => {
@@ -163,13 +165,23 @@ export default function CalibrationPage() {
     }
 
     setSaving(true);
-    const newResponses = [
-      ...responses,
-      ...currentPage.map((item) => ({ item: item.item, value: pageResponses[item.item] })),
-    ];
+    // Build complete response list from allResponses (all pages) + current page
+    const merged = { ...allResponses, [currentIndex]: { ...pageResponses } };
+    const newResponses: { item: number; value: number }[] = [];
+    for (let p = 0; p <= currentIndex; p++) {
+      const pageData = merged[p];
+      if (pageData) {
+        for (const [itemNum, value] of Object.entries(pageData)) {
+          newResponses.push({ item: Number(itemNum), value });
+        }
+      }
+    }
     setResponses(newResponses);
     await saveResponses(twinId, calId, newResponses);
     setSaving(false);
+
+    // Persist current page answers before navigating
+    setAllResponses((prev) => ({ ...prev, [currentIndex]: { ...pageResponses } }));
 
     if (currentIndex + 1 >= totalPages) {
       // All pages done — trigger scoring
@@ -182,10 +194,15 @@ export default function CalibrationPage() {
         router.push("/dashboard");
       }
     } else {
-      setPageResponses({});
-      setCurrentIndex((i) => i + 1);
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
+      // Restore next page's answers if they exist (user went forward, back, forward)
+      setAllResponses((prev) => {
+        setPageResponses(prev[nextIndex] ? { ...prev[nextIndex] } : {});
+        return prev;
+      });
     }
-  }, [calId, twinId, pages, currentIndex, totalPages, pageResponses, responses, router]);
+  }, [calId, twinId, pages, currentIndex, totalPages, pageResponses, allResponses, responses, router]);
 
   const handleSkip = () => {
     router.push("/dashboard");
@@ -396,7 +413,14 @@ export default function CalibrationPage() {
                   <Button
                     variant="outline"
                     onClick={() => {
-                      setPageResponses({});
+                      // Save current page answers before going back
+                      setAllResponses((prev) => {
+                        const updated = { ...prev, [currentIndex]: { ...pageResponses } };
+                        const prevIndex = currentIndex - 1;
+                        // Restore previous page's answers
+                        setPageResponses(updated[prevIndex] ? { ...updated[prevIndex] } : {});
+                        return updated;
+                      });
                       setCurrentIndex((i) => i - 1);
                     }}
                     disabled={saving}
