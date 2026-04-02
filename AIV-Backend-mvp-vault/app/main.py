@@ -98,7 +98,7 @@ async def lifespan(app: FastAPI):
     # Start scheduled jobs (deal expiry + platform fee activation)
     # Uses Redis leader election — only one instance runs jobs
     from .services.scheduler import start_scheduler
-    scheduler = start_scheduler()
+    scheduler = await start_scheduler()
 
     yield
 

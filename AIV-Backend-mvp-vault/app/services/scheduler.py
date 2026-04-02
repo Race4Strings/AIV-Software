@@ -229,18 +229,16 @@ async def _acquire_scheduler_lock() -> bool:
         return True  # Fall back to running if Redis unavailable
 
 
-def start_scheduler():
+async def start_scheduler():
     """Start the APScheduler background scheduler with distributed leader election.
 
     Only ONE instance across all deployments will run scheduled jobs.
     Uses Redis-based locking to prevent duplicate job execution.
     """
-    import asyncio
     from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
     # Check if we should be the scheduler leader
-    loop = asyncio.get_event_loop()
-    is_leader = loop.run_until_complete(_acquire_scheduler_lock())
+    is_leader = await _acquire_scheduler_lock()
 
     if not is_leader:
         logger.info("Scheduler: another instance is the leader — skipping job registration")
