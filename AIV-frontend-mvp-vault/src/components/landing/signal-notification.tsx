@@ -47,31 +47,22 @@ const ACCENT_COLORS = {
 // Vertical: 10-75% (wide spread above and below hero).
 // Horizontal: 4-14% from edge (not too close to edge, not too close to center).
 function randomPosition(side: "left" | "right"): Record<string, string> {
-  const top = 8 + Math.floor(Math.random() * 70); // 8-78%
+  const top = 8 + Math.floor(Math.random() * 74); // 8-82% (expanded bottom)
   const horiz = 3 + Math.floor(Math.random() * 16); // 3-19% (closer to middle allowed)
   return side === "left" ? { top: `${top}%`, left: `${horiz}%` } : { top: `${top}%`, right: `${horiz}%` };
 }
 
-// Check if two positions are far enough apart.
-// Uses 2D distance: vertical gap must be >= 22% OR they must be on opposite sides.
-// Same-side signals need >= 22% vertical gap to prevent overlap when expanded.
+// ALL signals must have minimum 20% vertical gap from each other — no exceptions.
+// This prevents any visual proximity regardless of which side they're on.
 function isFarEnough(a: Record<string, string>, b: Record<string, string>): boolean {
   const aTop = parseInt(a.top || "0");
   const bTop = parseInt(b.top || "0");
-  const vertGap = Math.abs(aTop - bTop);
-
-  // If on opposite sides (one has left, other has right), only need 15% vertical gap
-  const aIsLeft = "left" in a;
-  const bIsLeft = "left" in b;
-  if (aIsLeft !== bIsLeft) return vertGap >= 15;
-
-  // Same side: need larger gap (22%) to avoid overlap when hover-expanded
-  return vertGap >= 22;
+  return Math.abs(aTop - bTop) >= 20;
 }
 
 // Generate a position that's far from all existing positions
 function safePosition(side: "left" | "right", existing: Record<string, string>[]): Record<string, string> {
-  for (let attempt = 0; attempt < 30; attempt++) {
+  for (let attempt = 0; attempt < 50; attempt++) {
     const pos = randomPosition(side);
     if (existing.every(ex => isFarEnough(pos, ex))) return pos;
   }
