@@ -43,23 +43,21 @@ const ACCENT_COLORS = {
   purple: { dot: "bg-purple-500", bg: "bg-purple-500/10", text: "text-purple-400", badge: "bg-purple-500/15 text-purple-400" },
 };
 
-// 5 fixed zones — widely separated, safe hover distance (~15% vertical gap)
-// Each zone has a few position options for variety
+// 4 zones: 2 left, 2 right. ~20% vertical gap between same-side zones.
+// Centered around the hero (30-55% range). Enough room for hover expansion (~120px).
 const POSITION_POOLS = [
-  // Zone 0: top-left
-  [{ top: "18%", left: "2%" }, { top: "20%", left: "4%" }],
-  // Zone 1: top-right
-  [{ top: "22%", right: "2%" }, { top: "18%", right: "5%" }],
-  // Zone 2: mid-left
-  [{ top: "42%", left: "2%" }, { top: "40%", left: "5%" }],
-  // Zone 3: mid-right
-  [{ top: "45%", right: "2%" }, { top: "43%", right: "4%" }],
-  // Zone 4: lower-center (left or right of center)
-  [{ top: "62%", left: "8%" }, { top: "64%", right: "8%" }, { top: "60%", left: "12%" }],
+  // Zone 0: upper-left
+  [{ top: "25%", left: "2%" }, { top: "28%", left: "4%" }, { top: "23%", left: "3%" }],
+  // Zone 1: upper-right
+  [{ top: "27%", right: "2%" }, { top: "24%", right: "4%" }, { top: "30%", right: "3%" }],
+  // Zone 2: lower-left
+  [{ top: "50%", left: "2%" }, { top: "52%", left: "5%" }, { top: "48%", left: "3%" }],
+  // Zone 3: lower-right
+  [{ top: "53%", right: "2%" }, { top: "50%", right: "4%" }, { top: "55%", right: "3%" }],
 ];
 
 function jitter(pos: { top: string; left?: string; right?: string }) {
-  const jY = Math.floor(Math.random() * 10) - 5; // ±5% vertical
+  const jY = Math.floor(Math.random() * 6) - 3; // ±3% vertical (safe for hover expansion)
   const jX = Math.floor(Math.random() * 2); // 0-1% horizontal
   const result: Record<string, string> = { top: `${parseInt(pos.top) + jY}%` };
   if (pos.left) result.left = `${parseInt(pos.left) + jX}%`;
@@ -193,14 +191,13 @@ export function SignalNotifications() {
     const t2 = setTimeout(() => addToGroup(1), 3000);
     const t3 = setTimeout(() => addToGroup(2), 4500);
     const t4 = setTimeout(() => addToGroup(3), 6000);
-    const t5 = setTimeout(() => addToGroup(4), 7500);
 
-    // Rotate every 3-4.5s (quicker)
+    // Rotate every 3.5-5s
     const interval = setInterval(() => {
       if (!pausedRef.current) advance();
-    }, 3000 + Math.random() * 1500);
+    }, 3500 + Math.random() * 1500);
 
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); clearTimeout(t5); clearInterval(interval); };
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); clearInterval(interval); };
   }, [addToGroup, advance]);
 
   const handleHover = useCallback(() => { pausedRef.current = true; }, []);
@@ -209,7 +206,7 @@ export function SignalNotifications() {
   if (reducedMotion) {
     return (
       <div className="hidden lg:block fixed inset-0 z-30 pointer-events-none">
-        {[0, 1, 2, 3, 4].map(g => {
+        {[0, 1, 2, 3].map(g => {
           const pool = POSITION_POOLS[g];
           return (
             <div key={g} className="absolute pointer-events-auto" style={pool[0]}>
