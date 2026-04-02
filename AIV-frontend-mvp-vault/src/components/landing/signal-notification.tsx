@@ -22,9 +22,10 @@ interface Signal {
   metricPercent?: number;
 }
 
+// Fixed sequential order — always rotates through these in order
 const SIGNALS: Signal[] = [
-  { id: "deal-inquiry", icon: "FileText", title: "New Deal Inquiry", description: "A brand wants to license your voice for a global campaign. Terms match your pre-approved rules.", badge: "Review", accentColor: "blue", metric: "$125K", metricLabel: "Deal Value", metricPercent: 78 },
-  { id: "revenue", icon: "DollarSign", title: "Revenue Received", description: "Your latest licensing deal payment has been processed and settled to your account.", badge: "Settled", accentColor: "green", metric: "$48,500", metricLabel: "Net Payment", metricPercent: 88 },
+  { id: "deal-inquiry", icon: "FileText", title: "New Deal Inquiry", description: "A brand wants to license your voice for a global campaign. Terms match your pre-approved rules.", badge: "Review", accentColor: "blue", metric: "$250K", metricLabel: "Deal Value", metricPercent: 78 },
+  { id: "revenue", icon: "DollarSign", title: "Revenue Received", description: "Your latest licensing deal payment has been processed and settled to your account.", badge: "Settled", accentColor: "green", metric: "$87,500", metricLabel: "Net Payment", metricPercent: 88 },
   { id: "misuse", icon: "Shield", title: "Misuse Blocked", description: "An unauthorized use of your likeness was detected, flagged, and evidence sealed automatically.", badge: "Protected", accentColor: "red", metric: "3", metricLabel: "Blocked This Week", metricPercent: 85 },
   { id: "verified", icon: "Lock", title: "Identity Verified", description: "A Fortune 500 brand verified your certified identity before finalizing a licensing agreement.", accentColor: "purple", metric: "47", metricLabel: "Verifications", metricPercent: 82 },
   { id: "twin-updated", icon: "BookOpen", title: "Twin Updated", description: "Your digital twin just got sharper. New data from your latest podcast was processed.", accentColor: "amber", metric: "97%", metricLabel: "Accuracy", metricPercent: 97 },
@@ -42,38 +43,29 @@ const ACCENT_COLORS = {
   purple: { dot: "bg-purple-500", bg: "bg-purple-500/10", text: "text-purple-400", badge: "bg-purple-500/15 text-purple-400" },
 };
 
-// 6 positions: 2 left, 2 right, 1 top-corner, 1 bottom-corner
-// Each has a jitter range so they don't sit in perfect alignment
-function getJitteredPosition(base: { top: string; left?: string; right?: string }) {
-  const jitterY = Math.floor(Math.random() * 6) - 3; // ±3%
-  const jitterX = Math.floor(Math.random() * 2); // 0-1%
-  const topNum = parseInt(base.top) + jitterY;
-  const result: Record<string, string> = { top: `${topNum}%` };
-  if (base.left) result.left = `${parseInt(base.left) + jitterX}%`;
-  if (base.right) result.right = `${parseInt(base.right) + jitterX}%`;
+// Left and right positions — capped at 65% top so expansion stays in bounds
+const LEFT_SPOTS = [
+  { top: "18%", left: "2%" },
+  { top: "38%", left: "3%" },
+  { top: "58%", left: "2%" },
+];
+const RIGHT_SPOTS = [
+  { top: "22%", right: "2%" },
+  { top: "42%", right: "3%" },
+  { top: "62%", right: "2%" },
+];
+
+function jitter(pos: { top: string; left?: string; right?: string }) {
+  const jY = Math.floor(Math.random() * 8) - 4;
+  const result: Record<string, string> = { top: `${parseInt(pos.top) + jY}%` };
+  if (pos.left) result.left = pos.left;
+  if (pos.right) result.right = pos.right;
   return result;
 }
 
-const BASE_POSITIONS = [
-  { top: "18%", left: "2%" },
-  { top: "55%", left: "3%" },
-  { top: "82%", left: "2%" },
-  { top: "20%", right: "2%" },
-  { top: "52%", right: "3%" },
-  { top: "78%", right: "2%" },
-];
-
-function SignalPill({
-  signal,
-  onHoverSignal,
-  onLeaveSignal,
-}: {
-  signal: Signal;
-  onHoverSignal?: () => void;
-  onLeaveSignal?: () => void;
-}) {
+function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: () => void; onLeave?: () => void }) {
   const [hovered, setHovered] = useState(false);
-  const [mouseProgress, setMouseProgress] = useState(0); // 0-1 based on mouse x within pill
+  const [mouseProgress, setMouseProgress] = useState(0);
   const pillRef = useRef<HTMLDivElement>(null);
   const Icon = ICONS[signal.icon];
   const colors = ACCENT_COLORS[signal.accentColor];
@@ -81,100 +73,68 @@ function SignalPill({
   const springWidth = useSpring(barWidth, { damping: 20, stiffness: 100 });
   const barWidthStr = useTransform(springWidth, (v) => `${v}%`);
 
-  // Track mouse X position within pill for dynamic values
-  function handlePillMouseMove(e: React.MouseEvent) {
+  function handleMove(e: React.MouseEvent) {
     if (!pillRef.current) return;
     const rect = pillRef.current.getBoundingClientRect();
-    const progress = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    setMouseProgress(progress);
-    // Bar follows mouse position smoothly
-    barWidth.set(progress * (signal.metricPercent ?? 70));
+    const p = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    setMouseProgress(p);
+    barWidth.set(p * (signal.metricPercent ?? 70));
   }
 
   useEffect(() => {
-    if (hovered) {
-      barWidth.set(signal.metricPercent ?? 70);
-    } else {
-      barWidth.set(0);
-      setMouseProgress(0);
-    }
+    if (hovered) barWidth.set(signal.metricPercent ?? 70);
+    else { barWidth.set(0); setMouseProgress(0); }
   }, [hovered, barWidth, signal.metricPercent]);
 
-  // Dynamic metric based on mouse position
-  function getDynamicMetric(): string {
+  function getDynamic(): string {
     if (!signal.metric || !hovered) return signal.metric || "";
     const base = signal.metric;
-
-    // Dollar amounts — high ceilings, starts at ~40%
     if (base.startsWith("$")) {
       const num = parseFloat(base.replace(/[$,K]/g, "")) * (base.includes("K") ? 1000 : 1);
-      const scaled = Math.round(num * (0.4 + mouseProgress * 0.6));
+      const scaled = Math.round(num * (0.35 + mouseProgress * 0.65));
       if (scaled >= 1000) return `$${(scaled / 1000).toFixed(scaled >= 10000 ? 0 : 1)}K`;
       return `$${scaled.toLocaleString()}`;
     }
-    // Percentages — floor at 60% (protection can't go too low)
     if (base.includes("%")) {
       const num = parseInt(base);
       const floor = signal.id === "misuse" ? 70 : 50;
       return `${Math.round(floor + (num - floor) * mouseProgress)}%`;
     }
-    // Step-based (contract) — sequential
-    if (base.startsWith("Step")) {
-      const step = Math.max(1, Math.round(1 + mouseProgress * 4));
-      return `Step ${step}/5`;
-    }
-    // "Sealed" (certified) — sequential states
-    if (base === "Sealed") {
-      const states = ["Pending", "Hashing", "Anchoring", "Confirming", "Sealed"];
-      const idx = Math.min(4, Math.round(mouseProgress * 4));
-      return states[idx];
-    }
-    // Counts — dynamic range
+    if (base.startsWith("Step")) return `Step ${Math.max(1, Math.round(1 + mouseProgress * 4))}/5`;
+    if (base === "Sealed") return ["Pending", "Hashing", "Anchoring", "Confirming", "Sealed"][Math.min(4, Math.round(mouseProgress * 4))];
     const num = parseInt(base);
-    if (!isNaN(num)) {
-      const floor = Math.max(1, Math.round(num * 0.15));
-      return `${Math.round(floor + (num - floor) * mouseProgress)}`;
-    }
+    if (!isNaN(num)) return `${Math.max(1, Math.round(num * (0.15 + mouseProgress * 0.85)))}`;
     return base;
   }
 
   return (
-    <motion.div
-      ref={pillRef}
-      onMouseEnter={() => { setHovered(true); onHoverSignal?.(); }}
-      onMouseLeave={() => { setHovered(false); onLeaveSignal?.(); }}
-      onMouseMove={handlePillMouseMove}
+    <motion.div ref={pillRef}
+      onMouseEnter={() => { setHovered(true); onHover?.(); }}
+      onMouseLeave={() => { setHovered(false); onLeave?.(); }}
+      onMouseMove={handleMove}
       layout
       className="rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl cursor-default overflow-hidden"
       style={{ minWidth: hovered ? 260 : 180, maxWidth: 280 }}
-      transition={{ type: "spring", damping: 25, stiffness: 300 }}
-    >
+      transition={{ type: "spring", damping: 25, stiffness: 300 }}>
       <div className="flex items-center gap-2.5 px-3 py-2.5">
         <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg ${colors.bg}`}>
           <Icon className={`h-3 w-3 ${colors.text}`} />
         </div>
         <span className="text-[11px] font-medium text-white/70 truncate">{signal.title}</span>
         {signal.badge && !hovered && (
-          <span className={`ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${colors.badge} shrink-0`}>
-            {signal.badge}
-          </span>
+          <span className={`ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${colors.badge} shrink-0`}>{signal.badge}</span>
         )}
       </div>
-
       <AnimatePresence>
         {hovered && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="overflow-hidden"
-          >
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }} transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="overflow-hidden">
             <div className="px-3 pb-3 pt-0.5">
               <p className="text-[10px] text-white/40 leading-relaxed">{signal.description}</p>
               {signal.metric && (
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-lg font-bold text-white font-mono tabular-nums">{getDynamicMetric()}</span>
+                  <span className="text-lg font-bold text-white font-mono tabular-nums">{getDynamic()}</span>
                   {signal.metricLabel && <span className="text-[9px] text-white/30 uppercase tracking-wider">{signal.metricLabel}</span>}
                 </div>
               )}
@@ -182,9 +142,7 @@ function SignalPill({
                 <motion.div className={`h-full rounded-full ${colors.dot}`} style={{ width: barWidthStr }} />
               </div>
               {signal.badge && (
-                <span className={`mt-2 inline-block text-[9px] font-semibold px-2 py-0.5 rounded-full ${colors.badge}`}>
-                  {signal.badge}
-                </span>
+                <span className={`mt-2 inline-block text-[9px] font-semibold px-2 py-0.5 rounded-full ${colors.badge}`}>{signal.badge}</span>
               )}
             </div>
           </motion.div>
@@ -196,83 +154,42 @@ function SignalPill({
 
 export function SignalNotifications() {
   const reducedMotion = useReducedMotion();
-  type SlotType = { signalIdx: number; pos: Record<string, string> };
-  const [slots, setSlots] = useState<SlotType[]>([]);
-  const usedSignalsRef = useRef(new Set<number>());
-  const usedPosRef = useRef(new Set<number>());
+  const [currentIdx, setCurrentIdx] = useState(0); // sequential index into SIGNALS
+  const [leftSignal, setLeftSignal] = useState<{ idx: number; pos: Record<string, string> } | null>(null);
+  const [rightSignal, setRightSignal] = useState<{ idx: number; pos: Record<string, string> } | null>(null);
   const pausedRef = useRef(false);
 
-  const addSignal = useCallback(() => {
+  const advance = useCallback(() => {
     if (pausedRef.current) return;
-    setSlots(prev => {
-      if (prev.length >= 3) return prev;
-
-      // Pick signal not in use
-      let sigIdx: number;
-      let attempts = 0;
-      do { sigIdx = Math.floor(Math.random() * SIGNALS.length); attempts++; }
-      while (usedSignalsRef.current.has(sigIdx) && attempts < 20);
-      usedSignalsRef.current.add(sigIdx);
-
-      // Never both on same side — if 1 exists, force the other side
-      const existingLeft = prev.some(s => "left" in s.pos);
-      const existingRight = prev.some(s => "right" in s.pos);
-
-      const available = BASE_POSITIONS.map((p, i) => ({ p, i })).filter(x => {
-        if (usedPosRef.current.has(x.i)) return false;
-        const isLeft = "left" in x.p;
-        // If we already have one on left, force right (and vice versa)
-        if (prev.length === 1) {
-          if (existingLeft && isLeft) return false;
-          if (existingRight && !isLeft) return false;
-        }
-        return true;
-      });
-
-      const pick = available.length > 0
-        ? available[Math.floor(Math.random() * available.length)]
-        : { p: BASE_POSITIONS[Math.floor(Math.random() * BASE_POSITIONS.length)], i: 0 };
-
-      usedPosRef.current.add(pick.i);
-      const jitteredPos = getJitteredPosition(pick.p);
-
-      return [...prev, { signalIdx: sigIdx, pos: jitteredPos }];
-    });
-  }, []);
-
-  const removeOldest = useCallback(() => {
-    if (pausedRef.current) return;
-    setSlots(prev => {
-      if (prev.length === 0) return prev;
-      const removed = prev[0];
-      usedSignalsRef.current.delete(removed.signalIdx);
-      // Find which base position this was closest to and free it
-      const posTop = parseInt(removed.pos.top || "0");
-      let closestIdx = 0;
-      let closestDist = 999;
-      BASE_POSITIONS.forEach((bp, i) => {
-        const dist = Math.abs(parseInt(bp.top) - posTop);
-        if (dist < closestDist) { closestDist = dist; closestIdx = i; }
-      });
-      usedPosRef.current.delete(closestIdx);
-      return prev.slice(1);
+    setCurrentIdx(prev => {
+      const next = (prev + 1) % SIGNALS.length;
+      // Alternate: even indices go left, odd go right
+      if (next % 2 === 0) {
+        setLeftSignal({ idx: next, pos: jitter(LEFT_SPOTS[Math.floor(Math.random() * LEFT_SPOTS.length)]) });
+      } else {
+        setRightSignal({ idx: next, pos: jitter(RIGHT_SPOTS[Math.floor(Math.random() * RIGHT_SPOTS.length)]) });
+      }
+      return next;
     });
   }, []);
 
   useEffect(() => {
-    const t1 = setTimeout(addSignal, 1500);
-    const t2 = setTimeout(addSignal, 3500);
-    const t3 = setTimeout(addSignal, 5500);
+    // Stagger initial appearance
+    const t1 = setTimeout(() => {
+      setLeftSignal({ idx: 0, pos: jitter(LEFT_SPOTS[1]) });
+    }, 1500);
+    const t2 = setTimeout(() => {
+      setRightSignal({ idx: 1, pos: jitter(RIGHT_SPOTS[0]) });
+      setCurrentIdx(1);
+    }, 3000);
 
+    // Rotate every 3.5-5s
     const interval = setInterval(() => {
-      if (!pausedRef.current) {
-        removeOldest();
-        setTimeout(() => { if (!pausedRef.current) addSignal(); }, 800);
-      }
-    }, 4500 + Math.random() * 1500);
+      if (!pausedRef.current) advance();
+    }, 3500 + Math.random() * 1500);
 
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearInterval(interval); };
-  }, [addSignal, removeOldest]);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearInterval(interval); };
+  }, [advance]);
 
   const handleHover = useCallback(() => { pausedRef.current = true; }, []);
   const handleLeave = useCallback(() => { pausedRef.current = false; }, []);
@@ -280,12 +197,12 @@ export function SignalNotifications() {
   if (reducedMotion) {
     return (
       <div className="hidden lg:block fixed inset-0 z-30 pointer-events-none">
-        {SIGNALS.slice(0, 3).map((signal, i) => (
-          <div key={signal.id} className="absolute pointer-events-auto"
-            style={getJitteredPosition(BASE_POSITIONS[i * 2])}>
-            <SignalPill signal={signal} />
-          </div>
-        ))}
+        <div className="absolute pointer-events-auto" style={LEFT_SPOTS[1]}>
+          <SignalPill signal={SIGNALS[0]} />
+        </div>
+        <div className="absolute pointer-events-auto" style={RIGHT_SPOTS[0]}>
+          <SignalPill signal={SIGNALS[1]} />
+        </div>
       </div>
     );
   }
@@ -293,23 +210,24 @@ export function SignalNotifications() {
   return (
     <div className="hidden lg:block fixed inset-0 z-30 pointer-events-none">
       <AnimatePresence>
-        {slots.map((slot) => {
-          const signal = SIGNALS[slot.signalIdx];
-          if (!signal) return null;
-          return (
-            <motion.div
-              key={signal.id}
-              className="absolute pointer-events-auto"
-              style={slot.pos}
-              initial={{ opacity: 0, scale: 0.85, y: 12 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.85, y: -8 }}
-              transition={{ type: "spring", damping: 22, stiffness: 200 }}
-            >
-              <SignalPill signal={signal} onHoverSignal={handleHover} onLeaveSignal={handleLeave} />
-            </motion.div>
-          );
-        })}
+        {leftSignal && (
+          <motion.div key={`left-${leftSignal.idx}`} className="absolute pointer-events-auto" style={leftSignal.pos}
+            initial={{ opacity: 0, scale: 0.85, x: -16 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.85, x: -16 }}
+            transition={{ type: "spring", damping: 22, stiffness: 200 }}>
+            <SignalPill signal={SIGNALS[leftSignal.idx]} onHover={handleHover} onLeave={handleLeave} />
+          </motion.div>
+        )}
+        {rightSignal && (
+          <motion.div key={`right-${rightSignal.idx}`} className="absolute pointer-events-auto" style={rightSignal.pos}
+            initial={{ opacity: 0, scale: 0.85, x: 16 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.85, x: 16 }}
+            transition={{ type: "spring", damping: 22, stiffness: 200 }}>
+            <SignalPill signal={SIGNALS[rightSignal.idx]} onHover={handleHover} onLeave={handleLeave} />
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );
