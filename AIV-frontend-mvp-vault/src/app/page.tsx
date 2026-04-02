@@ -59,7 +59,7 @@ export default function HomePage() {
     mouseTimerRef.current = setTimeout(() => {
       shakeScoreRef.current = 0;
       setAuroraOpacity(0.25);
-    }, 600);
+    }, 1500);
   }, []);
 
   useEffect(() => { return () => { if (mouseTimerRef.current) clearTimeout(mouseTimerRef.current); }; }, []);
@@ -81,7 +81,7 @@ export default function HomePage() {
     >
       {/* Aurora */}
       <div className="pointer-events-none fixed inset-0 z-0"
-        style={{ opacity: auroraOpacity, transition: auroraOpacity > 0.2 ? "opacity 300ms ease-out" : "opacity 1200ms ease-in" }}>
+        style={{ opacity: auroraOpacity, transition: auroraOpacity > 0.4 ? "opacity 300ms ease-out" : "opacity 2000ms ease-in" }}>
         <Aurora colorStops={["#0a1e42", "#2563eb", "#0a1e42"]} amplitude={0.8} blend={0.5} speed={0.3} />
       </div>
       <div className="pointer-events-none fixed inset-0 z-0"

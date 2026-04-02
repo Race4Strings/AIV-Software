@@ -43,52 +43,46 @@ const ACCENT_COLORS = {
   purple: { dot: "bg-purple-500", bg: "bg-purple-500/10", text: "text-purple-400", badge: "bg-purple-500/15 text-purple-400" },
 };
 
-// 4 CORNER zones — far from center content, far from each other.
-// Hero content occupies ~25-75% width and ~20-65% height.
-// Signals live OUTSIDE this zone in the four corners.
+// 4 slots framing the hero content. Closer than corners, but verified safe.
 //
-// Layout (viewport):
-//   [Slot 0]                    [Slot 1]
-//        ┌──── HERO CONTENT ────┐
-//        │   Badge              │
-//        │   Headline           │
-//        │   Description        │
-//        │   CTA                │
-//        └──────────────────────┘
-//   [Slot 2]                    [Slot 3]
+// Hero occupies 29-71% vertical (badge to "See how it works").
+// Expanded pill = ~13% of viewport height.
+// Upper slots: 8-16% top → expanded reaches max 29% (clears badge).
+// Lower slots: 72-80% top → starts just below hero.
+// Horizontal: 2-18% from edges for organic scatter.
 //
 const SLOT_POSITIONS: Record<string, string>[][] = [
-  // Slot 0: TOP-LEFT corner (6-12% top, 2-8% left)
+  // Slot 0: upper-left (8-16% top, wide horizontal range)
   [
-    { top: "6%", left: "2%" },
-    { top: "8%", left: "5%" },
-    { top: "10%", left: "3%" },
-    { top: "7%", left: "7%" },
-    { top: "12%", left: "2%" },
+    { top: "8%", left: "2%" },
+    { top: "12%", left: "8%" },
+    { top: "10%", left: "14%" },
+    { top: "14%", left: "4%" },
+    { top: "9%", left: "11%" },
   ],
-  // Slot 1: TOP-RIGHT corner (6-12% top, 2-8% right)
+  // Slot 1: upper-right (10-16% top, offset from slot 0)
   [
-    { top: "7%", right: "2%" },
-    { top: "9%", right: "6%" },
-    { top: "6%", right: "4%" },
-    { top: "11%", right: "3%" },
-    { top: "8%", right: "7%" },
+    { top: "10%", right: "3%" },
+    { top: "14%", right: "10%" },
+    { top: "12%", right: "6%" },
+    { top: "16%", right: "14%" },
+    { top: "11%", right: "2%" },
   ],
-  // Slot 2: BOTTOM-LEFT corner (72-82% top, 2-8% left)
+  // Slot 2: lower-left (72-78% top)
   [
-    { top: "72%", left: "2%" },
-    { top: "75%", left: "6%" },
-    { top: "78%", left: "3%" },
-    { top: "74%", left: "7%" },
-    { top: "80%", left: "2%" },
+    { top: "72%", left: "3%" },
+    { top: "75%", left: "10%" },
+    { top: "74%", left: "5%" },
+    { top: "76%", left: "15%" },
+    { top: "73%", left: "8%" },
   ],
-  // Slot 3: BOTTOM-RIGHT corner (72-82% top, 2-8% right)
+  // Slot 3: lower-right (74-80% top, offset from slot 2)
   [
-    { top: "73%", right: "3%" },
-    { top: "76%", right: "6%" },
-    { top: "79%", right: "2%" },
-    { top: "75%", right: "7%" },
-    { top: "82%", right: "4%" },
+    { top: "74%", right: "2%" },
+    { top: "77%", right: "8%" },
+    { top: "76%", right: "4%" },
+    { top: "78%", right: "12%" },
+    { top: "75%", right: "6%" },
   ],
 ];
 
