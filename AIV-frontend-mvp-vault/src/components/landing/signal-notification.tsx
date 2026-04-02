@@ -164,52 +164,52 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
 
 export function SignalNotifications() {
   const reducedMotion = useReducedMotion();
-  const currentIdxRef = useRef(0);
-  type Slot = { idx: number; pos: Record<string, string>; group: number };
+  type Slot = { id: string; signalIdx: number; pos: Record<string, string>; side: "left" | "right" };
   const [slots, setSlots] = useState<Slot[]>([]);
   const pausedRef = useRef(false);
+  const signalCounterRef = useRef(0);
+  const stepRef = useRef(0); // tracks which action to take next
 
-  // Add one signal to a specific group (side)
-  const addToGroup = useCallback((group: number) => {
-    const next = currentIdxRef.current;
-    currentIdxRef.current = (next + 1) % SIGNALS.length;
-    const side = ZONE_SIDES[group] || "left";
-    setSlots(prev => {
-      const otherPositions = prev.filter(s => s.group !== group).map(s => s.pos);
-      const pos = safePosition(side, otherPositions);
-      return [...prev.filter(s => s.group !== group), { idx: next, pos, group }];
-    });
-  }, []);
-
-  // Rotate: replace oldest group's signal with safe distance from remaining
-  const advance = useCallback(() => {
+  // The schedule: a simple queue of timed actions.
+  // Steps 0-3: add one signal each (staggered entry)
+  // Steps 4+: rotate one signal (replace oldest)
+  const tick = useCallback(() => {
     if (pausedRef.current) return;
-    setSlots(prev => {
-      if (prev.length === 0) return prev;
-      const oldest = prev[0];
-      const next = currentIdxRef.current;
-      currentIdxRef.current = (next + 1) % SIGNALS.length;
-      const side = ZONE_SIDES[oldest.group] || "left";
-      const remaining = prev.slice(1);
-      const pos = safePosition(side, remaining.map(s => s.pos));
-      return [...remaining, { idx: next, pos, group: oldest.group }];
-    });
+
+    const step = stepRef.current;
+    stepRef.current++;
+
+    if (step < 4) {
+      // Staggered entry: add signal to alternating sides
+      const side: "left" | "right" = step % 2 === 0 ? "left" : "right";
+      const sigIdx = signalCounterRef.current;
+      signalCounterRef.current = (sigIdx + 1) % SIGNALS.length;
+
+      setSlots(prev => {
+        const pos = safePosition(side, prev.map(s => s.pos));
+        return [...prev, { id: `${step}-${sigIdx}`, signalIdx: sigIdx, pos, side }];
+      });
+    } else {
+      // Rotation: replace the oldest signal
+      setSlots(prev => {
+        if (prev.length === 0) return prev;
+        const oldest = prev[0];
+        const remaining = prev.slice(1);
+        const sigIdx = signalCounterRef.current;
+        signalCounterRef.current = (sigIdx + 1) % SIGNALS.length;
+        const pos = safePosition(oldest.side, remaining.map(s => s.pos));
+        return [...remaining, { id: `${step}-${sigIdx}`, signalIdx: sigIdx, pos, side: oldest.side }];
+      });
+    }
   }, []);
 
   useEffect(() => {
-    // Stagger: one by one so user focuses on center first
-    const t1 = setTimeout(() => addToGroup(0), 1500);
-    const t2 = setTimeout(() => addToGroup(1), 3000);
-    const t3 = setTimeout(() => addToGroup(2), 4500);
-    const t4 = setTimeout(() => addToGroup(3), 6000);
-
-    // Rotate every 3.5-5s
-    const interval = setInterval(() => {
-      if (!pausedRef.current) advance();
-    }, 2000);
-
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); clearInterval(interval); };
-  }, [addToGroup, advance]);
+    // First tick after 2s, then every 2s after that. Clean, predictable.
+    const timer = setInterval(() => tick(), 2000);
+    // Trigger the first one slightly earlier so page doesn't feel empty
+    const firstTick = setTimeout(() => tick(), 1500);
+    return () => { clearInterval(timer); clearTimeout(firstTick); };
+  }, [tick]);
 
   const handleHover = useCallback(() => { pausedRef.current = true; }, []);
   const handleLeave = useCallback(() => { pausedRef.current = false; }, []);
@@ -230,12 +230,12 @@ export function SignalNotifications() {
     <div className="hidden lg:block fixed inset-0 z-30 pointer-events-none">
       <AnimatePresence>
         {slots.map((slot) => (
-          <motion.div key={`${slot.group}-${slot.idx}`} className="absolute pointer-events-auto" style={slot.pos}
+          <motion.div key={slot.id} className="absolute pointer-events-auto" style={slot.pos}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.6, ease: "easeInOut" }}>
-            <SignalPill signal={SIGNALS[slot.idx]} onHover={handleHover} onLeave={handleLeave} />
+            <SignalPill signal={SIGNALS[slot.signalIdx]} onHover={handleHover} onLeave={handleLeave} />
           </motion.div>
         ))}
       </AnimatePresence>
