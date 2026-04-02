@@ -124,49 +124,33 @@ export function HeroOptionC({
       </div>
 
       {/* Rotating border trace animation for the "A" anchor */}
-      <style jsx>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .hero-option-c-anchor {
           background: rgba(255, 255, 255, 0.03);
           position: relative;
           overflow: hidden;
         }
-
         .hero-option-c-anchor::before {
           content: "";
           position: absolute;
           inset: 0;
           border-radius: inherit;
           padding: 1px;
-          background: conic-gradient(
-            from 0deg,
-            transparent 0%,
-            transparent 60%,
-            rgba(255, 255, 255, 0.15) 75%,
-            rgba(255, 255, 255, 0.08) 85%,
-            transparent 100%
-          );
-          -webkit-mask: linear-gradient(#fff 0 0) content-box,
-            linear-gradient(#fff 0 0);
+          background: conic-gradient(from 0deg, transparent 0%, transparent 60%, rgba(255,255,255,0.15) 75%, rgba(255,255,255,0.08) 85%, transparent 100%);
+          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
           -webkit-mask-composite: xor;
           mask-composite: exclude;
           animation: border-rotate 8s linear infinite;
         }
-
         .hero-option-c-anchor::after {
           content: "";
           position: absolute;
           inset: 0;
           border-radius: inherit;
-          border: 1px solid rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255,255,255,0.06);
         }
-
-        @keyframes border-rotate {
-          to {
-            --angle: 360deg;
-            transform: rotate(360deg);
-          }
-        }
-      `}</style>
+        @keyframes border-rotate { to { transform: rotate(360deg); } }
+      ` }} />
     </div>
   );
 }

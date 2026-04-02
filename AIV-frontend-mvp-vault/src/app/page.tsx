@@ -118,7 +118,7 @@ export default function HomePage() {
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      className="relative min-h-[100dvh] overflow-hidden bg-[oklch(0.09_0.01_262)]"
+      className="dark relative min-h-[100dvh] overflow-hidden bg-[oklch(0.09_0.01_262)]"
     >
       {/* Mouse-triggered Aurora */}
       <div

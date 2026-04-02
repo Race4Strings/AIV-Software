@@ -118,22 +118,16 @@ export function HeroOptionB({
       </motion.div>
 
       {/* Pulsing border animation for the "A" anchor */}
-      <style jsx>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .hero-option-b-anchor {
           border: 1px solid rgba(255, 255, 255, 0.08);
           animation: border-pulse 4s ease-in-out infinite;
         }
-
         @keyframes border-pulse {
-          0%,
-          100% {
-            border-color: rgba(255, 255, 255, 0.08);
-          }
-          50% {
-            border-color: rgba(255, 255, 255, 0.15);
-          }
+          0%, 100% { border-color: rgba(255, 255, 255, 0.08); }
+          50% { border-color: rgba(255, 255, 255, 0.15); }
         }
-      `}</style>
+      ` }} />
     </div>
   );
 }
