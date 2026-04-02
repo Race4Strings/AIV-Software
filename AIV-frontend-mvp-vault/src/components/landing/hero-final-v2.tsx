@@ -53,19 +53,19 @@ function AnimatedLockBadge() {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div className="relative h-3.5 w-3.5 flex items-center justify-center">
+      <div className="relative h-3.5 w-3.5 overflow-hidden">
         <AnimatePresence mode="wait">
           {phase === "lock" && (
-            <motion.div key="lock"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+            <motion.div key="lock" className="absolute inset-0 flex items-center justify-center"
+              initial={{ opacity: 0, scale: 1.1 }}
+              animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.5 }}
-              transition={{ duration: 0.15, ease: "easeInOut" }}>
+              transition={{ duration: 0.2, ease: "easeInOut" }}>
               <Lock className="h-3.5 w-3.5 text-blue-400" />
             </motion.div>
           )}
           {phase === "unlock" && (
-            <motion.div key="unlock"
+            <motion.div key="unlock" className="absolute inset-0 flex items-center justify-center"
               initial={{ opacity: 0, rotate: -12 }}
               animate={{ opacity: 1, rotate: 0 }}
               exit={{ opacity: 0 }}
@@ -74,7 +74,7 @@ function AnimatedLockBadge() {
             </motion.div>
           )}
           {phase === "relock" && (
-            <motion.div key="relock"
+            <motion.div key="relock" className="absolute inset-0 flex items-center justify-center"
               initial={{ opacity: 0, rotate: -8 }}
               animate={{ opacity: 1, rotate: 0 }}
               exit={{ opacity: 0, scale: 0.7 }}
@@ -83,20 +83,22 @@ function AnimatedLockBadge() {
             </motion.div>
           )}
           {phase === "dot" && (
-            <motion.div key="dot"
+            <motion.div key="dot" className="absolute inset-0 flex items-center justify-center"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               exit={{}}
-              transition={{ duration: 0.25, ease: "easeOut" }}
-              className="h-2.5 w-2.5 rounded-full v2-dot-cycle" />
+              transition={{ duration: 0.25, ease: "easeOut" }}>
+              <div className="h-2.5 w-2.5 rounded-full v2-dot-cycle" />
+            </motion.div>
           )}
           {phase === "settle" && (
-            <motion.div key="settle"
+            <motion.div key="settle" className="absolute inset-0 flex items-center justify-center"
               initial={{}}
               animate={{ opacity: 1 }}
               exit={{ scale: 0.5, opacity: 0 }}
-              transition={{ duration: 0.2, ease: "easeIn" }}
-              className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.5)] v2-green-pulse" />
+              transition={{ duration: 0.2, ease: "easeIn" }}>
+              <div className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.5)] v2-green-pulse" />
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
