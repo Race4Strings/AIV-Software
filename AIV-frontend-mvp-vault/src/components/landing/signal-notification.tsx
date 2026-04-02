@@ -73,25 +73,61 @@ function SignalPill({
   onLeaveSignal?: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
+  const [mouseProgress, setMouseProgress] = useState(0); // 0-1 based on mouse x within pill
+  const pillRef = useRef<HTMLDivElement>(null);
   const Icon = ICONS[signal.icon];
   const colors = ACCENT_COLORS[signal.accentColor];
   const barWidth = useMotionValue(0);
   const springWidth = useSpring(barWidth, { damping: 20, stiffness: 100 });
   const barWidthStr = useTransform(springWidth, (v) => `${v}%`);
 
+  // Track mouse X position within pill for dynamic values
+  function handlePillMouseMove(e: React.MouseEvent) {
+    if (!pillRef.current) return;
+    const rect = pillRef.current.getBoundingClientRect();
+    const progress = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    setMouseProgress(progress);
+    // Bar follows mouse position smoothly
+    barWidth.set(progress * (signal.metricPercent ?? 70));
+  }
+
   useEffect(() => {
     if (hovered) {
-      // Animate to target with slight overshoot feel via spring
       barWidth.set(signal.metricPercent ?? 70);
     } else {
       barWidth.set(0);
+      setMouseProgress(0);
     }
   }, [hovered, barWidth, signal.metricPercent]);
 
+  // Dynamic metric based on mouse position
+  function getDynamicMetric(): string {
+    if (!signal.metric || !hovered) return signal.metric || "";
+    const base = signal.metric;
+    // For dollar amounts, scale with mouse position
+    if (base.startsWith("$")) {
+      const num = parseFloat(base.replace(/[$,K]/g, "")) * (base.includes("K") ? 1000 : 1);
+      const scaled = Math.round(num * (0.3 + mouseProgress * 0.7));
+      if (scaled >= 1000) return `$${(scaled / 1000).toFixed(scaled >= 10000 ? 0 : 1)}K`;
+      return `$${scaled.toLocaleString()}`;
+    }
+    // For percentages, scale
+    if (base.includes("%")) {
+      const num = parseInt(base);
+      return `${Math.round(num * (0.4 + mouseProgress * 0.6))}%`;
+    }
+    // For counts, scale
+    const num = parseInt(base);
+    if (!isNaN(num)) return `${Math.round(num * (0.2 + mouseProgress * 0.8))}`;
+    return base;
+  }
+
   return (
     <motion.div
+      ref={pillRef}
       onMouseEnter={() => { setHovered(true); onHoverSignal?.(); }}
       onMouseLeave={() => { setHovered(false); onLeaveSignal?.(); }}
+      onMouseMove={handlePillMouseMove}
       layout
       className="rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl cursor-default overflow-hidden"
       style={{ minWidth: hovered ? 260 : 180, maxWidth: 280 }}
@@ -122,7 +158,7 @@ function SignalPill({
               <p className="text-[10px] text-white/40 leading-relaxed">{signal.description}</p>
               {signal.metric && (
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-lg font-bold text-white font-mono tabular-nums">{signal.metric}</span>
+                  <span className="text-lg font-bold text-white font-mono tabular-nums">{getDynamicMetric()}</span>
                   {signal.metricLabel && <span className="text-[9px] text-white/30 uppercase tracking-wider">{signal.metricLabel}</span>}
                 </div>
               )}
@@ -162,16 +198,18 @@ export function SignalNotifications() {
       while (usedSignalsRef.current.has(sigIdx) && attempts < 20);
       usedSignalsRef.current.add(sigIdx);
 
-      // Count left vs right in current slots
-      const leftCount = prev.filter(s => "left" in s.pos).length;
-      const rightCount = prev.filter(s => "right" in s.pos).length;
+      // Never both on same side — if 1 exists, force the other side
+      const existingLeft = prev.some(s => "left" in s.pos);
+      const existingRight = prev.some(s => "right" in s.pos);
 
-      // Pick position: avoid 3 on same side, prefer unused base positions
       const available = BASE_POSITIONS.map((p, i) => ({ p, i })).filter(x => {
         if (usedPosRef.current.has(x.i)) return false;
         const isLeft = "left" in x.p;
-        if (isLeft && leftCount >= 2) return false;
-        if (!isLeft && rightCount >= 2) return false;
+        // If we already have one on left, force right (and vice versa)
+        if (prev.length === 1) {
+          if (existingLeft && isLeft) return false;
+          if (existingRight && !isLeft) return false;
+        }
         return true;
       });
 
