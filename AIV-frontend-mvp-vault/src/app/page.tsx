@@ -16,7 +16,7 @@ export default function HomePage() {
   const [modalInitialStep, setModalInitialStep] = useState(0);
 
   // Aurora — shake detection via direction reversals
-  const [auroraOpacity, setAuroraOpacity] = useState(0.12);
+  const [auroraOpacity, setAuroraOpacity] = useState(0.15);
   const mouseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastMouseRef = useRef({ x: 0, y: 0, time: 0, dx: 0, dy: 0 });
   const shakeScoreRef = useRef(0);
@@ -49,14 +49,14 @@ export default function HomePage() {
     // Shaking: bright (up to 0.85)
     const targetOpacity = shake > 1.5
       ? Math.min(0.85, 0.3 + shake * 0.15)
-      : Math.min(0.30, 0.15 + shake * 0.06);
+      : Math.min(0.40, 0.22 + shake * 0.08);
 
     setAuroraOpacity(targetOpacity);
 
     if (mouseTimerRef.current) clearTimeout(mouseTimerRef.current);
     mouseTimerRef.current = setTimeout(() => {
       shakeScoreRef.current = 0;
-      setAuroraOpacity(0.12);
+      setAuroraOpacity(0.15);
     }, 600);
   }, []);
 
@@ -83,7 +83,7 @@ export default function HomePage() {
         <Aurora colorStops={["#0a1e42", "#2563eb", "#0a1e42"]} amplitude={0.8} blend={0.5} speed={0.3} />
       </div>
       <div className="pointer-events-none fixed inset-0 z-0"
-        style={{ background: "radial-gradient(ellipse 50% 40% at 50% 50%, rgba(59,130,246,0.04) 0%, transparent 60%)" }} />
+        style={{ background: "radial-gradient(ellipse 50% 40% at 50% 50%, rgba(59,130,246,0.07) 0%, transparent 60%)" }} />
 
       {/* Signals — hidden when motion overlay is open */}
       {!overlayOpen && <SignalNotifications />}

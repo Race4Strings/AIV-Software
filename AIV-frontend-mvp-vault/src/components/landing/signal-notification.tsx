@@ -43,16 +43,14 @@ const ACCENT_COLORS = {
   purple: { dot: "bg-purple-500", bg: "bg-purple-500/10", text: "text-purple-400", badge: "bg-purple-500/15 text-purple-400" },
 };
 
-// Left and right positions — capped at 65% top so expansion stays in bounds
+// Left and right positions — widely separated vertically, capped at 55% for expansion room
 const LEFT_SPOTS = [
-  { top: "18%", left: "2%" },
-  { top: "38%", left: "3%" },
-  { top: "58%", left: "2%" },
+  { top: "16%", left: "2%" },
+  { top: "45%", left: "3%" },
 ];
 const RIGHT_SPOTS = [
-  { top: "22%", right: "2%" },
-  { top: "42%", right: "3%" },
-  { top: "62%", right: "2%" },
+  { top: "20%", right: "2%" },
+  { top: "50%", right: "3%" },
 ];
 
 function jitter(pos: { top: string; left?: string; right?: string }) {
@@ -212,19 +210,19 @@ export function SignalNotifications() {
       <AnimatePresence>
         {leftSignal && (
           <motion.div key={`left-${leftSignal.idx}`} className="absolute pointer-events-auto" style={leftSignal.pos}
-            initial={{ opacity: 0, scale: 0.85, x: -16 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
-            exit={{ opacity: 0, scale: 0.85, x: -16 }}
-            transition={{ type: "spring", damping: 22, stiffness: 200 }}>
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}>
             <SignalPill signal={SIGNALS[leftSignal.idx]} onHover={handleHover} onLeave={handleLeave} />
           </motion.div>
         )}
         {rightSignal && (
           <motion.div key={`right-${rightSignal.idx}`} className="absolute pointer-events-auto" style={rightSignal.pos}
-            initial={{ opacity: 0, scale: 0.85, x: 16 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
-            exit={{ opacity: 0, scale: 0.85, x: 16 }}
-            transition={{ type: "spring", damping: 22, stiffness: 200 }}>
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}>
             <SignalPill signal={SIGNALS[rightSignal.idx]} onHover={handleHover} onLeave={handleLeave} />
           </motion.div>
         )}
