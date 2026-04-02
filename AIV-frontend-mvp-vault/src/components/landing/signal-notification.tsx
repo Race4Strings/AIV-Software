@@ -186,7 +186,7 @@ export function SignalNotifications() {
     // Rotate every 3.5-5s
     const interval = setInterval(() => {
       if (!pausedRef.current) advance();
-    }, 3500 + Math.random() * 1500);
+    }, 2800 + Math.random() * 1200);
 
     return () => { clearTimeout(t1); clearTimeout(t2); clearInterval(interval); };
   }, [advance]);

@@ -16,7 +16,7 @@ export default function HomePage() {
   const [modalInitialStep, setModalInitialStep] = useState(0);
 
   // Aurora — shake detection via direction reversals
-  const [auroraOpacity, setAuroraOpacity] = useState(0.08);
+  const [auroraOpacity, setAuroraOpacity] = useState(0.12);
   const mouseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastMouseRef = useRef({ x: 0, y: 0, time: 0, dx: 0, dy: 0 });
   const shakeScoreRef = useRef(0);
@@ -49,14 +49,14 @@ export default function HomePage() {
     // Shaking: bright (up to 0.85)
     const targetOpacity = shake > 1.5
       ? Math.min(0.85, 0.3 + shake * 0.15)
-      : Math.min(0.20, 0.10 + shake * 0.04);
+      : Math.min(0.30, 0.15 + shake * 0.06);
 
     setAuroraOpacity(targetOpacity);
 
     if (mouseTimerRef.current) clearTimeout(mouseTimerRef.current);
     mouseTimerRef.current = setTimeout(() => {
       shakeScoreRef.current = 0;
-      setAuroraOpacity(0.08);
+      setAuroraOpacity(0.12);
     }, 600);
   }, []);
 
