@@ -451,16 +451,10 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                       className={`relative text-left rounded-xl p-4 border-[1.5px] transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none ${
                         isSelected
                           ? 'bg-blue-500/15 border-blue-500'
-                          : isCreator
-                            ? 'bg-white/[0.04] border-blue-500/40 hover:bg-blue-500/10 hover:border-blue-500/60'
-                            : 'bg-white/[0.03] border-transparent hover:bg-blue-500/10 hover:border-blue-500/30'
+                          : 'bg-white/[0.03] border-transparent hover:bg-blue-500/10 hover:border-blue-500/30'
                       }`}
                     >
-                      {isCreator && (
-                        <span className="absolute -top-2.5 right-3 text-[10px] font-medium tracking-wide uppercase bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30">
-                          Recommended
-                        </span>
-                      )}
+                      {/* No "Recommended" badge — any role could be viewing */}
                       <div className="mb-2"><r.icon className={`h-5 w-5 ${isCreator ? 'text-blue-300' : 'text-blue-400'}`} /></div>
                       <div className="text-[13px] font-semibold text-white">{r.label}</div>
                       <div className="text-[11px] text-white/40 mt-0.5">{r.hint}</div>

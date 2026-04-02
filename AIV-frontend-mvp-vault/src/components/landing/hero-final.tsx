@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lock, Fingerprint, Shield, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,8 +9,7 @@ export interface HeroFinalProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
   onRequestAccess: () => void;
   onHowItWorks: () => void;
-  variant?: 1 | 2 | 3;
-  hoveredSignal?: { title: string; description: string; metric?: string; metricLabel?: string } | null;
+  variant?: 1 | 2 | 3 | 4;
 }
 
 const spring = { type: "spring" as const, damping: 25, stiffness: 300 };
@@ -20,9 +20,8 @@ const PROCESS_STEPS = [
   { word: "License", icon: Briefcase },
 ] as const;
 
-export function HeroFinal({ onRequestAccess, onHowItWorks, variant = 1, hoveredSignal }: HeroFinalProps) {
-  // Variant 3: dynamic center content from hovered signal
-  const showSignalContent = variant === 3 && hoveredSignal;
+export function HeroFinal({ onRequestAccess, onHowItWorks, variant = 1 }: HeroFinalProps) {
+  const [descHovered, setDescHovered] = useState(false);
 
   return (
     <div className="relative z-10 flex flex-col items-center justify-center min-h-[100dvh] px-6 text-center pointer-events-none">
@@ -49,36 +48,76 @@ export function HeroFinal({ onRequestAccess, onHowItWorks, variant = 1, hoveredS
         Own Your Digital Identity
       </motion.h1>
 
-      {/* ─── VARIANT 1: Capture. Protect. License. with icons ─── */}
+      {/* ─── VARIANT 1: Description + hover reveals Capture/Protect/License ─── */}
       {variant === 1 && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-          className="flex items-center gap-6 mb-12"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...spring, delay: 0.6 }}
+          className="mb-12 pointer-events-auto cursor-default"
+          onMouseEnter={() => setDescHovered(true)}
+          onMouseLeave={() => setDescHovered(false)}
         >
-          {PROCESS_STEPS.map((step, i) => {
-            const Icon = step.icon;
-            return (
+          <AnimatePresence mode="wait">
+            {descHovered ? (
               <motion.div
-                key={step.word}
-                initial={{ opacity: 0, y: 8 }}
+                key="icons"
+                initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ ...spring, delay: 0.7 + i * 0.1 }}
-                className="flex items-center gap-1.5"
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.2 }}
+                className="flex items-center gap-6"
               >
-                <Icon className="h-3.5 w-3.5 text-white/20" />
-                <span className="text-sm text-white/30 tracking-wider font-medium">
-                  {step.word}.
-                </span>
+                {PROCESS_STEPS.map((step) => {
+                  const Icon = step.icon;
+                  return (
+                    <div key={step.word} className="flex items-center gap-1.5">
+                      <Icon className="h-4 w-4 text-white/25" />
+                      <span className="text-base text-white/40 tracking-wider font-medium">{step.word}.</span>
+                    </div>
+                  );
+                })}
               </motion.div>
-            );
-          })}
+            ) : (
+              <motion.p
+                key="desc"
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.2 }}
+                className="text-lg sm:text-xl text-white/50 max-w-[540px] leading-relaxed"
+              >
+                The first identity infrastructure where talent captures, certifies, and licenses their digital identity with full control.
+              </motion.p>
+            )}
+          </AnimatePresence>
         </motion.div>
       )}
 
-      {/* ─── VARIANT 2: Personal description ─── */}
+      {/* ─── VARIANT 2: Short stacked ─── */}
       {variant === 2 && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...spring, delay: 0.6 }}
+          className="flex flex-col items-center gap-1.5 mb-12"
+        >
+          {["Your identity, assembled.", "Your rules, enforced.", "Your licensing, managed."].map((line, i) => (
+            <motion.p
+              key={line}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...spring, delay: 0.7 + i * 0.1 }}
+              className="text-lg sm:text-xl text-white/45 leading-relaxed"
+            >
+              {line}
+            </motion.p>
+          ))}
+        </motion.div>
+      )}
+
+      {/* ─── VARIANT 3: Personal (long) ─── */}
+      {variant === 3 && (
         <motion.p
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -89,43 +128,26 @@ export function HeroFinal({ onRequestAccess, onHowItWorks, variant = 1, hoveredS
         </motion.p>
       )}
 
-      {/* ─── VARIANT 3: Dynamic center (signal-driven) ─── */}
-      {variant === 3 && (
-        <div className="mb-12 h-[80px] flex flex-col items-center justify-center">
-          <AnimatePresence mode="wait">
-            {showSignalContent ? (
-              <motion.div
-                key={hoveredSignal.title}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2 }}
-                className="flex flex-col items-center gap-3"
-              >
-                <p className="text-base text-white/60 max-w-md leading-relaxed">{hoveredSignal.description}</p>
-                {hoveredSignal.metric && (
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl font-bold text-white font-mono tabular-nums">{hoveredSignal.metric}</span>
-                    {hoveredSignal.metricLabel && (
-                      <span className="text-xs text-white/30 tracking-wider uppercase">{hoveredSignal.metricLabel}</span>
-                    )}
-                  </div>
-                )}
-              </motion.div>
-            ) : (
-              <motion.p
-                key="default"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="text-lg text-white/35 max-w-md leading-relaxed"
-              >
-                Hover a signal to explore what AIV does for you.
-              </motion.p>
-            )}
-          </AnimatePresence>
-        </div>
+      {/* ─── VARIANT 4: Ultra-short stacked (same text as 2, different selector label) ─── */}
+      {variant === 4 && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...spring, delay: 0.6 }}
+          className="flex flex-col items-center gap-1.5 mb-12"
+        >
+          {["Your identity, assembled.", "Your rules, enforced.", "Your licensing, managed."].map((line, i) => (
+            <motion.p
+              key={line}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...spring, delay: 0.7 + i * 0.1 }}
+              className="text-lg sm:text-xl text-white/45 leading-relaxed"
+            >
+              {line}
+            </motion.p>
+          ))}
+        </motion.div>
       )}
 
       {/* CTAs */}
@@ -133,7 +155,7 @@ export function HeroFinal({ onRequestAccess, onHowItWorks, variant = 1, hoveredS
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...spring, delay: 0.8 }}
-        className={`pointer-events-auto ${variant === 3 ? "flex flex-col items-center gap-4" : "flex flex-col sm:flex-row gap-3"}`}
+        className="pointer-events-auto flex flex-col sm:flex-row gap-3"
       >
         <Button
           onClick={onRequestAccess}
@@ -141,22 +163,13 @@ export function HeroFinal({ onRequestAccess, onHowItWorks, variant = 1, hoveredS
         >
           Request Early Access &rarr;
         </Button>
-        {variant === 3 ? (
-          <button
-            onClick={onHowItWorks}
-            className="text-xs text-white/30 hover:text-white/50 transition-colors duration-200 cursor-pointer tracking-wider pointer-events-auto"
-          >
-            See how it works &rarr;
-          </button>
-        ) : (
-          <Button
-            onClick={onHowItWorks}
-            variant="outline"
-            className="border-white/10 text-white/50 hover:text-white/70 hover:border-white/20 hover:bg-white/[0.03] px-8 py-6 text-base font-medium rounded-xl bg-transparent transition-[transform,color,border-color,background-color] duration-150 active:scale-[0.97] cursor-pointer"
-          >
-            See How It Works
-          </Button>
-        )}
+        <Button
+          onClick={onHowItWorks}
+          variant="outline"
+          className="border-white/10 text-white/50 hover:text-white/70 hover:border-white/20 hover:bg-white/[0.03] px-8 py-6 text-base font-medium rounded-xl bg-transparent transition-[transform,color,border-color,background-color] duration-150 active:scale-[0.97] cursor-pointer"
+        >
+          See How It Works
+        </Button>
       </motion.div>
 
       <div className="mt-16" />

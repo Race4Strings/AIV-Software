@@ -25,8 +25,7 @@ export default function HomePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalInitialStep, setModalInitialStep] = useState(0);
   const [howItWorksOpen, setHowItWorksOpen] = useState(false);
-  const [descVariant, setDescVariant] = useState<1 | 2 | 3>(1);
-  const [hoveredSignal, setHoveredSignal] = useState<{ title: string; description: string; metric?: string; metricLabel?: string } | null>(null);
+  const [descVariant, setDescVariant] = useState<1 | 2 | 3 | 4>(1);
 
   // Aurora
   const [auroraOpacity, setAuroraOpacity] = useState(0.03);
@@ -46,7 +45,7 @@ export default function HomePage() {
     }
     lastMouseRef.current = { x: e.clientX, y: e.clientY, time: now };
     const vel = velocityRef.current;
-    const targetOpacity = vel > 1.5 ? Math.min(0.5, 0.15 + vel * 0.2) : Math.min(0.12, 0.03 + vel * 0.04);
+    const targetOpacity = vel > 1.5 ? Math.min(0.65, 0.2 + vel * 0.25) : Math.min(0.08, 0.03 + vel * 0.03);
     setAuroraOpacity(targetOpacity);
     if (mouseTimerRef.current) clearTimeout(mouseTimerRef.current);
     mouseTimerRef.current = setTimeout(() => { velocityRef.current = 0; setAuroraOpacity(0.03); }, 800);
@@ -80,10 +79,7 @@ export default function HomePage() {
       <div className="pointer-events-none fixed inset-0 z-0" style={{ background: "radial-gradient(ellipse 50% 40% at 50% 50%, rgba(59,130,246,0.03) 0%, transparent 60%)" }} />
 
       {/* Signals — OUTSIDE the constrained div, using viewport-relative positions */}
-      <SignalNotifications
-        onSignalHover={(s) => setHoveredSignal(s)}
-        onSignalLeave={() => setHoveredSignal(null)}
-      />
+      <SignalNotifications />
 
       {/* Main content */}
       <div className="relative z-10 max-w-[1920px] mx-auto">
@@ -102,17 +98,16 @@ export default function HomePage() {
           onRequestAccess={handleRequestAccess}
           onHowItWorks={() => setHowItWorksOpen(true)}
           variant={descVariant}
-          hoveredSignal={hoveredSignal}
         />
 
         <MobileSignalNotifications />
 
         {/* Variant Selector */}
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 rounded-full border border-white/[0.08] bg-black/70 backdrop-blur-xl px-1.5 py-1 shadow-2xl shadow-black/40">
-          {([1, 2, 3] as const).map((v) => (
-            <button key={v} onClick={() => { setDescVariant(v); setHoveredSignal(null); }}
-              className={`px-4 py-2 rounded-full text-[11px] font-medium tracking-wider transition-all duration-200 cursor-pointer ${descVariant === v ? "bg-white/90 text-black shadow-sm" : "text-white/40 hover:text-white/60 hover:bg-white/[0.05]"}`}>
-              {v === 1 && "Icons"}{v === 2 && "Personal"}{v === 3 && "Interactive"}
+          {([1, 2, 3, 4] as const).map((v) => (
+            <button key={v} onClick={() => setDescVariant(v)}
+              className={`px-3 py-2 rounded-full text-[10px] font-medium tracking-wider transition-all duration-200 cursor-pointer ${descVariant === v ? "bg-white/90 text-black shadow-sm" : "text-white/40 hover:text-white/60 hover:bg-white/[0.05]"}`}>
+              {v === 1 && "Hover"}{v === 2 && "Stacked"}{v === 3 && "Personal"}{v === 4 && "Minimal"}
             </button>
           ))}
         </div>

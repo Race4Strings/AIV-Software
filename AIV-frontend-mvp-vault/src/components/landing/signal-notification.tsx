@@ -41,21 +41,15 @@ const ACCENT_COLORS = {
   purple: { dot: "bg-purple-500", bg: "bg-purple-500/10", text: "text-purple-400", badge: "bg-purple-500/15 text-purple-400" },
 };
 
-// Position groups — one from each group is selected to ensure scatter
-const LEFT_POSITIONS = [
-  { top: "18%", left: "3%" },
-  { top: "42%", left: "2%" },
-  { top: "68%", left: "3%" },
-];
-const RIGHT_POSITIONS = [
-  { top: "15%", right: "3%" },
-  { top: "45%", right: "2%" },
-  { top: "72%", right: "3%" },
-];
-const CORNER_POSITIONS = [
-  { top: "85%", left: "12%" },
-  { top: "8%", right: "15%" },
-  { top: "88%", right: "10%" },
+// 6 evenly distributed positions around the viewport edges
+// Each position is far from the others — no overlap possible
+const ALL_POSITIONS = [
+  { top: "15%", left: "2%" },    // top-left
+  { top: "50%", left: "2%" },    // mid-left
+  { top: "80%", left: "3%" },    // bottom-left
+  { top: "15%", right: "2%" },   // top-right
+  { top: "50%", right: "2%" },   // mid-right
+  { top: "80%", right: "3%" },   // bottom-right
 ];
 
 function SignalPill({
@@ -140,34 +134,28 @@ export function SignalNotifications({
   const reducedMotion = useReducedMotion();
 
   // Each signal slot: { signalIdx, position }
-  const [slots, setSlots] = useState<Array<{ signalIdx: number; pos: { top: string; left?: string; right?: string } }>>([]);
+  type Pos = typeof ALL_POSITIONS[number];
+  const [slots, setSlots] = useState<Array<{ signalIdx: number; pos: Pos }>>([]);
   const usedSignalsRef = useRef(new Set<number>());
 
-  const ALL_POS_GROUPS = [LEFT_POSITIONS, RIGHT_POSITIONS, CORNER_POSITIONS];
-
-  // Add one random signal to a random available slot
+  // Add one random signal to a random available position
   const addSignal = useCallback(() => {
     setSlots(prev => {
-      if (prev.length >= 3) return prev; // max 3
+      if (prev.length >= 3) return prev;
       // Pick a random signal not already shown
       let sigIdx: number;
       let attempts = 0;
-      do {
-        sigIdx = Math.floor(Math.random() * SIGNALS.length);
-        attempts++;
-      } while (usedSignalsRef.current.has(sigIdx) && attempts < 20);
+      do { sigIdx = Math.floor(Math.random() * SIGNALS.length); attempts++; }
+      while (usedSignalsRef.current.has(sigIdx) && attempts < 20);
       usedSignalsRef.current.add(sigIdx);
 
-      // Pick a position from a group not yet used
-      const usedGroups = new Set(prev.map((_, i) => i % 3));
-      let groupIdx = 0;
-      for (let g = 0; g < 3; g++) {
-        if (!usedGroups.has(g)) { groupIdx = g; break; }
-      }
-      const group = ALL_POS_GROUPS[groupIdx] || LEFT_POSITIONS;
-      const pos = group[Math.floor(Math.random() * group.length)];
+      // Pick a position not already in use — guarantees no overlap
+      const usedPosIndices = new Set(prev.map(s => ALL_POSITIONS.indexOf(s.pos)));
+      // Randomize among unused positions
+      const unused = ALL_POSITIONS.map((p, i) => ({ p, i })).filter(x => !usedPosIndices.has(x.i));
+      const pick = unused.length > 0 ? unused[Math.floor(Math.random() * unused.length)] : { p: ALL_POSITIONS[0], i: 0 };
 
-      return [...prev, { signalIdx: sigIdx, pos }];
+      return [...prev, { signalIdx: sigIdx, pos: pick.p }];
     });
   }, []);
 
@@ -198,7 +186,7 @@ export function SignalNotifications({
   }, [addSignal, removeOldest]);
 
   if (reducedMotion) {
-    const staticPos = [LEFT_POSITIONS[0], RIGHT_POSITIONS[1], CORNER_POSITIONS[0]];
+    const staticPos = [ALL_POSITIONS[0], ALL_POSITIONS[3], ALL_POSITIONS[5]];
     return (
       <div className="hidden lg:block fixed inset-0 z-30 pointer-events-none">
         {SIGNALS.slice(0, 3).map((signal, i) => (
