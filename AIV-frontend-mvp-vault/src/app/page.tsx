@@ -45,6 +45,7 @@ export default function HomePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalInitialStep, setModalInitialStep] = useState(0);
   const [howItWorksOpen, setHowItWorksOpen] = useState(false);
+  const [descVariant, setDescVariant] = useState<1 | 2 | 3>(1);
 
   // Mouse-triggered Aurora with shake intensity
   const [auroraOpacity, setAuroraOpacity] = useState(0.05);
@@ -152,14 +153,44 @@ export default function HomePage() {
         <SignalNotifications side="right" />
 
         {/* Hero */}
-        <HeroFinal
-          containerRef={containerRef}
-          onRequestAccess={handleRequestAccess}
-          onHowItWorks={() => setHowItWorksOpen(true)}
-        />
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={descVariant}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <HeroFinal
+              containerRef={containerRef}
+              onRequestAccess={handleRequestAccess}
+              onHowItWorks={() => setHowItWorksOpen(true)}
+              variant={descVariant}
+            />
+          </motion.div>
+        </AnimatePresence>
 
         {/* Signal Notifications — Mobile */}
         <MobileSignalNotifications />
+
+        {/* Description Variant Selector */}
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 rounded-full border border-white/[0.08] bg-black/70 backdrop-blur-xl px-1.5 py-1 shadow-2xl shadow-black/40">
+          {([1, 2, 3] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => setDescVariant(v)}
+              className={`px-4 py-2 rounded-full text-[11px] font-medium tracking-wider transition-all duration-200 cursor-pointer ${
+                descVariant === v
+                  ? "bg-white/90 text-black shadow-sm"
+                  : "text-white/40 hover:text-white/60 hover:bg-white/[0.05]"
+              }`}
+            >
+              {v === 1 && "Original"}
+              {v === 2 && "With Icons"}
+              {v === 3 && "Personal"}
+            </button>
+          ))}
+        </div>
 
         {/* How It Works Modal */}
         <AnimatePresence>

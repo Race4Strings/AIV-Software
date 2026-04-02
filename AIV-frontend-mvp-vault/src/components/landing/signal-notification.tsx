@@ -20,14 +20,12 @@ interface Signal {
 }
 
 const SIGNALS: Signal[] = [
-  { id: "licensing", icon: "FileText", title: "Licensing Activity", description: "Brand deals managed through automated pipelines with custom terms", badge: "LIVE", accentColor: "blue" },
-  { id: "protection", icon: "Shield", title: "Identity Protection", description: "Continuous misuse monitoring with evidence logging and enforcement", badge: "Active", accentColor: "red" },
-  { id: "verification", icon: "Lock", title: "Identity Verification", description: "Blockchain-anchored proof of ownership verified by brands and platforms", accentColor: "purple" },
-  { id: "intelligence", icon: "BookOpen", title: "Profile Intelligence", description: "Behavioral modeling refined from your public presence and direct input", accentColor: "amber" },
-  { id: "deployment", icon: "Globe", title: "Cross-Platform Ready", description: "Your identity governed by your rules across every integration", badge: "Ready", accentColor: "green" },
-  { id: "marketplace", icon: "BarChart3", title: "Marketplace Demand", description: "Brands discovering and licensing identities through the AIV network", accentColor: "blue" },
-  { id: "growth", icon: "Users", title: "Network Growth", description: "New brands joining the marketplace in your vertical", accentColor: "blue" },
-  { id: "approval", icon: "Clock", title: "Deal Pipeline", description: "Inquiries qualified and routed through your pre-approved rules", badge: "Pending", accentColor: "amber" },
+  { id: "licensing", icon: "FileText", title: "New Deal Inquiry", description: "A brand wants to license your voice for a campaign. Terms match your pre-approved rules.", badge: "Review", accentColor: "blue" },
+  { id: "protection", icon: "Shield", title: "Misuse Blocked", description: "An unauthorized use of your likeness was detected and flagged. Evidence sealed.", badge: "Protected", accentColor: "red" },
+  { id: "revenue", icon: "DollarSign", title: "Revenue Received", description: "Your latest licensing deal payment has been processed and settled to your account.", badge: "Settled", accentColor: "green" },
+  { id: "verification", icon: "Lock", title: "Identity Verified", description: "A brand verified your certified identity before finalizing a licensing agreement.", accentColor: "purple" },
+  { id: "training", icon: "BookOpen", title: "Twin Updated", description: "Your digital twin just got sharper. New data from your latest interview was processed.", accentColor: "amber" },
+  { id: "approval", icon: "Clock", title: "Contract Ready", description: "Your team's contract for a voice licensing deal is ready for signature.", badge: "Sign", accentColor: "blue" },
 ];
 
 const ACCENT_COLORS = {
@@ -99,7 +97,7 @@ function SignalPill({ signal }: { signal: Signal }) {
 export function SignalNotifications({ side }: { side: "left" | "right" }) {
   const reducedMotion = useReducedMotion();
   const [visibleIndices, setVisibleIndices] = useState<number[]>([]);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sideSignals = SIGNALS.filter((_, i) => side === "left" ? i % 2 === 0 : i % 2 !== 0);
 
@@ -112,8 +110,8 @@ export function SignalNotifications({ side }: { side: "left" | "right" }) {
   }, [sideSignals.length]);
 
   const cycleSignals = useCallback(() => {
-    // Show 2-3 signals at a time, cycle through
-    const count = 2 + Math.floor(Math.random() * 2); // 2 or 3
+    // Show exactly 3 signals at a time (or fewer if not enough available)
+    const count = 3;
     const indices: number[] = [];
     while (indices.length < Math.min(count, sideSignals.length)) {
       const idx = Math.floor(Math.random() * sideSignals.length);
