@@ -25,10 +25,10 @@ export default function HomePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalInitialStep, setModalInitialStep] = useState(0);
   const [howItWorksOpen, setHowItWorksOpen] = useState(false);
-  const [descVariant, setDescVariant] = useState<1 | 2 | 3>(1);
+  const [descVariant, setDescVariant] = useState<1 | 2 | 3 | 4>(1);
 
   // Aurora — brightens on SHAKING (direction reversals), not straight-line movement
-  const [auroraOpacity, setAuroraOpacity] = useState(0.03);
+  const [auroraOpacity, setAuroraOpacity] = useState(0.06);
   const mouseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastMouseRef = useRef({ x: 0, y: 0, time: 0, dx: 0, dy: 0 });
   const shakeScoreRef = useRef(0);
@@ -62,17 +62,17 @@ export default function HomePage() {
 
     // Shake score → aurora opacity
     const shake = shakeScoreRef.current;
-    // shake 0 = normal browsing (very subtle), shake 3+ = bright
+    // shake 0 = normal browsing (subtle glow), shake 2+ = very bright
     const targetOpacity = shake > 1.5
-      ? Math.min(0.7, 0.15 + shake * 0.12) // shaking: bright, up to 0.7
-      : Math.min(0.06, 0.02 + shake * 0.02); // navigating: barely visible
+      ? Math.min(0.85, 0.3 + shake * 0.15) // shaking: very bright, up to 0.85
+      : Math.min(0.12, 0.05 + shake * 0.03); // navigating: gentle subtle glow
 
     setAuroraOpacity(targetOpacity);
 
     if (mouseTimerRef.current) clearTimeout(mouseTimerRef.current);
     mouseTimerRef.current = setTimeout(() => {
       shakeScoreRef.current = 0;
-      setAuroraOpacity(0.03);
+      setAuroraOpacity(0.06);
     }, 600);
   }, []);
 
@@ -129,10 +129,10 @@ export default function HomePage() {
 
         {/* Variant Selector */}
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 rounded-full border border-white/[0.08] bg-black/70 backdrop-blur-xl px-1.5 py-1 shadow-2xl shadow-black/40">
-          {([1, 2, 3] as const).map((v) => (
+          {([1, 2, 3, 4] as const).map((v) => (
             <button key={v} onClick={() => setDescVariant(v)}
-              className={`px-4 py-2 rounded-full text-[10px] font-medium tracking-wider transition-all duration-200 cursor-pointer ${descVariant === v ? "bg-white/90 text-black shadow-sm" : "text-white/40 hover:text-white/60 hover:bg-white/[0.05]"}`}>
-              {v === 1 && "Clean"}{v === 2 && "Stacked"}{v === 3 && "Motion"}
+              className={`px-3 py-2 rounded-full text-[10px] font-medium tracking-wider transition-all duration-200 cursor-pointer ${descVariant === v ? "bg-white/90 text-black shadow-sm" : "text-white/40 hover:text-white/60 hover:bg-white/[0.05]"}`}>
+              {v === 1 && "Clean"}{v === 2 && "Icons"}{v === 3 && "Motion"}{v === 4 && "Classic"}
             </button>
           ))}
         </div>

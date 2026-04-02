@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lock, Fingerprint, Shield, Briefcase, Search, Brain, Globe, X } from "lucide-react";
+import { Lock, Fingerprint, Shield, Briefcase, Search, Brain, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export interface HeroFinalProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
   onRequestAccess: () => void;
   onHowItWorks: () => void;
-  variant?: 1 | 2 | 3;
+  variant?: 1 | 2 | 3 | 4;
 }
 
 const spring = { type: "spring" as const, damping: 25, stiffness: 300 };
@@ -27,7 +27,6 @@ const REVEAL_STEPS = [
   { icon: Shield, label: "Certify", desc: "Blockchain-anchored cryptographic proof of ownership" },
   { icon: Lock, label: "Protect", desc: "Continuous misuse monitoring and enforcement" },
   { icon: Briefcase, label: "License", desc: "Automated deal management with terms you control" },
-  { icon: Globe, label: "Deploy", desc: "Cross-platform delivery governed by your guardrails" },
 ];
 
 export function HeroFinal({ onRequestAccess, onHowItWorks, variant = 1 }: HeroFinalProps) {
@@ -40,9 +39,9 @@ export function HeroFinal({ onRequestAccess, onHowItWorks, variant = 1 }: HeroFi
   useEffect(() => {
     if (!showMotion || motionComplete) return;
     setMotionStage(0);
-    const t1 = setTimeout(() => setMotionStage(1), 800);
-    const t2 = setTimeout(() => setMotionStage(2), 2200);
-    const t3 = setTimeout(() => { setMotionStage(3); setMotionComplete(true); }, 4000);
+    const t1 = setTimeout(() => setMotionStage(1), 1200);
+    const t2 = setTimeout(() => setMotionStage(2), 3000);
+    const t3 = setTimeout(() => { setMotionStage(3); setMotionComplete(true); }, 5500);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [showMotion, motionComplete]);
 
@@ -104,6 +103,14 @@ export function HeroFinal({ onRequestAccess, onHowItWorks, variant = 1 }: HeroFi
           </motion.p>
         )}
 
+        {/* ─── VARIANT 4: Paragraph, no icons below ─── */}
+        {variant === 4 && (
+          <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.6 }}
+            className="text-lg sm:text-xl text-white/45 max-w-[560px] mb-10 leading-relaxed">
+            Your identity, assembled and certified. Your rules, enforced by custom guardrails. Your licensing, automated on your terms — built for athletes, musicians, actors, executives, and creators.
+          </motion.p>
+        )}
+
         {/* CTAs */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.8 }}
           className="pointer-events-auto flex flex-col items-center gap-4">
@@ -141,8 +148,8 @@ export function HeroFinal({ onRequestAccess, onHowItWorks, variant = 1 }: HeroFi
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[oklch(0.06_0.01_262)]/95 backdrop-blur-xl"
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[oklch(0.06_0.008_262)]"
           >
             {/* Close button + back text */}
             <div className="absolute top-6 left-6 flex items-center gap-3 pointer-events-auto">

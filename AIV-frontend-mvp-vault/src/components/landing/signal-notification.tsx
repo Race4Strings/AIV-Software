@@ -23,15 +23,15 @@ interface Signal {
 }
 
 const SIGNALS: Signal[] = [
-  { id: "deal-inquiry", icon: "FileText", title: "New Deal Inquiry", description: "A brand wants to license your voice for a global campaign. Terms match your pre-approved rules.", badge: "Review", accentColor: "blue", metric: "$45K", metricLabel: "Deal Value", metricPercent: 72 },
-  { id: "revenue", icon: "DollarSign", title: "Revenue Received", description: "Your latest licensing deal payment has been processed and settled to your account.", badge: "Settled", accentColor: "green", metric: "$12,500", metricLabel: "Net Payment", metricPercent: 85 },
-  { id: "misuse", icon: "Shield", title: "Misuse Blocked", description: "An unauthorized use of your likeness was detected, flagged, and evidence sealed automatically.", badge: "Protected", accentColor: "red", metricPercent: 100 },
+  { id: "deal-inquiry", icon: "FileText", title: "New Deal Inquiry", description: "A brand wants to license your voice for a global campaign. Terms match your pre-approved rules.", badge: "Review", accentColor: "blue", metric: "$125K", metricLabel: "Deal Value", metricPercent: 78 },
+  { id: "revenue", icon: "DollarSign", title: "Revenue Received", description: "Your latest licensing deal payment has been processed and settled to your account.", badge: "Settled", accentColor: "green", metric: "$48,500", metricLabel: "Net Payment", metricPercent: 88 },
+  { id: "misuse", icon: "Shield", title: "Misuse Blocked", description: "An unauthorized use of your likeness was detected, flagged, and evidence sealed automatically.", badge: "Protected", accentColor: "red", metric: "3", metricLabel: "Blocked This Week", metricPercent: 85 },
   { id: "verified", icon: "Lock", title: "Identity Verified", description: "A Fortune 500 brand verified your certified identity before finalizing a licensing agreement.", accentColor: "purple", metric: "47", metricLabel: "Verifications", metricPercent: 82 },
   { id: "twin-updated", icon: "BookOpen", title: "Twin Updated", description: "Your digital twin just got sharper. New data from your latest podcast was processed.", accentColor: "amber", metric: "97%", metricLabel: "Accuracy", metricPercent: 97 },
-  { id: "contract", icon: "Clock", title: "Contract Ready", description: "Your team's contract for a voice licensing deal is ready for signature.", badge: "Sign", accentColor: "blue", metricPercent: 60 },
-  { id: "cross-platform", icon: "Globe", title: "Cross-Platform Ready", description: "Your identity is governed by your rules across every integration — voice, video, and text.", badge: "Live", accentColor: "green", metricPercent: 90 },
-  { id: "profile", icon: "Fingerprint", title: "Identity Certified", description: "Your digital identity has been certified with blockchain-anchored proof of ownership.", accentColor: "purple", metric: "Certified", metricLabel: "Status", metricPercent: 100 },
-  { id: "marketplace", icon: "BarChart3", title: "Brand Interest", description: "New brands in your vertical are exploring identity licensing through the AIV marketplace.", accentColor: "blue", metric: "8", metricLabel: "Inquiries", metricPercent: 65 },
+  { id: "contract", icon: "Clock", title: "Contract Ready", description: "Your team's contract for a voice licensing deal is ready for signature.", badge: "Sign", accentColor: "blue", metric: "Step 4/5", metricLabel: "Progress", metricPercent: 80 },
+  { id: "cross-platform", icon: "Globe", title: "Cross-Platform Ready", description: "Your identity is governed by your rules across every integration — voice, video, and text.", badge: "Live", accentColor: "green", metric: "6", metricLabel: "Platforms", metricPercent: 90 },
+  { id: "profile", icon: "Fingerprint", title: "Identity Certified", description: "Your digital identity has been certified with blockchain-anchored proof of ownership.", accentColor: "purple", metric: "Sealed", metricLabel: "Blockchain", metricPercent: 100 },
+  { id: "marketplace", icon: "BarChart3", title: "Brand Interest", description: "New brands in your vertical are exploring identity licensing through the AIV marketplace.", accentColor: "blue", metric: "14", metricLabel: "Inquiries This Month", metricPercent: 72 },
 ];
 
 const ACCENT_COLORS = {
@@ -104,21 +104,37 @@ function SignalPill({
   function getDynamicMetric(): string {
     if (!signal.metric || !hovered) return signal.metric || "";
     const base = signal.metric;
-    // For dollar amounts, scale with mouse position
+
+    // Dollar amounts — high ceilings, starts at ~40%
     if (base.startsWith("$")) {
       const num = parseFloat(base.replace(/[$,K]/g, "")) * (base.includes("K") ? 1000 : 1);
-      const scaled = Math.round(num * (0.3 + mouseProgress * 0.7));
+      const scaled = Math.round(num * (0.4 + mouseProgress * 0.6));
       if (scaled >= 1000) return `$${(scaled / 1000).toFixed(scaled >= 10000 ? 0 : 1)}K`;
       return `$${scaled.toLocaleString()}`;
     }
-    // For percentages, scale
+    // Percentages — floor at 60% (protection can't go too low)
     if (base.includes("%")) {
       const num = parseInt(base);
-      return `${Math.round(num * (0.4 + mouseProgress * 0.6))}%`;
+      const floor = signal.id === "misuse" ? 70 : 50;
+      return `${Math.round(floor + (num - floor) * mouseProgress)}%`;
     }
-    // For counts, scale
+    // Step-based (contract) — sequential
+    if (base.startsWith("Step")) {
+      const step = Math.max(1, Math.round(1 + mouseProgress * 4));
+      return `Step ${step}/5`;
+    }
+    // "Sealed" (certified) — sequential states
+    if (base === "Sealed") {
+      const states = ["Pending", "Hashing", "Anchoring", "Confirming", "Sealed"];
+      const idx = Math.min(4, Math.round(mouseProgress * 4));
+      return states[idx];
+    }
+    // Counts — dynamic range
     const num = parseInt(base);
-    if (!isNaN(num)) return `${Math.round(num * (0.2 + mouseProgress * 0.8))}`;
+    if (!isNaN(num)) {
+      const floor = Math.max(1, Math.round(num * 0.15));
+      return `${Math.round(floor + (num - floor) * mouseProgress)}`;
+    }
     return base;
   }
 
@@ -253,7 +269,7 @@ export function SignalNotifications() {
         removeOldest();
         setTimeout(() => { if (!pausedRef.current) addSignal(); }, 800);
       }
-    }, 6000 + Math.random() * 2000);
+    }, 4500 + Math.random() * 1500);
 
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearInterval(interval); };
   }, [addSignal, removeOldest]);
