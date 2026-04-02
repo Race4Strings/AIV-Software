@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FileText, Globe, Shield, Lock, DollarSign,
@@ -138,38 +138,69 @@ export function SignalNotifications({
   onSignalLeave?: () => void;
 }) {
   const reducedMotion = useReducedMotion();
-  const [visibleIndices, setVisibleIndices] = useState<number[]>([]);
 
-  // Pick 1 from each group to guarantee scatter (left, right, corner)
-  const getScatteredPositions = useCallback(() => [
-    LEFT_POSITIONS[Math.floor(Math.random() * LEFT_POSITIONS.length)],
-    RIGHT_POSITIONS[Math.floor(Math.random() * RIGHT_POSITIONS.length)],
-    CORNER_POSITIONS[Math.floor(Math.random() * CORNER_POSITIONS.length)],
-  ], []);
+  // Each signal slot: { signalIdx, position }
+  const [slots, setSlots] = useState<Array<{ signalIdx: number; pos: { top: string; left?: string; right?: string } }>>([]);
+  const usedSignalsRef = useRef(new Set<number>());
 
-  const [positions, setPositions] = useState<Record<string, string>[]>([]);
+  const ALL_POS_GROUPS = [LEFT_POSITIONS, RIGHT_POSITIONS, CORNER_POSITIONS];
 
-  const cycleSignals = useCallback(() => {
-    const indices: number[] = [];
-    const used = new Set<number>();
-    while (indices.length < 3) {
-      const idx = Math.floor(Math.random() * SIGNALS.length);
-      if (!used.has(idx)) { used.add(idx); indices.push(idx); }
-    }
-    setVisibleIndices(indices);
-    setPositions(getScatteredPositions());
-  }, [getScatteredPositions]);
+  // Add one random signal to a random available slot
+  const addSignal = useCallback(() => {
+    setSlots(prev => {
+      if (prev.length >= 3) return prev; // max 3
+      // Pick a random signal not already shown
+      let sigIdx: number;
+      let attempts = 0;
+      do {
+        sigIdx = Math.floor(Math.random() * SIGNALS.length);
+        attempts++;
+      } while (usedSignalsRef.current.has(sigIdx) && attempts < 20);
+      usedSignalsRef.current.add(sigIdx);
 
+      // Pick a position from a group not yet used
+      const usedGroups = new Set(prev.map((_, i) => i % 3));
+      let groupIdx = 0;
+      for (let g = 0; g < 3; g++) {
+        if (!usedGroups.has(g)) { groupIdx = g; break; }
+      }
+      const group = ALL_POS_GROUPS[groupIdx] || LEFT_POSITIONS;
+      const pos = group[Math.floor(Math.random() * group.length)];
+
+      return [...prev, { signalIdx: sigIdx, pos }];
+    });
+  }, []);
+
+  // Remove oldest signal
+  const removeOldest = useCallback(() => {
+    setSlots(prev => {
+      if (prev.length === 0) return prev;
+      const removed = prev[0];
+      usedSignalsRef.current.delete(removed.signalIdx);
+      return prev.slice(1);
+    });
+  }, []);
+
+  // Staggered appearance: add one every 2-3s, remove oldest when at 3
   useEffect(() => {
-    const initTimer = setTimeout(cycleSignals, 2000);
-    const interval = setInterval(cycleSignals, 7000);
-    return () => { clearTimeout(initTimer); clearInterval(interval); };
-  }, [cycleSignals]);
+    // Initial: add signals one by one
+    const t1 = setTimeout(addSignal, 1500);
+    const t2 = setTimeout(addSignal, 3500);
+    const t3 = setTimeout(addSignal, 5500);
+
+    // Then cycle: every 4-6s, remove oldest and add new
+    const interval = setInterval(() => {
+      removeOldest();
+      setTimeout(addSignal, 800); // brief gap before new one appears
+    }, 5000 + Math.random() * 2000);
+
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearInterval(interval); };
+  }, [addSignal, removeOldest]);
 
   if (reducedMotion) {
     const staticPos = [LEFT_POSITIONS[0], RIGHT_POSITIONS[1], CORNER_POSITIONS[0]];
     return (
-      <div className="hidden lg:block absolute inset-0 z-10 pointer-events-none">
+      <div className="hidden lg:block fixed inset-0 z-10 pointer-events-none">
         {SIGNALS.slice(0, 3).map((signal, i) => (
           <div key={signal.id} className="absolute pointer-events-auto" style={staticPos[i]}>
             <SignalPill signal={signal} onHoverStart={onSignalHover} onHoverEnd={onSignalLeave} />
@@ -180,20 +211,19 @@ export function SignalNotifications({
   }
 
   return (
-    <div className="hidden lg:block absolute inset-0 z-10 pointer-events-none">
-      <AnimatePresence mode="popLayout">
-        {visibleIndices.map((sigIdx, posSlot) => {
-          const signal = SIGNALS[sigIdx];
+    <div className="hidden lg:block fixed inset-0 z-10 pointer-events-none">
+      <AnimatePresence>
+        {slots.map((slot) => {
+          const signal = SIGNALS[slot.signalIdx];
           if (!signal) return null;
-          const pos = positions[posSlot] ?? LEFT_POSITIONS[0];
           return (
             <motion.div
               key={signal.id}
               className="absolute pointer-events-auto"
-              style={pos}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
+              style={slot.pos}
+              initial={{ opacity: 0, scale: 0.9, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -10 }}
               transition={{ type: "spring", damping: 25, stiffness: 250 }}
             >
               <SignalPill signal={signal} onHoverStart={onSignalHover} onHoverEnd={onSignalLeave} />

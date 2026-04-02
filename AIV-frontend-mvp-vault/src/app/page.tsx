@@ -28,7 +28,7 @@ export default function HomePage() {
   const [descVariant, setDescVariant] = useState<1 | 2 | 3>(1);
   const [hoveredSignal, setHoveredSignal] = useState<{ title: string; description: string; metric?: string; metricLabel?: string } | null>(null);
 
-  // Aurora: very subtle on normal movement, bright only on fast shaking
+  // Aurora
   const [auroraOpacity, setAuroraOpacity] = useState(0.03);
   const mouseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastMouseRef = useRef({ x: 0, y: 0, time: 0 });
@@ -38,34 +38,21 @@ export default function HomePage() {
     const now = Date.now();
     const last = lastMouseRef.current;
     const dt = now - last.time;
-
     if (dt > 0 && dt < 100) {
       const dx = e.clientX - last.x;
       const dy = e.clientY - last.y;
       const speed = Math.sqrt(dx * dx + dy * dy) / dt;
       velocityRef.current = velocityRef.current * 0.7 + speed * 0.3;
     }
-
     lastMouseRef.current = { x: e.clientX, y: e.clientY, time: now };
-
-    // Subtle on movement (0.08), only bright on shaking (velocity > 1.5)
     const vel = velocityRef.current;
-    const targetOpacity = vel > 1.5
-      ? Math.min(0.5, 0.15 + vel * 0.2) // shaking: bright
-      : Math.min(0.12, 0.03 + vel * 0.04); // gentle movement: very subtle
-
+    const targetOpacity = vel > 1.5 ? Math.min(0.5, 0.15 + vel * 0.2) : Math.min(0.12, 0.03 + vel * 0.04);
     setAuroraOpacity(targetOpacity);
-
     if (mouseTimerRef.current) clearTimeout(mouseTimerRef.current);
-    mouseTimerRef.current = setTimeout(() => {
-      velocityRef.current = 0;
-      setAuroraOpacity(0.03);
-    }, 800);
+    mouseTimerRef.current = setTimeout(() => { velocityRef.current = 0; setAuroraOpacity(0.03); }, 800);
   }, []);
 
-  useEffect(() => {
-    return () => { if (mouseTimerRef.current) clearTimeout(mouseTimerRef.current); };
-  }, []);
+  useEffect(() => { return () => { if (mouseTimerRef.current) clearTimeout(mouseTimerRef.current); }; }, []);
 
   useEffect(() => {
     if (!howItWorksOpen) return;
@@ -75,10 +62,7 @@ export default function HomePage() {
   }, [howItWorksOpen]);
 
   useEffect(() => {
-    try {
-      const user = localStorage.getItem("user");
-      if (user && JSON.parse(user)?.id) router.replace("/dashboard");
-    } catch {}
+    try { const user = localStorage.getItem("user"); if (user && JSON.parse(user)?.id) router.replace("/dashboard"); } catch {}
   }, [router]);
 
   function handleRequestAccess() { setModalInitialStep(0); setModalOpen(true); }
@@ -87,77 +71,48 @@ export default function HomePage() {
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      className="dark relative min-h-[100dvh] overflow-hidden bg-[oklch(0.09_0.01_262)]"
+      className="dark relative min-h-[100dvh] bg-[oklch(0.09_0.01_262)]"
     >
-      {/* Aurora — very subtle default, bright only on shake */}
-      <div
-        className="pointer-events-none absolute inset-0 z-0"
-        style={{
-          opacity: auroraOpacity,
-          transition: auroraOpacity > 0.15 ? "opacity 300ms ease-out" : "opacity 1500ms ease-in",
-        }}
-      >
+      {/* Aurora */}
+      <div className="pointer-events-none fixed inset-0 z-0" style={{ opacity: auroraOpacity, transition: auroraOpacity > 0.15 ? "opacity 300ms ease-out" : "opacity 1500ms ease-in" }}>
         <Aurora colorStops={["#0a1e42", "#2563eb", "#0a1e42"]} amplitude={0.8} blend={0.5} speed={0.3} />
       </div>
+      <div className="pointer-events-none fixed inset-0 z-0" style={{ background: "radial-gradient(ellipse 50% 40% at 50% 50%, rgba(59,130,246,0.03) 0%, transparent 60%)" }} />
 
-      <div
-        className="pointer-events-none absolute inset-0 z-0"
-        style={{ background: "radial-gradient(ellipse 50% 40% at 50% 50%, rgba(59,130,246,0.03) 0%, transparent 60%)" }}
+      {/* Signals — OUTSIDE the constrained div, using viewport-relative positions */}
+      <SignalNotifications
+        onSignalHover={(s) => setHoveredSignal(s)}
+        onSignalLeave={() => setHoveredSignal(null)}
       />
 
-      <div className="max-w-[1920px] mx-auto relative">
+      {/* Main content */}
+      <div className="relative z-10 max-w-[1920px] mx-auto">
         {/* Header */}
         <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 py-5">
           <Link href="/"><Image src="/aiv-light.svg" alt="AIV" width={36} height={14} priority className="opacity-70 hover:opacity-100 transition-opacity duration-200" /></Link>
-          <button
-            onClick={() => { setModalInitialStep(8); setModalOpen(true); }}
-            className="text-xs font-medium text-white/40 hover:text-white/70 transition-colors duration-200 cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none tracking-wider uppercase"
-          >
+          <button onClick={() => { setModalInitialStep(8); setModalOpen(true); }}
+            className="text-xs font-medium text-white/40 hover:text-white/70 transition-colors duration-200 cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none tracking-wider uppercase">
             Sign In
           </button>
         </header>
 
-        {/* Signal Notifications — scattered around edges */}
-        <SignalNotifications
-          onSignalHover={(s) => setHoveredSignal(s)}
-          onSignalLeave={() => setHoveredSignal(null)}
+        {/* Hero — NOT inside AnimatePresence so hoveredSignal updates in real-time */}
+        <HeroFinal
+          containerRef={containerRef}
+          onRequestAccess={handleRequestAccess}
+          onHowItWorks={() => setHowItWorksOpen(true)}
+          variant={descVariant}
+          hoveredSignal={hoveredSignal}
         />
 
-        {/* Hero */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={descVariant}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-          >
-            <HeroFinal
-              containerRef={containerRef}
-              onRequestAccess={handleRequestAccess}
-              onHowItWorks={() => setHowItWorksOpen(true)}
-              variant={descVariant}
-              hoveredSignal={hoveredSignal}
-            />
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Mobile Signals */}
         <MobileSignalNotifications />
 
         {/* Variant Selector */}
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 rounded-full border border-white/[0.08] bg-black/70 backdrop-blur-xl px-1.5 py-1 shadow-2xl shadow-black/40">
           {([1, 2, 3] as const).map((v) => (
-            <button
-              key={v}
-              onClick={() => { setDescVariant(v); setHoveredSignal(null); }}
-              className={`px-4 py-2 rounded-full text-[11px] font-medium tracking-wider transition-all duration-200 cursor-pointer ${
-                descVariant === v ? "bg-white/90 text-black shadow-sm" : "text-white/40 hover:text-white/60 hover:bg-white/[0.05]"
-              }`}
-            >
-              {v === 1 && "Icons"}
-              {v === 2 && "Personal"}
-              {v === 3 && "Interactive"}
+            <button key={v} onClick={() => { setDescVariant(v); setHoveredSignal(null); }}
+              className={`px-4 py-2 rounded-full text-[11px] font-medium tracking-wider transition-all duration-200 cursor-pointer ${descVariant === v ? "bg-white/90 text-black shadow-sm" : "text-white/40 hover:text-white/60 hover:bg-white/[0.05]"}`}>
+              {v === 1 && "Icons"}{v === 2 && "Personal"}{v === 3 && "Interactive"}
             </button>
           ))}
         </div>
