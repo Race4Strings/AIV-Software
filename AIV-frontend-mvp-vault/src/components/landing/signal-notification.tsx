@@ -52,37 +52,37 @@ const ACCENT_COLORS = {
 // Horizontal: 2-18% from edges for organic scatter.
 //
 const SLOT_POSITIONS: Record<string, string>[][] = [
-  // Slot 0: upper-left (8-16% top, wide horizontal range)
+  // Slot 0: upper-left (12-17% top, 4-12% left — away from edges)
   [
-    { top: "8%", left: "2%" },
-    { top: "12%", left: "8%" },
-    { top: "10%", left: "14%" },
-    { top: "14%", left: "4%" },
-    { top: "9%", left: "11%" },
+    { top: "12%", left: "4%" },
+    { top: "14%", left: "8%" },
+    { top: "13%", left: "11%" },
+    { top: "16%", left: "5%" },
+    { top: "15%", left: "9%" },
   ],
-  // Slot 1: upper-right (10-16% top, offset from slot 0)
+  // Slot 1: upper-right (13-18% top, 4-12% right)
   [
-    { top: "10%", right: "3%" },
-    { top: "14%", right: "10%" },
-    { top: "12%", right: "6%" },
-    { top: "16%", right: "14%" },
-    { top: "11%", right: "2%" },
+    { top: "13%", right: "5%" },
+    { top: "15%", right: "9%" },
+    { top: "14%", right: "7%" },
+    { top: "17%", right: "11%" },
+    { top: "16%", right: "4%" },
   ],
-  // Slot 2: lower-left (72-78% top)
+  // Slot 2: lower-left (72-77% top, 4-12% left)
   [
-    { top: "72%", left: "3%" },
-    { top: "75%", left: "10%" },
-    { top: "74%", left: "5%" },
-    { top: "76%", left: "15%" },
-    { top: "73%", left: "8%" },
+    { top: "72%", left: "5%" },
+    { top: "74%", left: "9%" },
+    { top: "73%", left: "7%" },
+    { top: "76%", left: "11%" },
+    { top: "75%", left: "4%" },
   ],
-  // Slot 3: lower-right (74-80% top, offset from slot 2)
+  // Slot 3: lower-right (73-78% top, 4-12% right)
   [
-    { top: "74%", right: "2%" },
-    { top: "77%", right: "8%" },
-    { top: "76%", right: "4%" },
-    { top: "78%", right: "12%" },
-    { top: "75%", right: "6%" },
+    { top: "73%", right: "4%" },
+    { top: "76%", right: "8%" },
+    { top: "74%", right: "6%" },
+    { top: "77%", right: "11%" },
+    { top: "75%", right: "5%" },
   ],
 ];
 
