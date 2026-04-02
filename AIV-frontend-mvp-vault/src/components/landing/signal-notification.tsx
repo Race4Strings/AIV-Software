@@ -43,21 +43,24 @@ const ACCENT_COLORS = {
   purple: { dot: "bg-purple-500", bg: "bg-purple-500/10", text: "text-purple-400", badge: "bg-purple-500/15 text-purple-400" },
 };
 
-// Left and right positions — widely separated vertically, capped at 55% for expansion room
+// Left positions are HIGH, right positions are LOW — guarantees they're never on the same y-axis
 const LEFT_SPOTS = [
-  { top: "16%", left: "2%" },
-  { top: "45%", left: "3%" },
+  { top: "14%", left: "2%" },
+  { top: "28%", left: "3%" },
+  { top: "42%", left: "2%" },
 ];
 const RIGHT_SPOTS = [
-  { top: "20%", right: "2%" },
-  { top: "50%", right: "3%" },
+  { top: "32%", right: "2%" },
+  { top: "48%", right: "3%" },
+  { top: "58%", right: "2%" },
 ];
 
 function jitter(pos: { top: string; left?: string; right?: string }) {
-  const jY = Math.floor(Math.random() * 8) - 4;
+  const jY = Math.floor(Math.random() * 10) - 5; // ±5% vertical
+  const jX = Math.floor(Math.random() * 2); // 0-1% horizontal
   const result: Record<string, string> = { top: `${parseInt(pos.top) + jY}%` };
-  if (pos.left) result.left = pos.left;
-  if (pos.right) result.right = pos.right;
+  if (pos.left) result.left = `${parseInt(pos.left) + jX}%`;
+  if (pos.right) result.right = `${parseInt(pos.right) + jX}%`;
   return result;
 }
 

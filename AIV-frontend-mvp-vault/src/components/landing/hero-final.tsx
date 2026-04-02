@@ -92,7 +92,8 @@ export function HeroFinal({ onRequestAccess, onOverlayChange }: HeroFinalProps) 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5, ease: "easeInOut" }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[oklch(0.05_0.008_262)]/90 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+            style={{ backgroundColor: "oklch(0.05 0.008 262 / 0.92)" }}
           >
             <div className="absolute top-6 left-6 flex items-center gap-3 pointer-events-auto z-10">
               <button onClick={() => setShowMotion(false)}
