@@ -81,7 +81,7 @@ export default function HomePage() {
     >
       {/* Aurora */}
       <div className="pointer-events-none fixed inset-0 z-0"
-        style={{ opacity: auroraOpacity, transition: auroraOpacity > 0.4 ? "opacity 300ms ease-out" : "opacity 2000ms ease-in" }}>
+        style={{ opacity: auroraOpacity, transition: auroraOpacity > 0.4 ? "opacity 300ms ease-out" : "opacity 800ms ease-out" }}>
         <Aurora colorStops={["#0a1e42", "#2563eb", "#0a1e42"]} amplitude={0.8} blend={0.5} speed={0.3} />
       </div>
       <div className="pointer-events-none fixed inset-0 z-0"
