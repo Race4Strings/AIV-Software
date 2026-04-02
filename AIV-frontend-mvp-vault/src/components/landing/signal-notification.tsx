@@ -43,27 +43,34 @@ const ACCENT_COLORS = {
   purple: { dot: "bg-purple-500", bg: "bg-purple-500/10", text: "text-purple-400", badge: "bg-purple-500/15 text-purple-400" },
 };
 
-// 4 zones with wide spread: 15-70% vertical range, 2-14% from edges
-// ~20%+ gap between same-side zones. Safe distance for hover expansion.
-const POSITION_POOLS = [
-  // Zone 0: upper-left (15-25% top)
-  [{ top: "15%", left: "2%" }, { top: "20%", left: "6%" }, { top: "18%", left: "10%" }, { top: "22%", left: "3%" }],
-  // Zone 1: upper-right (18-28% top)
-  [{ top: "18%", right: "3%" }, { top: "23%", right: "7%" }, { top: "20%", right: "12%" }, { top: "25%", right: "2%" }],
-  // Zone 2: lower-left (50-60% top)
-  [{ top: "50%", left: "2%" }, { top: "55%", left: "8%" }, { top: "52%", left: "4%" }, { top: "58%", left: "12%" }],
-  // Zone 3: lower-right (52-65% top)
-  [{ top: "55%", right: "3%" }, { top: "60%", right: "10%" }, { top: "52%", right: "5%" }, { top: "63%", right: "2%" }],
-];
-
-function jitter(pos: { top: string; left?: string; right?: string }) {
-  const jY = Math.floor(Math.random() * 8) - 4; // ±4% vertical
-  const jX = Math.floor(Math.random() * 4) - 2; // ±2% horizontal
-  const result: Record<string, string> = { top: `${parseInt(pos.top) + jY}%` };
-  if (pos.left) result.left = `${parseInt(pos.left) + jX}%`;
-  if (pos.right) result.right = `${parseInt(pos.right) + jX}%`;
-  return result;
+// Generate a random position for a given side within allowed ranges.
+// Vertical: 10-75% (wide spread above and below hero).
+// Horizontal: 4-14% from edge (not too close to edge, not too close to center).
+function randomPosition(side: "left" | "right"): Record<string, string> {
+  const top = 10 + Math.floor(Math.random() * 65); // 10-75%
+  const horiz = 4 + Math.floor(Math.random() * 10); // 4-14%
+  return side === "left" ? { top: `${top}%`, left: `${horiz}%` } : { top: `${top}%`, right: `${horiz}%` };
 }
+
+// Check if two positions are far enough apart (minimum 18% vertical gap)
+function isFarEnough(a: Record<string, string>, b: Record<string, string>): boolean {
+  const aTop = parseInt(a.top || "0");
+  const bTop = parseInt(b.top || "0");
+  return Math.abs(aTop - bTop) >= 18;
+}
+
+// Generate a position that's far from all existing positions
+function safePosition(side: "left" | "right", existing: Record<string, string>[]): Record<string, string> {
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const pos = randomPosition(side);
+    if (existing.every(ex => isFarEnough(pos, ex))) return pos;
+  }
+  // Fallback: just return a random one
+  return randomPosition(side);
+}
+
+// Zone assignments: which side each zone uses
+const ZONE_SIDES: ("left" | "right")[] = ["left", "right", "left", "right"];
 
 function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: () => void; onLeave?: () => void }) {
   const [hovered, setHovered] = useState(false);
@@ -161,27 +168,30 @@ export function SignalNotifications() {
   const [slots, setSlots] = useState<Slot[]>([]);
   const pausedRef = useRef(false);
 
-  // Add one signal to a specific group
+  // Add one signal to a specific group (side)
   const addToGroup = useCallback((group: number) => {
     const next = currentIdxRef.current;
     currentIdxRef.current = (next + 1) % SIGNALS.length;
-    const pool = POSITION_POOLS[group] || POSITION_POOLS[0];
-    const pos = jitter(pool[Math.floor(Math.random() * pool.length)]);
-    setSlots(prev => [...prev.filter(s => s.group !== group), { idx: next, pos, group }]);
+    const side = ZONE_SIDES[group] || "left";
+    setSlots(prev => {
+      const otherPositions = prev.filter(s => s.group !== group).map(s => s.pos);
+      const pos = safePosition(side, otherPositions);
+      return [...prev.filter(s => s.group !== group), { idx: next, pos, group }];
+    });
   }, []);
 
-  // Rotate: replace oldest group's signal
+  // Rotate: replace oldest group's signal with safe distance from remaining
   const advance = useCallback(() => {
     if (pausedRef.current) return;
     setSlots(prev => {
       if (prev.length === 0) return prev;
-      // Replace the oldest signal
       const oldest = prev[0];
       const next = currentIdxRef.current;
       currentIdxRef.current = (next + 1) % SIGNALS.length;
-      const pool = POSITION_POOLS[oldest.group] || POSITION_POOLS[0];
-      const pos = jitter(pool[Math.floor(Math.random() * pool.length)]);
-      return [...prev.slice(1), { idx: next, pos, group: oldest.group }];
+      const side = ZONE_SIDES[oldest.group] || "left";
+      const remaining = prev.slice(1);
+      const pos = safePosition(side, remaining.map(s => s.pos));
+      return [...remaining, { idx: next, pos, group: oldest.group }];
     });
   }, []);
 
@@ -206,14 +216,11 @@ export function SignalNotifications() {
   if (reducedMotion) {
     return (
       <div className="hidden lg:block fixed inset-0 z-30 pointer-events-none">
-        {[0, 1, 2, 3].map(g => {
-          const pool = POSITION_POOLS[g];
-          return (
-            <div key={g} className="absolute pointer-events-auto" style={pool[0]}>
-              <SignalPill signal={SIGNALS[g]} />
-            </div>
-          );
-        })}
+        {[0, 1, 2, 3].map(g => (
+          <div key={g} className="absolute pointer-events-auto" style={randomPosition(ZONE_SIDES[g])}>
+            <SignalPill signal={SIGNALS[g]} />
+          </div>
+        ))}
       </div>
     );
   }
