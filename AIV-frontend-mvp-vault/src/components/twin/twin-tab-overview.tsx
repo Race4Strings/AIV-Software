@@ -7,21 +7,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
-interface TwinData {
-  id: string;
-  display_name?: string;
-  name?: string;
-  public_name?: string;
-  bio?: string;
-  identity_category?: string[];
-  clone_type?: string;
-  status?: string;
-  health_status?: string;
-  talent_authorization_at?: string;
-  alcm_twin_id?: string;
-  created_at?: string;
-}
+import type { TwinData } from "@/types/twin";
 
 interface HealthData {
   cfs: number;

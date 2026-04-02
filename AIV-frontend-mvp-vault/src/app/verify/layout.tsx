@@ -23,7 +23,7 @@ export default function VerifyLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="dark min-h-screen bg-[oklch(0.13_0.015_262)] text-[oklch(0.96_0.005_262)]">
+    <div className="dark min-h-screen bg-background text-foreground">
       {children}
     </div>
   );

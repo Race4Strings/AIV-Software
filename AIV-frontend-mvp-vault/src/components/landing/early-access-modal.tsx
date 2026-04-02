@@ -961,7 +961,7 @@ function ProgressDots({ current, total }: { current: number; total: number }) {
       {Array.from({ length: total }).map((_, i) => (
         <div
           key={i}
-          className={`h-[3px] flex-1 rounded-full transition-all ${
+          className={`h-[3px] flex-1 rounded-full transition-colors ${
             i < current ? 'bg-blue-500' : 'bg-white/15'
           }`}
         />

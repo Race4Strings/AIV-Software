@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Loader2, Plus, Upload, Sparkles, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Send, Loader2, Plus, Upload, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";

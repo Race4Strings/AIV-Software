@@ -25,7 +25,7 @@ export function ProgressBar({ currentStep, steps, totalSteps, authorized = false
           const isDone = i < currentStep || authorized;
           return (
             <div key={s.label} className="flex flex-col items-center gap-1">
-              <div className={`flex h-9 w-9 items-center justify-center rounded-full border-2 transition-all duration-300 ${
+              <div className={`flex h-9 w-9 items-center justify-center rounded-full border-2 transition-[background-color,border-color,color] duration-300 ${
                 isDone ? "bg-emerald-500 border-emerald-500 text-white" :
                 isActive ? "border-primary bg-primary/10 text-primary" :
                 "border-border text-muted-foreground"
@@ -40,7 +40,7 @@ export function ProgressBar({ currentStep, steps, totalSteps, authorized = false
         })}
       </div>
       <div className="h-1 rounded-full bg-muted overflow-hidden">
-        <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${((authorized ? totalSteps : currentStep) / totalSteps) * 100}%` }} />
+        <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${((authorized ? totalSteps : currentStep) / totalSteps) * 100}%` }} />
       </div>
       <p className="text-xs text-muted-foreground mt-1.5 text-center">Step {currentStep + 1} of {totalSteps}</p>
     </div>

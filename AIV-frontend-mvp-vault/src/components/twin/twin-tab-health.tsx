@@ -50,7 +50,7 @@ export function TwinTabHealth({ health, isBuilding, healthCfg }: TwinTabHealthPr
                       <span className={`text-xs font-semibold ${qualColor}`}>{qualLabel}</span>
                     </div>
                     <div className="mt-3 h-2 rounded-full bg-muted overflow-hidden">
-                      <div className={`h-full rounded-full ${metric.color} transition-all duration-500 ease-out`} style={{ width: `${pct}%` }} />
+                      <div className={`h-full rounded-full ${metric.color} transition-[width] duration-500 ease-out`} style={{ width: `${pct}%` }} />
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">{metric.desc}. Target: <span className="font-mono tabular-nums">{(metric.target * 100).toFixed(0)}%</span>.</p>
                   </CardContent>
@@ -60,7 +60,7 @@ export function TwinTabHealth({ health, isBuilding, healthCfg }: TwinTabHealthPr
           </div>
           <Card>
             <CardContent className="py-4">
-              <h3 className="text-sm font-medium mb-2">How to improve these scores</h3>
+              <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-2">How to improve these scores</h3>
               <p className="text-sm text-muted-foreground">
                 These scores determine your readiness for licensing. Regular training sessions, uploading professional media, and refining your profile in the Training Area improve all three metrics.
               </p>

@@ -22,6 +22,7 @@ import {
   Printer,
 } from "lucide-react";
 import { verifyCertification, type PublicCertification } from "@/lib/api/verify";
+import { ErrorState } from "@/components/shared/error-state";
 
 interface VerifyPageProps {
   params: Promise<{ certId: string }>;
@@ -88,7 +89,7 @@ export default function VerifyPage({ params }: VerifyPageProps) {
         </div>
         <Skeleton className="mb-2 h-8 w-72" />
         <Skeleton className="mb-8 h-4 w-56" />
-        <Card className="w-full max-w-lg border-[oklch(0.25_0.02_262)] bg-[oklch(0.16_0.018_262)]">
+        <Card className="w-full max-w-lg border-border bg-card">
           <CardHeader className="items-center gap-4 pb-2">
             <Skeleton className="h-6 w-24 rounded-full" />
             <div className="flex flex-col items-center gap-2">
@@ -97,7 +98,7 @@ export default function VerifyPage({ params }: VerifyPageProps) {
             </div>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="h-px w-full bg-[oklch(0.25_0.02_262)]" />
+            <div className="h-px w-full bg-border" />
             <div className="space-y-4">
               <div className="flex items-start gap-3">
                 <Skeleton className="mt-0.5 h-4 w-4 rounded" />
@@ -145,27 +146,12 @@ export default function VerifyPage({ params }: VerifyPageProps) {
           <Image src="/aiv.svg" alt="AIV" width={200} height={200}
             className="h-[48px] w-auto object-contain brightness-0 invert" />
         </div>
-        <Card className="w-full max-w-lg border-[oklch(0.25_0.02_262)] bg-[oklch(0.16_0.018_262)]">
-          <CardHeader className="items-center gap-4">
-            <Badge variant="destructive"
-              className="gap-1.5 border-red-500/30 bg-red-500/15 px-3 py-1 text-sm text-red-400 hover:bg-red-500/15">
-              <AlertCircle className="h-4 w-4" />
-              Error
-            </Badge>
-            <div className="flex flex-col items-center gap-2 text-center">
-              <h2 className="text-lg font-semibold text-white">Unable to verify this certificate</h2>
-              <p className="max-w-sm text-sm text-[oklch(0.65_0.015_262)]">
-                The certificate may not exist or the service is temporarily unavailable.
-              </p>
-            </div>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center gap-3">
-            <Button variant="outline" onClick={loadCert}>
-              Try Again
-            </Button>
-          </CardContent>
-        </Card>
-        <p className="mt-8 text-center text-xs text-[oklch(0.45_0.01_262)]">
+        <ErrorState
+          title="Unable to verify this certificate"
+          description="The certificate may not exist or the service is temporarily unavailable."
+          onRetry={loadCert}
+        />
+        <p className="mt-8 text-center text-xs text-muted-foreground/50">
           © {new Date().getFullYear()} AIV — Digital Identity Protection
         </p>
       </main>
@@ -207,11 +193,11 @@ export default function VerifyPage({ params }: VerifyPageProps) {
       <h1 className="mb-2 text-center text-2xl font-semibold tracking-tight text-white">
         Digital Identity Verification
       </h1>
-      <p className="mb-8 text-center text-sm text-[oklch(0.65_0.015_262)]">
+      <p className="mb-8 text-center text-sm text-muted-foreground">
         Certificate authenticity confirmed by the AIV platform
       </p>
 
-      <Card className="relative w-full max-w-lg border-[oklch(0.25_0.02_262)] bg-[oklch(0.16_0.018_262)] overflow-hidden print:shadow-none print:border">
+      <Card className="relative w-full max-w-lg border-border bg-card overflow-hidden print:shadow-none print:border">
         {/* Watermark */}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center print:hidden">
           <Image src="/aiv.svg" alt="" width={280} height={280} className="opacity-[0.03] rotate-[-12deg] brightness-0 invert select-none" aria-hidden="true" />
@@ -223,41 +209,41 @@ export default function VerifyPage({ params }: VerifyPageProps) {
           </Badge>
           <div className="flex flex-col items-center gap-1">
             <div className="flex items-center gap-2">
-              <BadgeCheck className="h-5 w-5 text-[oklch(0.55_0.2_262)]" />
+              <BadgeCheck className="h-5 w-5 text-primary" />
               <span className="text-lg font-semibold text-white">Verified Identity</span>
             </div>
-            <span className="text-sm uppercase tracking-wider text-[oklch(0.65_0.015_262)]">
+            <span className="text-sm uppercase tracking-wider text-muted-foreground">
               Certificate of Digital Identity Ownership
             </span>
           </div>
         </CardHeader>
 
         <CardContent className="relative space-y-5">
-          <div className="h-px w-full bg-[oklch(0.25_0.02_262)]" />
+          <div className="h-px w-full bg-border" />
 
           <div className="space-y-4">
             {/* Owner */}
             <div className="flex items-start gap-3">
-              <User className="mt-0.5 h-4 w-4 shrink-0 text-[oklch(0.55_0.2_262)]" />
+              <User className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-[oklch(0.65_0.015_262)]">
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Certified Identity
                 </p>
                 <p className="text-sm font-medium text-white">{cert.twin_name}</p>
                 {cert.twin_public_name && cert.twin_public_name !== cert.twin_name && (
-                  <p className="text-xs text-[oklch(0.55_0.015_262)]">({cert.twin_public_name})</p>
+                  <p className="text-xs text-muted-foreground/70">({cert.twin_public_name})</p>
                 )}
                 {cert.twin_category && (
-                  <p className="text-xs capitalize text-[oklch(0.55_0.015_262)]">{cert.twin_category}</p>
+                  <p className="text-xs capitalize text-muted-foreground/70">{cert.twin_category}</p>
                 )}
               </div>
             </div>
 
             {/* Date */}
             <div className="flex items-start gap-3">
-              <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-[oklch(0.55_0.2_262)]" />
+              <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-[oklch(0.65_0.015_262)]">
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Certification Date
                 </p>
                 <p className="text-sm text-white">{certDate}</p>
@@ -266,9 +252,9 @@ export default function VerifyPage({ params }: VerifyPageProps) {
 
             {/* Version */}
             <div className="flex items-start gap-3">
-              <Layers className="mt-0.5 h-4 w-4 shrink-0 text-[oklch(0.55_0.2_262)]" />
+              <Layers className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-[oklch(0.65_0.015_262)]">
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Certification
                 </p>
                 <p className="text-sm text-white">Immutable Record</p>
@@ -277,17 +263,17 @@ export default function VerifyPage({ params }: VerifyPageProps) {
 
             {/* Hash */}
             <div className="flex items-start gap-3">
-              <Hash className="mt-0.5 h-4 w-4 shrink-0 text-[oklch(0.55_0.2_262)]" />
+              <Hash className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium uppercase tracking-wider text-[oklch(0.65_0.015_262)]">
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   SHA-256 Hash
                 </p>
-                <div className="mt-1 flex items-center gap-2 bg-[oklch(0.12_0.015_262)] rounded-lg p-3">
+                <div className="mt-1 flex items-center gap-2 bg-background rounded-lg p-3">
                   <code className="min-w-0 truncate font-mono text-xs text-emerald-400">
                     {truncatedHash}
                   </code>
                   <Button variant="ghost" size="icon"
-                    className="h-7 w-7 shrink-0 text-[oklch(0.65_0.015_262)] hover:text-white print:hidden"
+                    className="h-7 w-7 shrink-0 text-muted-foreground hover:text-white print:hidden"
                     onClick={handleCopy}>
                     {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
                   </Button>
@@ -296,11 +282,11 @@ export default function VerifyPage({ params }: VerifyPageProps) {
             </div>
 
             {/* Blockchain Anchor */}
-            <div className="flex items-start gap-3 pt-3 pb-3 mt-1 rounded-lg bg-[oklch(0.14_0.015_262)] px-3">
+            <div className="flex items-start gap-3 pt-3 pb-3 mt-1 rounded-lg bg-muted/50 px-3">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-purple-500" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="text-xs font-medium uppercase tracking-wider text-[oklch(0.65_0.015_262)]">
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     Blockchain Seal
                   </p>
                   {cert.tx_hash ? (
@@ -318,7 +304,7 @@ export default function VerifyPage({ params }: VerifyPageProps) {
                 {cert.tx_hash ? (
                   <div className="mt-2 space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-[oklch(0.55_0.2_262)]">Transaction Hash</span>
+                      <span className="text-primary">Transaction Hash</span>
                       <a href={cert.network === "polygon-amoy"
                         ? `https://amoy.polygonscan.com/tx/${cert.tx_hash}`
                         : `https://polygonscan.com/tx/${cert.tx_hash}`} target="_blank" rel="noopener noreferrer" className="font-mono text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
@@ -328,13 +314,13 @@ export default function VerifyPage({ params }: VerifyPageProps) {
                     </div>
                     {cert.block_number && (
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-[oklch(0.55_0.2_262)]">Block Number</span>
+                        <span className="text-primary">Block Number</span>
                         <span className="font-mono text-white">{cert.block_number}</span>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <p className="mt-2 text-xs text-[oklch(0.55_0.2_262)] italic">
+                  <p className="mt-2 text-xs text-primary italic">
                     Anchoring transaction pending...
                   </p>
                 )}
@@ -343,15 +329,15 @@ export default function VerifyPage({ params }: VerifyPageProps) {
 
             {/* Covered */}
             <div className="flex items-start gap-3">
-              <FileText className="mt-0.5 h-4 w-4 shrink-0 text-[oklch(0.55_0.2_262)]" />
+              <FileText className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-[oklch(0.65_0.015_262)]">
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   What&apos;s Covered
                 </p>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {coveredAssets.map((item) => (
                     <span key={item}
-                      className="rounded-full bg-[oklch(0.22_0.02_262)] px-2.5 py-0.5 text-xs text-[oklch(0.75_0.01_262)]">
+                      className="rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground">
                       {item}
                     </span>
                   ))}
@@ -360,9 +346,9 @@ export default function VerifyPage({ params }: VerifyPageProps) {
             </div>
           </div>
 
-          <div className="h-px w-full bg-[oklch(0.25_0.02_262)]" />
+          <div className="h-px w-full bg-border" />
 
-          <p className="text-center text-xs leading-relaxed text-[oklch(0.55_0.015_262)]">
+          <p className="text-center text-xs leading-relaxed text-muted-foreground/70">
             This certificate attests that {cert.twin_name}&apos;s digital identity profile
             was captured, reviewed, and certified through the AIV platform.
           </p>
@@ -370,15 +356,15 @@ export default function VerifyPage({ params }: VerifyPageProps) {
       </Card>
 
       <div className="mt-4 flex justify-center print:hidden">
-        <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2 border-[oklch(0.25_0.02_262)] text-[oklch(0.65_0.015_262)] hover:text-white active:scale-[0.97] transition-transform duration-150">
+        <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2 border-border text-muted-foreground hover:text-white active:scale-[0.97] transition-transform duration-150">
           <Printer className="h-3.5 w-3.5" /> Print Certificate
         </Button>
       </div>
 
-      <p className="mt-8 text-center text-xs text-[oklch(0.45_0.01_262)]">
+      <p className="mt-8 text-center text-xs text-muted-foreground/50">
         © {new Date().getFullYear()} AIV — Digital Identity Protection
       </p>
-      <div className="text-center text-[10px] uppercase tracking-widest text-[oklch(0.40_0.01_262)] mt-6">
+      <div className="text-center text-[10px] uppercase tracking-widest text-muted-foreground/40 mt-6">
         Issued by AIV — Digital Identity Infrastructure
       </div>
     </main>
@@ -395,7 +381,7 @@ function InvalidCertification({ certId }: { certId: string }) {
           className="h-[48px] w-auto object-contain brightness-0 invert" />
       </div>
 
-      <Card className="w-full max-w-lg border-[oklch(0.25_0.02_262)] bg-[oklch(0.16_0.018_262)]">
+      <Card className="w-full max-w-lg border-border bg-card">
         <CardHeader className="items-center gap-4">
           <Badge variant="destructive"
             className="gap-1.5 border-red-500/30 bg-red-500/15 px-3 py-1 text-sm text-red-400 hover:bg-red-500/15">
@@ -404,9 +390,9 @@ function InvalidCertification({ certId }: { certId: string }) {
           </Badge>
           <div className="flex flex-col items-center gap-2 text-center">
             <h2 className="text-lg font-semibold text-white">Certification Not Found</h2>
-            <p className="max-w-sm text-sm text-[oklch(0.65_0.015_262)]">
+            <p className="max-w-sm text-sm text-muted-foreground">
               The certification ID{" "}
-              <code className="rounded bg-[oklch(0.13_0.015_262)] px-1.5 py-0.5 font-mono text-xs text-red-400">
+              <code className="rounded bg-background px-1.5 py-0.5 font-mono text-xs text-red-400">
                 {certId.length > 20 ? `${certId.slice(0, 10)}...${certId.slice(-10)}` : certId}
               </code>{" "}
               could not be verified. It may be invalid, expired, or the URL may be incorrect.
@@ -414,13 +400,13 @@ function InvalidCertification({ certId }: { certId: string }) {
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-center text-xs text-[oklch(0.55_0.015_262)]">
+          <p className="text-center text-xs text-muted-foreground/70">
             If you believe this is an error, please contact the certificate holder or reach out to AIV support.
           </p>
         </CardContent>
       </Card>
 
-      <p className="mt-8 text-center text-xs text-[oklch(0.45_0.01_262)]">
+      <p className="mt-8 text-center text-xs text-muted-foreground/50">
         © {new Date().getFullYear()} AIV — Digital Identity Protection
       </p>
     </main>

@@ -116,7 +116,7 @@ export function AudioPlayer({ src, className }: AudioPlayerProps) {
         aria-valuemax={duration}
         tabIndex={0}
       >
-        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+        <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${progress}%` }} />
       </div>
       {duration > 0 && (
         <span className="text-xs text-muted-foreground tabular-nums shrink-0">

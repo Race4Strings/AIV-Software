@@ -69,7 +69,7 @@ export function ReviewStep({
               {DISCOVERY_STAGES.map((stage, i) => (
                 <p
                   key={stage}
-                  className={`text-sm transition-all duration-500 ${
+                  className={`text-sm transition-[color,opacity] duration-500 ${
                     i === discoveryStage ? "text-foreground font-medium" :
                     i < discoveryStage ? "text-emerald-500 line-through" :
                     "text-muted-foreground/40"

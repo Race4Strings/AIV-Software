@@ -7,7 +7,8 @@ import {
   DollarSign, ArrowRight, Loader2, Plus, X, Search,
   XCircle, FileCheck, Send, Eye, Zap, Archive, type LucideIcon,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -431,25 +432,13 @@ export default function DealsPage() {
       })}
 
       {deals.length === 0 && (
-        <div className="text-center py-16 max-w-md mx-auto">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted mx-auto mb-6">
-            <Briefcase className="h-8 w-8 text-muted-foreground/50" />
-          </div>
-          <h3 className="text-lg font-semibold">Your Licensing Portal is open</h3>
-          <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-            Licensing deals are how your identity generates revenue. When brands and platforms want to license your identity, inquiries appear here for your review.
-          </p>
-          <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-            Strengthen your identity profile in the Training Area to attract higher-value inquiries. The more complete and accurate your profile, the more valuable it is to licensees.
-          </p>
-          <div className="mt-6">
-            <a href="/twin/training-area">
-              <Button variant="outline" size="sm">
-                Open Training Area <ArrowRight className="h-3.5 w-3.5 ml-1" />
-              </Button>
-            </a>
-          </div>
-        </div>
+        <EmptyState
+          icon={Briefcase}
+          title="Your Licensing Portal is open"
+          description="Licensing deals are how your identity generates revenue. Start by strengthening your digital twin in the Training Area."
+          ctaLabel="Open Training Area"
+          ctaHref="/twin/training-area"
+        />
       )}
     </div>
   );

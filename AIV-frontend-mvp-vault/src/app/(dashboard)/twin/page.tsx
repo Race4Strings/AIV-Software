@@ -22,22 +22,7 @@ import { TwinTabIdentity } from "@/components/twin/twin-tab-identity";
 import { TwinTabHealth } from "@/components/twin/twin-tab-health";
 import { TwinTabGuardrails } from "@/components/twin/twin-tab-guardrails";
 import { TwinTabLicensing } from "@/components/twin/twin-tab-licensing";
-
-interface TwinData {
-  id: string;
-  display_name?: string;
-  name?: string;
-  public_name?: string;
-  bio?: string;
-  identity_category?: string[];
-  clone_type?: string;
-  status?: string;
-  health_status?: string;
-  talent_authorization_at?: string;
-  alcm_twin_id?: string;
-  created_at?: string;
-  updated_at?: string;
-}
+import type { TwinData } from "@/types/twin";
 
 interface HealthData {
   cfs: number;

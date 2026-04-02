@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  Users, UserPlus, Shield, Mail, CheckCircle2,
-  Clock, Loader2, Crown, Eye, Trash2, MoreVertical,
+  Users, UserPlus, Shield, CheckCircle2,
+  Clock, Loader2, Crown, Eye, Trash2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

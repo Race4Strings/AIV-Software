@@ -14,17 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { updateTwin } from "@/lib/api/twins";
 import { toast } from "sonner";
-
-interface TwinData {
-  id: string;
-  display_name?: string;
-  name?: string;
-  public_name?: string;
-  bio?: string;
-  identity_category?: string[];
-  clone_type?: string;
-  alcm_twin_id?: string;
-}
+import type { TwinData } from "@/types/twin";
 
 interface TwinTabIdentityProps {
   twin: TwinData;
@@ -97,7 +87,7 @@ export function TwinTabIdentity({ twin, displayName, categories, onTwinUpdate }:
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Display Name</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Display Name</CardTitle></CardHeader>
           <CardContent>
             {editing ? (
               <Input value={draft.display_name || ""} onChange={(e) => setDraft({ ...draft, display_name: e.target.value })} />
@@ -107,7 +97,7 @@ export function TwinTabIdentity({ twin, displayName, categories, onTwinUpdate }:
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Public Name</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Public Name</CardTitle></CardHeader>
           <CardContent>
             {editing ? (
               <Input value={draft.public_name || ""} onChange={(e) => setDraft({ ...draft, public_name: e.target.value })} placeholder="How the public knows you" />
@@ -119,7 +109,7 @@ export function TwinTabIdentity({ twin, displayName, categories, onTwinUpdate }:
       </div>
 
       <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-sm">Bio</CardTitle></CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Bio</CardTitle></CardHeader>
         <CardContent>
           {editing ? (
             <Textarea value={draft.bio || ""} onChange={(e) => setDraft({ ...draft, bio: e.target.value })} rows={3} placeholder="A brief description of who you are and what you're known for" />
@@ -131,15 +121,15 @@ export function TwinTabIdentity({ twin, displayName, categories, onTwinUpdate }:
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">{categories.length > 1 ? "Categories" : "Category"}</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium">{categories.length > 1 ? "Categories" : "Category"}</CardTitle></CardHeader>
           <CardContent><div className="flex flex-wrap gap-1">{categories.map((cat) => <Badge key={cat}>{cat}</Badge>)}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Clone Type</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Clone Type</CardTitle></CardHeader>
           <CardContent><Badge variant="outline">{twin.clone_type || "PUBLIC_FIGURE"}</Badge></CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">ALCM Engine</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium">ALCM Engine</CardTitle></CardHeader>
           <CardContent>
             {twin.alcm_twin_id ? (
               <Badge className="bg-emerald-500/10 text-emerald-500">Connected</Badge>

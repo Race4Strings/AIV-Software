@@ -6,6 +6,7 @@ import {
   Loader2, Copy, RefreshCw, Trash2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -329,12 +330,11 @@ export default function AdminDashboard() {
         )}
 
         {waitlist.length === 0 && (
-          <Card className="border-border/50">
-            <CardContent className="py-8 text-center">
-              <Users className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">No waitlist applications yet. Share the platform to start receiving requests.</p>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={Users}
+            title="No waitlist applications yet"
+            description="Share the platform to start receiving requests."
+          />
         )}
       </section>
 

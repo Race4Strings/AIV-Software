@@ -44,6 +44,7 @@ export default function CalibrationPage() {
   const [responses, setResponses] = useState<{ item: number; value: number }[]>([]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [direction, setDirection] = useState<"forward" | "back">("forward");
 
   // Load user + twin from localStorage, check for existing calibration
   useEffect(() => {
@@ -183,6 +184,7 @@ export default function CalibrationPage() {
     // Persist current page answers before navigating
     setAllResponses((prev) => ({ ...prev, [currentIndex]: { ...pageResponses } }));
 
+    setDirection("forward");
     if (currentIndex + 1 >= totalPages) {
       // All pages done — trigger scoring
       setPhase("completing");
@@ -348,9 +350,9 @@ export default function CalibrationPage() {
           <AnimatePresence mode="wait">
             <motion.div
               key={currentIndex}
-              initial={{ opacity: 0, x: 40 }}
+              initial={{ opacity: 0, x: direction === "forward" ? 50 : -50 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -40 }}
+              exit={{ opacity: 0, x: direction === "forward" ? -50 : 50 }}
               transition={{ duration: 0.25, ease: "easeInOut" }}
             >
               {/* Domain header */}
@@ -366,6 +368,11 @@ export default function CalibrationPage() {
                   <span key={value} className="text-center flex-1">{value} = {label}</span>
                 ))}
               </div>
+              {currentIndex === 0 && (
+                <p className="text-[10px] text-muted-foreground/60 text-center mt-1 mb-3 hidden sm:block">
+                  Tip: Press 1-5 on your keyboard to answer quickly
+                </p>
+              )}
 
               {/* Items list */}
               <div className="space-y-3">
@@ -388,7 +395,7 @@ export default function CalibrationPage() {
                             key={value}
                             onClick={() => setItemResponse(item.item, value)}
                             className={`
-                              flex-1 min-h-[2.75rem] rounded-lg border text-sm font-medium transition-all duration-150
+                              flex-1 min-h-[2.75rem] rounded-lg border text-sm font-medium transition-colors duration-150
                               flex flex-col items-center justify-center gap-0.5 py-1
                               ${selected === value
                                 ? "border-primary bg-primary text-primary-foreground"
@@ -413,6 +420,7 @@ export default function CalibrationPage() {
                   <Button
                     variant="outline"
                     onClick={() => {
+                      setDirection("back");
                       // Save current page answers before going back
                       setAllResponses((prev) => {
                         const updated = { ...prev, [currentIndex]: { ...pageResponses } };

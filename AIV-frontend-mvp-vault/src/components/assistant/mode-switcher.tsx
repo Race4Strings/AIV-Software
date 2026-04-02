@@ -55,7 +55,7 @@ export function ModeSwitcher({ currentMode, onModeChange, disabled }: ModeSwitch
               disabled={disabled}
               title={config.description}
               className={cn(
-                "flex items-center gap-1.5 rounded-md px-3 py-1.5 min-h-[44px] text-xs font-medium transition-all",
+                "flex items-center gap-1.5 rounded-md px-3 py-1.5 min-h-[44px] text-xs font-medium transition-[color,background-color,box-shadow]",
                 isActive
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",

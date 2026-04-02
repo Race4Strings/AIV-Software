@@ -268,7 +268,7 @@ export default function TrainingPage() {
       ) : (
         <div className="grid gap-4">
           {submissions.map((sub) => (
-            <Card key={sub.id} className={`overflow-hidden transition-all ${sub.status === "approved" ? "border-emerald-500/20" : sub.status === "rejected" ? "border-destructive/20 opacity-75" : "border-border/50"}`}>
+            <Card key={sub.id} className={`overflow-hidden transition-[border-color,opacity] ${sub.status === "approved" ? "border-emerald-500/20" : sub.status === "rejected" ? "border-destructive/20 opacity-75" : "border-border/50"}`}>
               <CardHeader className={`${sub.status === "approved" ? "bg-emerald-500/5" : sub.status === "rejected" ? "bg-destructive/5" : "bg-muted/30"} pb-4`}>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
