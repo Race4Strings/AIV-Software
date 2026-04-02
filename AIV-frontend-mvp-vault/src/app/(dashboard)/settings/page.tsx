@@ -3,13 +3,24 @@
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Moon, Sun, User, Mail, Shield, Bell, LogOut, Users, Calendar, Building2, DollarSign, Loader2, Eye, EyeOff, Lock } from "lucide-react";
+import { Moon, Sun, Monitor, User, Mail, Shield, Bell, LogOut, Users, Calendar, Building2, DollarSign, Loader2, Eye, EyeOff, Lock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { authApi } from "@/lib/api";
@@ -68,10 +79,11 @@ export default function SettingsPage() {
   const themeOptions = [
     { value: "light", label: "Light", icon: Sun },
     { value: "dark", label: "Dark", icon: Moon },
+    { value: "system", label: "System", icon: Monitor },
   ] as const;
 
   return (
-    <div className="max-w-2xl space-y-8 p-6">
+    <div className="max-w-3xl space-y-8 p-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
         <p className="text-muted-foreground mt-1">Manage your account, preferences, and notifications.</p>
@@ -215,9 +227,27 @@ export default function SettingsPage() {
                 <p className="font-medium">Sign out</p>
                 <p className="text-sm text-muted-foreground">End your current session on this device.</p>
               </div>
-              <Button variant="destructive" size="sm" onClick={handleLogout} className="gap-2">
-                <LogOut className="h-4 w-4" /> Sign Out
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" className="gap-2">
+                    <LogOut className="h-4 w-4" /> Sign Out
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure you want to sign out?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will end your current session on this device.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Sign Out
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </CardContent>
         </Card>
@@ -245,7 +275,7 @@ export default function SettingsPage() {
                     value={passwordForm.old}
                     onChange={(e) => setPasswordForm(p => ({ ...p, old: e.target.value }))}
                   />
-                  <button type="button" onClick={() => setShowOldPw(!showOldPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+                  <button type="button" onClick={() => setShowOldPw(!showOldPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label="Toggle password visibility">
                     {showOldPw ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                   </button>
                 </div>
@@ -256,20 +286,21 @@ export default function SettingsPage() {
                     value={passwordForm.new}
                     onChange={(e) => setPasswordForm(p => ({ ...p, new: e.target.value }))}
                   />
-                  <button type="button" onClick={() => setShowNewPw(!showNewPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+                  <button type="button" onClick={() => setShowNewPw(!showNewPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label="Toggle password visibility">
                     {showNewPw ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                   </button>
                 </div>
                 {passwordForm.new.length > 0 && (() => {
                   const s = (passwordForm.new.length >= 8 ? 1 : 0) + (/[A-Z]/.test(passwordForm.new) ? 1 : 0) + (/[0-9]/.test(passwordForm.new) ? 1 : 0) + (/[^A-Za-z0-9]/.test(passwordForm.new) ? 1 : 0);
                   const colors = ["bg-red-500", "bg-orange-500", "bg-yellow-500", "bg-emerald-500"];
+                  const textColors = ["text-red-500", "text-orange-500", "text-yellow-500", "text-emerald-500"];
                   const labels = ["", "Weak", "Fair", "Good", "Strong"];
                   return (
                     <div className="space-y-1">
                       <div className="flex gap-1">
                         {[1,2,3,4].map(l => <div key={l} className={`h-1 flex-1 rounded-full transition-colors ${l <= s ? colors[s-1] : "bg-muted"}`} />)}
                       </div>
-                      <p className="text-[10px] text-muted-foreground">{passwordForm.new.length < 8 ? "At least 8 characters" : labels[s]}</p>
+                      <p className={`text-[10px] ${passwordForm.new.length < 8 ? "text-muted-foreground" : textColors[s-1]}`}>{passwordForm.new.length < 8 ? "At least 8 characters" : labels[s]}</p>
                     </div>
                   );
                 })()}

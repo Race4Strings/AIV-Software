@@ -1,7 +1,8 @@
 'use client'
 
 import { Renderer, Program, Mesh, Color, Triangle } from 'ogl';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 
 const VERT = `#version 300 es
 in vec2 position;
@@ -121,6 +122,19 @@ export default function Aurora(props: AuroraProps) {
     const { colorStops = ['#5227FF', '#7cff67', '#5227FF'], amplitude = 1.0, blend = 0.5 } = props;
     const propsRef = useRef(props);
     propsRef.current = props;
+    const reducedMotion = useReducedMotion();
+
+    // Cache parsed Color objects so we don't re-create them every frame
+    const parsedColorStops = useMemo(
+        () => colorStops.map((hex: string) => {
+            const c = new Color(hex);
+            return [c.r, c.g, c.b];
+        }),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [colorStops.join(',')]
+    );
+    const parsedColorStopsRef = useRef(parsedColorStops);
+    parsedColorStopsRef.current = parsedColorStops;
 
     const ctnDom = useRef<HTMLDivElement>(null);
 
@@ -157,18 +171,13 @@ export default function Aurora(props: AuroraProps) {
             delete geometry.attributes.uv;
         }
 
-        const colorStopsArray = colorStops.map((hex: string) => {
-            const c = new Color(hex);
-            return [c.r, c.g, c.b];
-        });
-
         program = new Program(gl, {
             vertex: VERT,
             fragment: FRAG,
             uniforms: {
                 uTime: { value: 0 },
                 uAmplitude: { value: amplitude },
-                uColorStops: { value: colorStopsArray },
+                uColorStops: { value: parsedColorStops },
                 uResolution: { value: [ctn.offsetWidth, ctn.offsetHeight] },
                 uBlend: { value: blend }
             }
@@ -178,20 +187,25 @@ export default function Aurora(props: AuroraProps) {
         ctn.appendChild(gl.canvas);
 
         let animateId = 0;
-        const update = (t: number) => {
-            animateId = requestAnimationFrame(update);
-            const { time = t * 0.01, speed = 1.0 } = propsRef.current;
-            program.uniforms.uTime.value = time * speed * 0.1;
+
+        if (reducedMotion) {
+            // Render a single static frame with time frozen at 0
+            program.uniforms.uTime.value = 0;
             program.uniforms.uAmplitude.value = propsRef.current.amplitude ?? 1.0;
             program.uniforms.uBlend.value = propsRef.current.blend ?? blend;
-            const stops = propsRef.current.colorStops ?? colorStops;
-            program.uniforms.uColorStops.value = stops.map((hex: string) => {
-                const c = new Color(hex);
-                return [c.r, c.g, c.b];
-            });
             renderer.render({ scene: mesh });
-        };
-        animateId = requestAnimationFrame(update);
+        } else {
+            const update = (t: number) => {
+                animateId = requestAnimationFrame(update);
+                const { time = t * 0.01, speed = 1.0 } = propsRef.current;
+                program.uniforms.uTime.value = time * speed * 0.1;
+                program.uniforms.uAmplitude.value = propsRef.current.amplitude ?? 1.0;
+                program.uniforms.uBlend.value = propsRef.current.blend ?? blend;
+                program.uniforms.uColorStops.value = parsedColorStopsRef.current;
+                renderer.render({ scene: mesh });
+            };
+            animateId = requestAnimationFrame(update);
+        }
 
         resize();
 
@@ -204,7 +218,7 @@ export default function Aurora(props: AuroraProps) {
             gl.getExtension('WEBGL_lose_context')?.loseContext();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [amplitude]);
+    }, [amplitude, reducedMotion]);
 
     return <div ref={ctnDom} style={{ width: '100%', height: '100%' }} />;
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  UserCheck, ArrowLeft, Loader2, CheckCircle2, AlertTriangle,
+  UserCheck, ArrowLeft, Loader2, CheckCircle2, AlertTriangle, ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -117,8 +117,9 @@ export function AuthorizeStep({
       </Card>
 
       {/* Consent Statement */}
-      <Card className="border-border">
+      <Card className="border-2 border-primary bg-primary/5">
         <CardContent className="py-6 text-center">
+          <ShieldCheck className="h-8 w-8 text-primary mx-auto mb-3" />
           <p className="text-base font-medium leading-relaxed">
             {isManager
               ? `"I confirm that ${profileDraft.display_name || "the talent"} has authorized me to act on their behalf for the creation and commercial licensing of their digital identity under the terms reviewed above."`

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import VariableProximity from "@/components/ui/VariableProximity";
 import { SignalCard, MobileSignalCarousel } from "@/components/landing/signal-card";
 import { EarlyAccessModal } from "@/components/landing/early-access-modal";
+import Aurora from "@/components/ui/Aurora";
 
 const HOW_IT_WORKS_STEPS = [
   {
@@ -44,6 +45,16 @@ export default function HomePage() {
   const [modalInitialStep, setModalInitialStep] = useState(0);
   const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 
+  // Escape key dismisses How It Works modal
+  useEffect(() => {
+    if (!howItWorksOpen) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setHowItWorksOpen(false);
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [howItWorksOpen]);
+
   // Check if already authenticated → redirect to dashboard
   useEffect(() => {
     try {
@@ -64,16 +75,23 @@ export default function HomePage() {
   return (
     <div
       ref={containerRef}
-      className="relative min-h-[100dvh] overflow-hidden"
-      style={{ backgroundColor: "#041030" }}
+      className="relative min-h-[100dvh] overflow-hidden bg-[oklch(0.11_0.015_262)]"
     >
-      {/* Subtle radial glow behind hero */}
+      {/* Aurora animated background */}
+      <div className="pointer-events-none absolute inset-0 z-0 opacity-60">
+        <Aurora colorStops={["#0f2a5e", "#3b82f6", "#0f2a5e"]} amplitude={1.0} blend={0.6} speed={0.4} />
+      </div>
+
+      {/* Subtle radial glow behind hero (fallback layer) */}
       <div
         className="pointer-events-none absolute inset-0 z-0"
         style={{
           background: "radial-gradient(ellipse 60% 50% at 50% 45%, rgba(59,130,246,0.08) 0%, transparent 70%)",
         }}
       />
+
+      {/* Ultrawide constraint — prevents content from spreading beyond 1920px */}
+      <div className="max-w-[1920px] mx-auto relative">
 
       {/* Header */}
       <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 py-5">
@@ -177,6 +195,9 @@ export default function HomePage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="How It Works"
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
             onClick={() => setHowItWorksOpen(false)}
           >
@@ -202,6 +223,7 @@ export default function HomePage() {
                 </div>
                 <button
                   onClick={() => setHowItWorksOpen(false)}
+                  aria-label="Close"
                   className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] text-white/50 hover:text-white hover:bg-white/[0.1] transition-colors duration-150"
                 >
                   <X className="h-4 w-4" />
@@ -253,6 +275,8 @@ export default function HomePage() {
         onClose={() => setModalOpen(false)}
         initialStep={modalInitialStep}
       />
+
+      </div>{/* end ultrawide constraint */}
     </div>
   );
 }

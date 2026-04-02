@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { Bot, User } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 interface MessageBubbleProps {
   role: "USER" | "AGENT" | "SYSTEM";
@@ -43,14 +44,20 @@ export function MessageBubble({ role, content, modeAtTime, isStreaming }: Messag
               : "bg-muted rounded-bl-md"
           )}
         >
-          <p className="whitespace-pre-wrap">{content}</p>
+          {isUser ? (
+            <p className="whitespace-pre-wrap">{content}</p>
+          ) : (
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              <ReactMarkdown>{content}</ReactMarkdown>
+            </div>
+          )}
           {isStreaming && (
             <span className="inline-block w-2 h-4 bg-current animate-pulse ml-0.5" />
           )}
         </div>
         {modeAtTime && !isUser && (
           <span className="text-[10px] text-muted-foreground/60 px-1">
-            {modeAtTime.toLowerCase().replace("_", " ")}
+            {modeAtTime.toLowerCase().replace(/_/g, " ")}
           </span>
         )}
       </div>

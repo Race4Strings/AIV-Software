@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { onboardingApi } from "@/lib/api/onboarding";
 import { updateTwin } from "@/lib/api/twins";
@@ -24,6 +26,7 @@ export function ReviewStep({
   loading,
   setStep,
   setLoading,
+  setProfileDraft,
 }: ReviewStepProps) {
   const health = discoveryResults?.health as Record<string, number> | undefined;
 
@@ -94,14 +97,23 @@ export function ReviewStep({
             <CardContent className="space-y-4 pt-6">
               <div>
                 <Label className="text-xs text-muted-foreground">Display Name</Label>
-                <p className="text-lg font-medium mt-0.5">{profileDraft.display_name || "—"}</p>
+                <Input
+                  value={profileDraft.display_name || ""}
+                  onChange={(e) => setProfileDraft({ ...profileDraft, display_name: e.target.value })}
+                  className="mt-0.5 text-lg font-medium"
+                  placeholder="Your display name"
+                />
               </div>
-              {profileDraft.bio && (
-                <div>
-                  <Label className="text-xs text-muted-foreground">Bio</Label>
-                  <p className="text-sm text-muted-foreground mt-0.5">{profileDraft.bio}</p>
-                </div>
-              )}
+              <div>
+                <Label className="text-xs text-muted-foreground">Bio</Label>
+                <Textarea
+                  value={profileDraft.bio || ""}
+                  onChange={(e) => setProfileDraft({ ...profileDraft, bio: e.target.value })}
+                  className="mt-0.5 text-sm"
+                  placeholder="A short bio about yourself"
+                  rows={3}
+                />
+              </div>
 
               {/* Wikipedia summary */}
               {(discoveryResults?.twin as Record<string, unknown>)?.wikipedia && (
@@ -182,7 +194,7 @@ export function ReviewStep({
                   <div className="flex gap-1.5 mt-1.5 flex-wrap">
                     {(discoveryResults?.detected_categories as string[])?.map((cat: string) => (
                       <Badge key={cat} variant="secondary" className="text-xs">
-                        {cat.replace("_", " ")}
+                        {cat.replace(/_/g, " ")}
                       </Badge>
                     ))}
                   </div>

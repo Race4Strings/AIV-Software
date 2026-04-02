@@ -60,7 +60,12 @@ interface PillarInfo {
   activityCount: number;
 }
 
-function getPillarStates(twin: Record<string, unknown>, logs: AuditLog[]): Record<string, PillarInfo> {
+function getPillarStates(
+  twin: Record<string, unknown>,
+  logs: AuditLog[],
+  calibrationStatus: CalibrationStatus | null,
+  comparison: ComparisonResult | null,
+): Record<string, PillarInfo> {
   // Derive pillar states from twin data + activity (audit logs)
   // Tracks user effort, not AI scoring — works without ALCM
   const profileEdits = logs.filter((l) => l.action === "UPDATE" && l.entity_type === "twins").length;
@@ -69,23 +74,68 @@ function getPillarStates(twin: Record<string, unknown>, logs: AuditLog[]): Recor
   const corrections = logs.filter((l) => l.entity_type === "training_contribution").length;
 
   const hasProfile = !!(twin.bio && (twin.bio as string).length > 20);
+  const hasName = !!(twin.name || twin.display_name);
+  const hasCategory = !!(twin.category);
+  const socialProfiles = (twin.social_profiles as unknown[] | undefined) || [];
+  const hasSufficientSocials = socialProfiles.length >= 3;
+
+  // Voice Identity — derived from voice_status and voice-specific data
+  const voiceStatus = (twin.voice_status as string) || "";
+  const hasVoiceSample = !!(twin.voice_sample_url);
+  const voiceReady = voiceStatus === "ready" || voiceStatus === "cloned";
+
+  // Visual Identity — derived from file uploads (images/video/photos)
+  const visualUploads = fileUploads; // file uploads represent visual assets in the training area
+
+  // Calibration state for behavioral model
+  const calibrationCompleted = calibrationStatus?.completed === true;
+  const calibrationAligned = comparison?.has_sufficient_data && comparison.aligned_count === 5;
+
+  // ── Public Profile ──────────────────────────────
+  const publicProfileComplete = hasName && hasProfile && hasCategory && hasSufficientSocials;
+  const publicProfileState: PillarState = publicProfileComplete
+    ? "complete"
+    : (hasProfile || profileEdits > 0) ? "in_progress" : "not_started";
+
+  // ── Voice Identity ──────────────────────────────
+  const voiceState: PillarState = voiceReady
+    ? "complete"
+    : (hasVoiceSample || voiceStatus === "processing" || voiceStatus === "pending")
+      ? "in_progress"
+      : "not_started";
+  const voiceActivityCount = (hasVoiceSample ? 1 : 0) + (voiceReady ? 1 : 0);
+
+  // ── Behavioral Model ────────────────────────────
+  const behavioralComplete = calibrationCompleted && (trainingSessions > 0 || calibrationAligned);
+  const behavioralState: PillarState = behavioralComplete
+    ? "complete"
+    : (trainingSessions > 0 || corrections > 0 || calibrationStatus?.has_calibration)
+      ? "in_progress"
+      : "not_started";
+
+  // ── Visual Identity ─────────────────────────────
+  const visualState: PillarState = visualUploads >= 3
+    ? "complete"
+    : visualUploads > 0
+      ? "in_progress"
+      : "not_started";
 
   return {
     public_profile: {
-      state: hasProfile ? "in_progress" : profileEdits > 0 ? "in_progress" : "not_started",
+      state: publicProfileState,
       activityCount: profileEdits + (hasProfile ? 1 : 0),
     },
     voice_identity: {
-      state: fileUploads > 0 ? "in_progress" : "not_started",
-      activityCount: fileUploads,
+      state: voiceState,
+      activityCount: voiceActivityCount,
     },
     behavioral_model: {
-      state: trainingSessions > 0 || corrections > 0 ? "in_progress" : "not_started",
+      state: behavioralState,
       activityCount: trainingSessions + corrections,
     },
     visual_identity: {
-      state: fileUploads > 0 ? "in_progress" : "not_started",
-      activityCount: fileUploads,
+      state: visualState,
+      activityCount: visualUploads,
     },
   };
 }
@@ -185,7 +235,7 @@ export function CommandCenter() {
       fetchTwins(),
       licensingApi.getDeals(),
       licensingApi.getRevenue(),
-      fetchAuditLogs(""),
+      fetchAuditLogs(""), // audit logs are non-critical; silent failure is acceptable
     ]).then((results) => {
       const errs: string[] = [];
 
@@ -297,9 +347,41 @@ export function CommandCenter() {
   const HealthIcon = healthCfg.icon;
   const twinName = (twin.display_name as string) || (twin.name as string) || "Your Identity";
 
+  // ── Extracted conditional renders ───────────────
+  const trainingRecencyNudge = twin.last_training_activity ? (() => {
+    const daysSince = Math.floor((Date.now() - new Date(twin.last_training_activity as string).getTime()) / (1000 * 60 * 60 * 24));
+    return daysSince > 7 ? (
+      <Card className="border-yellow-500/20 bg-yellow-500/5">
+        <CardContent className="flex items-center gap-3 py-3">
+          <Clock className="h-4 w-4 text-yellow-500 shrink-0" />
+          <p className="text-sm text-muted-foreground flex-1">
+            Your last training session was {daysSince} days ago. Regular training strengthens your identity profile.
+          </p>
+          <Link href="/twin/training-area">
+            <Button size="sm" variant="outline" className="text-xs">Resume Training</Button>
+          </Link>
+        </CardContent>
+      </Card>
+    ) : null;
+  })() : null;
+
+  const feeFreeCountdown = twin.fee_free_window_expires ? (() => {
+    const daysLeft = Math.ceil((new Date(twin.fee_free_window_expires as string).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    return daysLeft > 0 && daysLeft <= 30 ? (
+      <Card className="border-amber-500/20 bg-amber-500/5">
+        <CardContent className="flex items-center gap-3 py-3">
+          <Clock className="h-4 w-4 text-amber-500 shrink-0" />
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">Fee-free period ends in {daysLeft} day{daysLeft !== 1 ? "s" : ""}</span> — your first deal or day 90 activates the $997/month platform partnership fee.
+          </p>
+        </CardContent>
+      </Card>
+    ) : null;
+  })() : null;
+
   // ── BUILDING Dashboard ──────────────────────────
   if (isBuilding) {
-    const pillarStates = getPillarStates(twin, auditLogs);
+    const pillarStates = getPillarStates(twin, auditLogs, calibrationStatus, comparison);
     const weakest = getWeakestPillar(pillarStates);
 
     return (
@@ -328,9 +410,15 @@ export function CommandCenter() {
                   <Activity className="h-4 w-4" />
                   Building
                 </span>
-                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 text-xs">
-                  Identity Verified & Protected
-                </Badge>
+                {twin.certified_at ? (
+                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 text-xs">
+                    Identity Verified & Protected
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-blue-500/10 text-blue-500 text-xs">
+                    Identity In Progress
+                  </Badge>
+                )}
               </div>
             </div>
             <Link href="/twin/training-area">
@@ -447,22 +535,7 @@ export function CommandCenter() {
         )}
 
         {/* Training Recency Nudge */}
-        {twin.last_training_activity && (() => {
-          const daysSince = Math.floor((Date.now() - new Date(twin.last_training_activity as string).getTime()) / (1000 * 60 * 60 * 24));
-          return daysSince > 7 ? (
-            <Card className="border-yellow-500/20 bg-yellow-500/5">
-              <CardContent className="flex items-center gap-3 py-3">
-                <Clock className="h-4 w-4 text-yellow-500 shrink-0" />
-                <p className="text-sm text-muted-foreground flex-1">
-                  Your last training session was {daysSince} days ago. Regular training strengthens your identity profile.
-                </p>
-                <Link href="/twin/training-area">
-                  <Button size="sm" variant="outline" className="text-xs">Resume Training</Button>
-                </Link>
-              </CardContent>
-            </Card>
-          ) : null;
-        })()}
+        {trainingRecencyNudge}
 
         {/* Recent Activity */}
         <RecentActivity logs={auditLogs} />
@@ -481,19 +554,7 @@ export function CommandCenter() {
       <h1 className="text-xl font-semibold">{getGreeting()}, {getUserRole() === "manager" ? getUserName() || "there" : (twin.display_name as string)?.split(" ")[0] || "there"}</h1>
 
       {/* Fee-Free Window Countdown */}
-      {twin.fee_free_window_expires && (() => {
-        const daysLeft = Math.ceil((new Date(twin.fee_free_window_expires as string).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-        return daysLeft > 0 && daysLeft <= 30 ? (
-          <Card className="border-amber-500/20 bg-amber-500/5">
-            <CardContent className="flex items-center gap-3 py-3">
-              <Clock className="h-4 w-4 text-amber-500 shrink-0" />
-              <p className="text-sm text-muted-foreground">
-                <span className="font-medium text-foreground">Fee-free period ends in {daysLeft} day{daysLeft !== 1 ? "s" : ""}</span> — your first deal or day 90 activates the $997/month platform partnership fee.
-              </p>
-            </CardContent>
-          </Card>
-        ) : null;
-      })()}
+      {feeFreeCountdown}
 
       {/* Identity Status + Revenue */}
       <div className={`grid grid-cols-1 gap-4 ${hasRevenue ? "lg:grid-cols-3" : ""}`}>

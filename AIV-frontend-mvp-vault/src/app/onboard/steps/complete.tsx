@@ -29,17 +29,10 @@ export function CompleteStep({
           />
         ))}
       </div>
-      <style>{`
-        @keyframes confetti-fall {
-          0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-          100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
-        }
-      `}</style>
-
       <div className="rounded-full bg-primary/10 p-6 mb-6">
         <Shield className="h-12 w-12 text-primary" />
       </div>
-      <h1 className="text-3xl font-bold">Identity authorized</h1>
+      <h1 className="text-3xl font-bold">Your identity is ready</h1>
       <p className="mt-2 text-lg text-muted-foreground">Your digital identity is now protected and building.</p>
       <p className="mt-3 text-sm text-muted-foreground max-w-md">
         Your identity is secured with cryptographic verification and blockchain-anchored proof of ownership. Your Licensing Portal is open.

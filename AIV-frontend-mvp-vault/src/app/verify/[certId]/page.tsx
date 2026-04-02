@@ -1,10 +1,11 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ShieldCheck,
   BadgeCheck,
@@ -18,6 +19,7 @@ import {
   User,
   Loader2,
   ExternalLink,
+  Printer,
 } from "lucide-react";
 import { verifyCertification, type PublicCertification } from "@/lib/api/verify";
 
@@ -39,17 +41,29 @@ export default function VerifyPage({ params }: VerifyPageProps) {
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [cert, setCert] = useState<PublicCertification | null>(null);
+  const [error, setError] = useState(false);
 
-  useEffect(() => {
+  const loadCert = useCallback(() => {
     if (certId.length < 16) {
       setLoading(false);
       return;
     }
-    verifyCertification(certId).then((data) => {
-      setCert(data);
-      setLoading(false);
-    });
+    setError(false);
+    setLoading(true);
+    verifyCertification(certId)
+      .then((data) => {
+        setCert(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError(true);
+        setLoading(false);
+      });
   }, [certId]);
+
+  useEffect(() => {
+    loadCert();
+  }, [loadCert]);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(certId);
@@ -62,10 +76,98 @@ export default function VerifyPage({ params }: VerifyPageProps) {
       ? `${certId.slice(0, 12)}...${certId.slice(-12)}`
       : certId;
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   if (loading) {
     return (
+      <main className="flex min-h-screen flex-col items-center justify-center px-4 py-12 print:hidden">
+        <div className="mb-8">
+          <Skeleton className="h-[48px] w-[120px]" />
+        </div>
+        <Skeleton className="mb-2 h-8 w-72" />
+        <Skeleton className="mb-8 h-4 w-56" />
+        <Card className="w-full max-w-lg border-[oklch(0.25_0.02_262)] bg-[oklch(0.16_0.018_262)]">
+          <CardHeader className="items-center gap-4 pb-2">
+            <Skeleton className="h-6 w-24 rounded-full" />
+            <div className="flex flex-col items-center gap-2">
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-4 w-56" />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="h-px w-full bg-[oklch(0.25_0.02_262)]" />
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <Skeleton className="mt-0.5 h-4 w-4 rounded" />
+                <div className="space-y-1.5">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-4 w-36" />
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Skeleton className="mt-0.5 h-4 w-4 rounded" />
+                <div className="space-y-1.5">
+                  <Skeleton className="h-3 w-28" />
+                  <Skeleton className="h-4 w-32" />
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Skeleton className="mt-0.5 h-4 w-4 rounded" />
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-6 w-full rounded" />
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Skeleton className="mt-0.5 h-4 w-4 rounded" />
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-24" />
+                  <div className="flex flex-wrap gap-1.5">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <Skeleton key={i} className="h-5 w-20 rounded-full" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
       <main className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-white/50" />
+        <div className="mb-8">
+          <Image src="/aiv.svg" alt="AIV" width={200} height={200}
+            className="h-[48px] w-auto object-contain brightness-0 invert" />
+        </div>
+        <Card className="w-full max-w-lg border-[oklch(0.25_0.02_262)] bg-[oklch(0.16_0.018_262)]">
+          <CardHeader className="items-center gap-4">
+            <Badge variant="destructive"
+              className="gap-1.5 border-red-500/30 bg-red-500/15 px-3 py-1 text-sm text-red-400 hover:bg-red-500/15">
+              <AlertCircle className="h-4 w-4" />
+              Error
+            </Badge>
+            <div className="flex flex-col items-center gap-2 text-center">
+              <h2 className="text-lg font-semibold text-white">Unable to verify this certificate</h2>
+              <p className="max-w-sm text-sm text-[oklch(0.65_0.015_262)]">
+                The certificate may not exist or the service is temporarily unavailable.
+              </p>
+            </div>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center gap-3">
+            <Button variant="outline" onClick={loadCert}>
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+        <p className="mt-8 text-center text-xs text-[oklch(0.45_0.01_262)]">
+          © {new Date().getFullYear()} AIV — Digital Identity Protection
+        </p>
       </main>
     );
   }
@@ -82,7 +184,21 @@ export default function VerifyPage({ params }: VerifyPageProps) {
   const coveredAssets = cert.covered_assets?.length ? cert.covered_assets : FALLBACK_ASSETS;
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
+    <>
+      <style>{`
+        @media print {
+          nav, header, footer, button, .print\\:hidden { display: none !important; }
+          body, main { background: white !important; color: black !important; }
+          main { padding: 0 !important; min-height: auto !important; }
+          * { color: black !important; border-color: #ddd !important; background-color: transparent !important; }
+          code { background-color: #f3f4f6 !important; color: #065f46 !important; }
+          .text-emerald-400 { color: #065f46 !important; }
+          .text-purple-400 { color: #6b21a8 !important; }
+          .bg-emerald-500\\/15, .bg-purple-500\\/10 { background-color: #f0fdf4 !important; }
+          .animate-pulse { animation: none !important; }
+        }
+      `}</style>
+      <main className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
       <div className="mb-8">
         <Image src="/aiv.svg" alt="AIV" width={200} height={200}
           className="h-[48px] w-auto object-contain brightness-0 invert" />
@@ -167,7 +283,7 @@ export default function VerifyPage({ params }: VerifyPageProps) {
                     {truncatedHash}
                   </code>
                   <Button variant="ghost" size="icon"
-                    className="h-7 w-7 shrink-0 text-[oklch(0.65_0.015_262)] hover:text-white"
+                    className="h-7 w-7 shrink-0 text-[oklch(0.65_0.015_262)] hover:text-white print:hidden"
                     onClick={handleCopy}>
                     {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
                   </Button>
@@ -249,10 +365,20 @@ export default function VerifyPage({ params }: VerifyPageProps) {
         </CardContent>
       </Card>
 
+      <div className="mt-4 flex justify-center print:hidden">
+        <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2 border-[oklch(0.25_0.02_262)] text-[oklch(0.65_0.015_262)] hover:text-white">
+          <Printer className="h-3.5 w-3.5" /> Print Certificate
+        </Button>
+      </div>
+
       <p className="mt-8 text-center text-xs text-[oklch(0.45_0.01_262)]">
         © {new Date().getFullYear()} AIV — Digital Identity Protection
       </p>
+      <div className="text-center text-xs text-muted-foreground mt-6">
+        Issued by AIV — Digital Identity Infrastructure
+      </div>
     </main>
+    </>
   );
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { LogOut, User } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -19,6 +20,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { EntityIndicator } from "@/components/ui/entity-indicator";
+import { useStoredUser } from "@/hooks/use-stored-user";
 
 export function NavUser({
   user,
@@ -29,21 +31,10 @@ export function NavUser({
     avatar: string;
   };
 }) {
-  const [userData, setUserData] = React.useState(user);
-  const [mounted, setMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setMounted(true);
-    const stored = localStorage.getItem("user");
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        const u = parsed.data || parsed;
-        if (!u.avatar) u.avatar = "";
-        setUserData(u);
-      } catch { /* ignore */ }
-    }
-  }, []);
+  const router = useRouter();
+  const { user: storedUser, isLoading } = useStoredUser();
+  const userData = storedUser || user;
+  const mounted = !isLoading;
 
   const handleLogout = async () => {
     try {
@@ -108,7 +99,7 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => window.location.href = "/settings"}>
+              <DropdownMenuItem onClick={() => router.push("/settings")}>
                 <User className="mr-2 h-4 w-4" />
                 Settings
               </DropdownMenuItem>

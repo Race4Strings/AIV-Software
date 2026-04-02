@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Loader2, Plus, Upload, Sparkles } from "lucide-react";
+import { Send, Loader2, Plus, Upload, Sparkles, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ModeSwitcher } from "./mode-switcher";
 import { MessageBubble } from "./message-bubble";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   assistantApi,
   streamMessage,
@@ -63,6 +64,8 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
   const [streamingContent, setStreamingContent] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [healthData, setHealthData] = useState<{cfs?: number; coverage?: number; confidence?: number; status?: string} | null>(null);
+  const isMobile = useIsMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -234,8 +237,6 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
     );
   }
 
-  const [sidebarOpen, setSidebarOpen] = useState(true); // eslint-disable-line react-hooks/rules-of-hooks
-
   // Derive session title from first user message or mode
   function getSessionTitle(s: AgentSession, _idx: number): string {
     // If this is the active session and we have messages, use first user message
@@ -250,7 +251,7 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
   return (
     <div className="flex h-full">
       {/* Session sidebar */}
-      {sidebarOpen && sessions.length > 0 && (
+      {!isMobile && sidebarOpen && sessions.length > 0 && (
         <div className="w-60 shrink-0 border-r flex flex-col bg-muted/20">
           <div className="flex items-center justify-between p-3 border-b">
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Sessions</span>

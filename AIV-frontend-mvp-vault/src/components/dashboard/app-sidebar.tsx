@@ -15,6 +15,7 @@ import {
   SidebarGroup, SidebarGroupContent, useSidebar,
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
+import { useStoredUser } from "@/hooks/use-stored-user";
 
 const navItems = [
   { title: "Home", href: "/dashboard", icon: Shield },
@@ -32,14 +33,8 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
-  const [orgName, setOrgName] = React.useState("Loading...");
-
-  React.useEffect(() => {
-    try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      setOrgName(user.org_name || user.organization?.name || "My Organization");
-    } catch { setOrgName("My Organization"); }
-  }, []);
+  const { user: storedUser } = useStoredUser();
+  const orgName = storedUser?.org_name || storedUser?.organization?.name || "My Organization";
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";

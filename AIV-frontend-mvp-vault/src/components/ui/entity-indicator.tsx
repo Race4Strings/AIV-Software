@@ -43,7 +43,7 @@ export function EntityIndicator({
         className={cn(
           sizeClass,
           "rounded-full border border-white shadow-sm",
-          isAvailable ? "bg-blue-500" : "bg-gray-400",
+          isAvailable ? "bg-primary" : "bg-muted-foreground",
           className
         )}
         title="Human"
@@ -57,14 +57,14 @@ export function EntityIndicator({
       className={cn(
         sizeClass,
         "rounded-full shadow-sm overflow-hidden -rotate-90",
-        isAvailable ? "border-blue-600" : "border-gray-400",
+        isAvailable ? "border-primary" : "border-muted-foreground",
         className
       )}
       style={{
         borderWidth: size === "xl" ? "2px" : "1.5px", // Explicit border width to be visible, reduced from 3px for XL
         background: isAvailable
-          ? "linear-gradient(135deg, #2563eb 50%, #ffffff 50%)"
-          : "linear-gradient(135deg, #9ca3af 50%, #ffffff 50%)",
+          ? "linear-gradient(135deg, hsl(var(--primary)) 50%, hsl(var(--background)) 50%)"
+          : "linear-gradient(135deg, hsl(var(--muted-foreground)) 50%, hsl(var(--background)) 50%)",
       }}
       title="AI Person"
     />

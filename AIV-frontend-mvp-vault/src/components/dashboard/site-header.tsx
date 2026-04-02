@@ -11,6 +11,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import Link from "next/link";
 import { notificationsApi, type Notification } from "@/lib/api/notifications";
 
 export function SiteHeader({
@@ -45,7 +46,7 @@ export function SiteHeader({
             <Button variant="ghost" size="icon" className="h-8 w-8 relative" aria-label="Notifications">
               <Bell className="h-4 w-4" />
               {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
                   {unreadCount}
                 </span>
               )}
@@ -66,7 +67,7 @@ export function SiteHeader({
             {notifications.length > 0 ? (
               <div className="max-h-80 overflow-y-auto">
                 {notifications.map((n) => (
-                  <a
+                  <Link
                     key={n.id}
                     href={n.action_url || "#"}
                     className={`block px-4 py-3 border-b border-border/30 hover:bg-muted/50 transition-colors ${!n.read ? "bg-primary/5" : ""}`}
@@ -78,7 +79,7 @@ export function SiteHeader({
                         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.body}</p>
                       </div>
                     </div>
-                  </a>
+                  </Link>
                 ))}
               </div>
             ) : (

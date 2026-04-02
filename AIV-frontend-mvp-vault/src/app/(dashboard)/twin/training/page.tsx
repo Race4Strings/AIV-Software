@@ -6,7 +6,8 @@ import { trainingApi, TrainingSubmission } from "@/lib/api/training";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Fingerprint, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Loader2, Fingerprint, CheckCircle, XCircle, Clock, MessageSquare, Inbox } from "lucide-react";
+import Link from "next/link";
 import { EmptyState } from "@/components/shared/empty-state";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -168,6 +169,10 @@ export default function TrainingPage() {
           <p className="text-sm text-muted-foreground">
             Review and approve AI-generated or requested refinements to your digital twin&apos;s ALCM.
           </p>
+          <Link href="/twin/training-area" className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-1">
+            <MessageSquare className="h-3.5 w-3.5" />
+            Open Training Area
+          </Link>
         </div>
         <Dialog open={openDialog} onOpenChange={setOpenDialog}>
           <DialogTrigger asChild>
@@ -252,7 +257,7 @@ export default function TrainingPage() {
         <Card className="border-dashed bg-muted/30">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-primary/10">
-              <CheckCircle className="size-6 text-primary" />
+              <Inbox className="size-6 text-primary" />
             </div>
             <h3 className="text-lg font-semibold">Your ALCM is up to date</h3>
             <p className="mt-1 max-w-sm text-sm text-muted-foreground">

@@ -9,6 +9,7 @@ module.exports = {
   theme: {
   	extend: {
   		colors: {
+  			// Static hex scale for explicit shade references (e.g., primary-500). The DEFAULT maps to oklch tokens in globals.css.
   			primary: {
   				'50': '#eef4ff',
   				'100': '#d9e6ff',
@@ -37,6 +38,14 @@ module.exports = {
   			destructive: {
   				DEFAULT: 'var(--destructive)',
   				foreground: 'var(--destructive-foreground)'
+  			},
+  			warning: {
+  				DEFAULT: 'var(--warning)',
+  				foreground: 'var(--warning-foreground)',
+  			},
+  			success: {
+  				DEFAULT: 'var(--success)',
+  				foreground: 'var(--success-foreground)',
   			},
   			border: 'var(--border)',
   			input: 'var(--input)',

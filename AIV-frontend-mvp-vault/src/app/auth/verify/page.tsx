@@ -106,7 +106,7 @@ function VerifyPageContent() {
             value={otp}
             onChange={handleOtpChange}
             onPaste={handlePaste}
-            className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/12 text-white text-lg placeholder:text-white/20 focus:outline-none focus:border-blue-500 transition-colors font-mono tracking-[0.3em] text-center"
+            className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-lg placeholder:text-white/20 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none focus:outline-none focus:border-blue-500 transition-colors font-mono tracking-[0.3em] text-center"
             maxLength={6}
             disabled={verifyMutation.isPending}
           />
@@ -114,7 +114,7 @@ function VerifyPageContent() {
 
         <button
           type="submit"
-          className="w-full py-3 rounded-xl bg-[#2563eb] text-white text-[15px] font-medium shadow-[0_0_20px_rgba(37,99,235,0.35)] hover:bg-[#3b82f6] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
+          className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
           disabled={otp.length !== 6 || verifyMutation.isPending}
         >
           {verifyMutation.isPending && <Loader2 className="size-4 animate-spin" />}

@@ -8,7 +8,7 @@ export default function AuthLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-6 py-12" style={{ backgroundColor: '#041030' }}>
+    <div className="dark flex min-h-screen flex-col items-center justify-center px-6 py-12 bg-[oklch(0.11_0.015_262)]">
       {/* Logo */}
       <div className="mb-10">
         <Link href="/">

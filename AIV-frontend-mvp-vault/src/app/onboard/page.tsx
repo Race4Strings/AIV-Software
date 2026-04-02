@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { onboardingApi } from "@/lib/api/onboarding";
 import { STEPS, TOTAL_STEPS, ALL_CONSENTS, DISCOVERY_STAGES, getErrorMsg } from "./constants";
@@ -11,6 +11,7 @@ import { AssetsStep } from "./steps/assets";
 import { ConsentsStep } from "./steps/consents";
 import { AuthorizeStep } from "./steps/authorize";
 import { CompleteStep } from "./steps/complete";
+import { ProgressBar } from "./progress-bar";
 
 // ──────────────────────────────────────────────────────
 // Main Page — 5-step onboarding flow
@@ -174,40 +175,6 @@ export default function OnboardingPage() {
     return () => { cancelled = true; clearInterval(interval); clearTimeout(timeout); };
   }, [discoveryPolling, sessionId, discoveryInput]);
 
-  // ──────────────────────────────────────────────────────
-  // Progress Bar
-  // ──────────────────────────────────────────────────────
-  function ProgressBar() {
-    return (
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-3">
-          {STEPS.map((s, i) => {
-            const Icon = s.icon;
-            const isActive = i === step;
-            const isDone = i < step || authorized;
-            return (
-              <div key={s.label} className="flex flex-col items-center gap-1">
-                <div className={`flex h-9 w-9 items-center justify-center rounded-full border-2 transition-all duration-300 ${
-                  isDone ? "bg-emerald-500 border-emerald-500 text-white" :
-                  isActive ? "border-primary bg-primary/10 text-primary" :
-                  "border-border text-muted-foreground"
-                }`}>
-                  {isDone && !isActive ? <CheckCircle2 className="h-5 w-5" /> : <Icon className="h-4 w-4" />}
-                </div>
-                <span className={`text-[10px] font-medium ${isActive ? "text-primary" : isDone ? "text-emerald-500" : "text-muted-foreground"}`}>
-                  {s.label}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-        <div className="h-1 rounded-full bg-muted overflow-hidden">
-          <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${((authorized ? TOTAL_STEPS : step) / TOTAL_STEPS) * 100}%` }} />
-        </div>
-        <p className="text-xs text-muted-foreground mt-1.5 text-center">Step {step + 1} of {TOTAL_STEPS}</p>
-      </div>
-    );
-  }
 
   // ──────────────────────────────────────────────────────
   // Render
@@ -232,8 +199,8 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
-      <ProgressBar />
+    <div className="dark mx-auto max-w-2xl p-6">
+      <ProgressBar currentStep={step} steps={STEPS} totalSteps={TOTAL_STEPS} authorized={authorized} />
 
       {/* Safety message — shown on step 0 */}
       {step === 0 && (

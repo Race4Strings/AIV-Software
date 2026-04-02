@@ -392,7 +392,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
       {/* Modal */}
       <motion.div
         ref={modalRef}
-        className="relative bg-[#0c1a2e] border border-white/10 rounded-2xl p-6 sm:p-8 max-w-[520px] w-full shadow-2xl backdrop-blur-xl transition-transform duration-200 max-h-[90vh] overflow-y-auto"
+        className="relative bg-popover border border-white/10 rounded-2xl p-6 sm:p-8 max-w-[520px] w-full shadow-2xl backdrop-blur-xl transition-transform duration-200 max-h-[90vh] overflow-y-auto"
         initial={{ opacity: 0, y: 12, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 12, scale: 0.97 }}
@@ -471,7 +471,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 <button
                   onClick={() => setStep(2)}
                   disabled={!requiredDetailsFilled}
-                  className="flex-1 py-3 rounded-xl bg-[#2563eb] text-white text-[15px] font-medium shadow-[0_0_20px_rgba(37,99,235,0.35)] hover:bg-[#3b82f6] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                  className="flex-1 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
                 >
                   Continue &rarr;
                 </button>
@@ -495,7 +495,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                     value={fields.email || ''}
                     onChange={e => setField('email', e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
                     autoFocus
                   />
                 </div>
@@ -506,7 +506,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                     value={fields.phone || ''}
                     onChange={e => setField('phone', e.target.value)}
                     placeholder="+1 (555) 000-0000"
-                    className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
                   />
                 </div>
                 <div>
@@ -514,15 +514,15 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                   <select
                     value={fields.referral || ''}
                     onChange={e => setField('referral', e.target.value)}
-                    className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer"
+                    className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm focus:outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer"
                     style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
                   >
-                    <option value="" className="bg-[#0c1a2e]">Select...</option>
-                    <option value="aiv_team" className="bg-[#0c1a2e]">AIV team member</option>
-                    <option value="client_referral" className="bg-[#0c1a2e]">Referred by a client</option>
-                    <option value="event" className="bg-[#0c1a2e]">Event or conference</option>
-                    <option value="social_press" className="bg-[#0c1a2e]">Social media or press</option>
-                    <option value="other" className="bg-[#0c1a2e]">Other</option>
+                    <option value="" className="bg-popover">Select...</option>
+                    <option value="aiv_team" className="bg-popover">AIV team member</option>
+                    <option value="client_referral" className="bg-popover">Referred by a client</option>
+                    <option value="event" className="bg-popover">Event or conference</option>
+                    <option value="social_press" className="bg-popover">Social media or press</option>
+                    <option value="other" className="bg-popover">Other</option>
                   </select>
                 </div>
               </div>
@@ -533,7 +533,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 <button
                   onClick={handleSubmit}
                   disabled={submitting || !fields.email?.trim()}
-                  className="flex-1 py-3 rounded-xl bg-[#2563eb] text-white text-[15px] font-medium shadow-[0_0_20px_rgba(37,99,235,0.35)] hover:bg-[#3b82f6] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Request Access <ArrowRight className="h-4 w-4" /></>}
                 </button>
@@ -566,7 +566,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
               </div>
               <button
                 onClick={handleClose}
-                className="w-full mt-5 py-3 rounded-xl bg-[#2563eb] text-white text-[15px] font-medium shadow-[0_0_20px_rgba(37,99,235,0.35)] hover:bg-[#3b82f6] transition-all cursor-pointer"
+                className="w-full mt-5 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 transition-all cursor-pointer"
               >
                 Done
               </button>
@@ -593,7 +593,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                   }}
                   placeholder="AIV-XXXXXXXX"
                   className={`w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border text-white text-sm placeholder:text-white/30 focus:outline-none transition-colors font-mono tracking-wider ${
-                    codeError ? 'border-red-500/60' : 'border-white/12 focus:border-blue-500'
+                    codeError ? 'border-red-500/60' : 'border-white/[0.12] focus:border-blue-500'
                   }`}
                   autoFocus
                   onKeyDown={e => { if (e.key === 'Enter') handleValidateCode() }}
@@ -612,7 +612,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 <button
                   onClick={handleValidateCode}
                   disabled={validatingCode || !fields.code?.trim() || (fields.code?.trim().length || 0) < 6}
-                  className="flex-1 py-3 rounded-xl bg-[#2563eb] text-white text-[15px] font-medium shadow-[0_0_20px_rgba(37,99,235,0.35)] hover:bg-[#3b82f6] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
                   {validatingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Verify &amp; Enter &rarr;</>}
                 </button>
@@ -646,7 +646,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                       value={fields.signupName || ''}
                       onChange={e => setField('signupName', e.target.value)}
                       placeholder="Full name"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
                       autoFocus
                     />
                   </div>
@@ -657,7 +657,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                       value={fields.signupUsername || ''}
                       onChange={e => setField('signupUsername', e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
                       placeholder="johndoe"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
                     />
                   </div>
                 </div>
@@ -668,7 +668,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                     value={fields.signupEmail || ''}
                     onChange={e => setField('signupEmail', e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
                   />
                 </div>
                 <div>
@@ -679,7 +679,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                       value={fields.signupPassword || ''}
                       onChange={e => setField('signupPassword', e.target.value)}
                       placeholder="Min 8 characters"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors pr-10"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors pr-10"
                     />
                     <button
                       type="button"
@@ -698,7 +698,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                     value={fields.signupConfirmPassword || ''}
                     onChange={e => setField('signupConfirmPassword', e.target.value)}
                     placeholder="Confirm your password"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
                     onKeyDown={e => { if (e.key === 'Enter') handleSignup() }}
                   />
                 </div>
@@ -710,7 +710,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 <button
                   onClick={handleSignup}
                   disabled={submitting || !fields.signupName?.trim() || !fields.signupUsername?.trim() || !fields.signupEmail?.trim() || !fields.signupPassword?.trim()}
-                  className="flex-1 py-3 rounded-xl bg-[#2563eb] text-white text-[15px] font-medium shadow-[0_0_20px_rgba(37,99,235,0.35)] hover:bg-[#3b82f6] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Create Account &rarr;</>}
                 </button>
@@ -733,7 +733,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                   onChange={e => setField('otp', e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
                   placeholder="000000"
                   maxLength={6}
-                  className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/12 text-white text-lg placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors font-mono tracking-[0.3em] text-center"
+                  className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-lg placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors font-mono tracking-[0.3em] text-center"
                   autoFocus
                   onKeyDown={e => { if (e.key === 'Enter') handleVerifyEmail() }}
                 />
@@ -754,7 +754,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
               <button
                 onClick={handleVerifyEmail}
                 disabled={submitting || (fields.otp?.length || 0) < 6}
-                className="w-full py-3 rounded-xl bg-[#2563eb] text-white text-[15px] font-medium shadow-[0_0_20px_rgba(37,99,235,0.35)] hover:bg-[#3b82f6] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Verify &amp; Enter &rarr;</>}
               </button>
@@ -772,7 +772,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
               </div>
               <button
                 onClick={() => { window.location.href = '/onboard' }}
-                className="w-full mt-4 py-3 rounded-xl bg-[#2563eb] text-white text-[15px] font-medium shadow-[0_0_20px_rgba(37,99,235,0.35)] hover:bg-[#3b82f6] transition-all cursor-pointer"
+                className="w-full mt-4 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 transition-all cursor-pointer"
               >
                 Get Started &rarr;
               </button>
@@ -794,7 +794,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                     value={fields.signinIdentifier || ''}
                     onChange={e => setField('signinIdentifier', e.target.value)}
                     placeholder="john@example.com or johndoe"
-                    className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
                     autoFocus
                   />
                 </div>
@@ -814,7 +814,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                       value={fields.signinPassword || ''}
                       onChange={e => setField('signinPassword', e.target.value)}
                       placeholder="Your password"
-                      className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors pr-10"
+                      className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors pr-10"
                       onKeyDown={e => { if (e.key === 'Enter') handleSignin() }}
                     />
                     <button
@@ -831,7 +831,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
               <button
                 onClick={handleSignin}
                 disabled={submitting || !fields.signinIdentifier?.trim() || !fields.signinPassword?.trim()}
-                className="w-full py-3 rounded-xl bg-[#2563eb] text-white text-[15px] font-medium shadow-[0_0_20px_rgba(37,99,235,0.35)] hover:bg-[#3b82f6] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Sign In &rarr;</>}
               </button>
@@ -862,7 +862,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                     value={fields.forgotEmail || ''}
                     onChange={e => setField('forgotEmail', e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
                     autoFocus
                     onKeyDown={e => { if (e.key === 'Enter') handleForgotPassword() }}
                   />
@@ -879,7 +879,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 <button
                   onClick={handleForgotPassword}
                   disabled={submitting || !fields.forgotEmail?.trim()}
-                  className="w-full py-3 rounded-xl bg-[#2563eb] text-white text-[15px] font-medium shadow-[0_0_20px_rgba(37,99,235,0.35)] hover:bg-[#3b82f6] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Send Reset Link &rarr;</>}
                 </button>
@@ -945,12 +945,12 @@ function FieldInput({ field, value, onChange }: { field: FieldDef; value: string
         <select
           value={value}
           onChange={e => onChange(e.target.value)}
-          className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer"
+          className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm focus:outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer"
           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
         >
-          <option value="" className="bg-[#0c1a2e]">Select&hellip;</option>
+          <option value="" className="bg-popover">Select&hellip;</option>
           {field.options.map(opt => (
-            <option key={opt} value={opt} className="bg-[#0c1a2e]">{opt}</option>
+            <option key={opt} value={opt} className="bg-popover">{opt}</option>
           ))}
         </select>
       </div>
@@ -967,7 +967,7 @@ function FieldInput({ field, value, onChange }: { field: FieldDef; value: string
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={field.placeholder}
-        className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+        className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
       />
     </div>
   )

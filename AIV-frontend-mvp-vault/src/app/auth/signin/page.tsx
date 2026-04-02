@@ -64,7 +64,7 @@ export default function SigninPage() {
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               disabled={signinMutation.isPending}
-              className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors pl-11"
+              className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none focus:outline-none focus:border-blue-500 transition-colors pl-11"
               autoComplete="email"
               autoFocus
             />
@@ -92,14 +92,14 @@ export default function SigninPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={signinMutation.isPending}
-              className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors pl-11 pr-11"
+              className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none focus:outline-none focus:border-blue-500 transition-colors pl-11 pr-11"
               autoComplete="current-password"
             />
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
-              tabIndex={-1}
+              aria-label="Toggle password visibility"
             >
               {showPassword ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
             </button>
@@ -108,7 +108,7 @@ export default function SigninPage() {
 
         <button
           type="submit"
-          className="w-full py-3 rounded-xl bg-[#2563eb] text-white text-[15px] font-medium shadow-[0_0_20px_rgba(37,99,235,0.35)] hover:bg-[#3b82f6] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2 mt-1"
+          className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2 mt-1 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
           disabled={signinMutation.isPending || !identifier.trim() || !password.trim()}
         >
           {signinMutation.isPending ? (

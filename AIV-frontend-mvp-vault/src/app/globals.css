@@ -27,9 +27,9 @@
     --primary-foreground: oklch(0.98 0 0);
     --secondary: oklch(0.965 0.008 262);
     --secondary-foreground: oklch(0.205 0.01 262);
-    --muted: oklch(0.965 0.008 262);
+    --muted: oklch(0.955 0.006 262);
     --muted-foreground: oklch(0.50 0.01 262);
-    --accent: oklch(0.965 0.008 262);
+    --accent: oklch(0.960 0.012 262);
     --accent-foreground: oklch(0.205 0.01 262);
 
     --destructive: oklch(0.577 0.245 27.325);
@@ -70,7 +70,7 @@
     --primary-foreground: oklch(0.98 0 0);
     --secondary: oklch(0.22 0.02 262);
     --secondary-foreground: oklch(0.96 0.005 262);
-    --muted: oklch(0.22 0.02 262);
+    --muted: oklch(0.20 0.015 262);
     --muted-foreground: oklch(0.65 0.015 262);
     --accent: oklch(0.22 0.025 262);
     --accent-foreground: oklch(0.96 0.005 262);
@@ -156,4 +156,17 @@
 
 .dark .glass {
   @apply bg-black/10;
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

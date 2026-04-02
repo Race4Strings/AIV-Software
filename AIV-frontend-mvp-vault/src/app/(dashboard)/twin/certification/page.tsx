@@ -12,6 +12,7 @@ import {
   ExternalLink,
   FileText,
   Download,
+  RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import {
   createCertification,
 } from "@/lib/api/certifications";
 import { fetchAuditLogs } from "@/lib/api/audit";
+import { toast } from "sonner";
 import type { Twin } from "@/lib/api/twins";
 import type { Certification } from "@/lib/api/certifications";
 import type { AuditLog } from "@/lib/api/audit";
@@ -65,14 +67,21 @@ export default function CertificationPage() {
       }
       setLoading(false);
     }
-    init();
+    init().catch(() => {
+      toast.error("Failed to load certification data");
+      setLoading(false);
+    });
   }, [loadData]);
 
   const handleCertify = async () => {
     if (!twin) return;
     setCertifying(true);
-    const cert = await createCertification(twin.id);
-    if (cert) await loadData(twin.id);
+    try {
+      const cert = await createCertification(twin.id);
+      if (cert) await loadData(twin.id);
+    } catch {
+      toast.error("Certification failed. Please try again.");
+    }
     setCertifying(false);
   };
 
@@ -103,6 +112,14 @@ export default function CertificationPage() {
     );
   }
 
+  const isProduction = process.env.NEXT_PUBLIC_CHAIN_ENV === "production" || process.env.NEXT_PUBLIC_CHAIN_ENV === "mainnet";
+
+  const getNetworkLabel = (network?: string) => {
+    if (isProduction) return "Blockchain Verified";
+    if (network === "polygon-amoy") return "Polygon Amoy Testnet";
+    return "Polygon Network";
+  };
+
   const verifyUrl = latest ? `${typeof window !== "undefined" ? window.location.origin : ""}/verify/${latest.hash}` : null;
 
   const handleDownloadPdf = () => {
@@ -131,7 +148,7 @@ export default function CertificationPage() {
             Cryptographic proof of ownership for your digital identity
           </p>
         </div>
-        {!latest && (
+        {!latest ? (
           <Button onClick={handleCertify} disabled={certifying}>
             {certifying ? (
               <Loader2 className="mr-2 size-4 animate-spin" />
@@ -140,13 +157,25 @@ export default function CertificationPage() {
             )}
             Certify Now
           </Button>
+        ) : (
+          <div className="flex flex-col items-end gap-1">
+            <Button variant="outline" onClick={handleCertify} disabled={certifying}>
+              {certifying ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 size-4" />
+              )}
+              Update Certification
+            </Button>
+            <span className="text-xs text-muted-foreground">Creates a new version reflecting your latest identity data.</span>
+          </div>
         )}
       </div>
 
       {latest ? (
         <Card id="certificate-card" className="overflow-hidden border-border/50">
           {/* Certificate Header Bar */}
-          <div className="bg-primary-500/10 px-6 py-3 flex items-center justify-between border-b border-border/50">
+          <div className="bg-primary/10 px-6 py-3 flex items-center justify-between border-b border-border/50">
             <div className="flex items-center gap-2">
               <ShieldCheck className="size-5 text-emerald-500" />
               <span className="text-sm font-medium text-emerald-500">Verified Certificate</span>
@@ -163,7 +192,7 @@ export default function CertificationPage() {
               <h2 className="text-2xl font-bold tracking-tight">
                 Digital Identity Ownership
               </h2>
-              <div className="mx-auto h-px w-24 bg-primary-500/30" />
+              <div className="mx-auto h-px w-24 bg-primary/30" />
             </div>
 
             {/* Owner Name */}
@@ -200,7 +229,7 @@ export default function CertificationPage() {
                   {latest.tx_hash ? (
                     <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-xs text-purple-600 dark:text-purple-400">
                       <div className="size-1.5 rounded-full bg-purple-500 animate-pulse" />
-                      {latest.network === "polygon-amoy" ? "Polygon Amoy Testnet" : "Polygon Network"}
+                      {getNetworkLabel(latest.network)}
                     </div>
                   ) : (
                     <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs text-amber-600 dark:text-amber-400">
@@ -229,7 +258,7 @@ export default function CertificationPage() {
                         : `https://polygonscan.com/tx/${latest.tx_hash}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-mono text-primary-500 hover:underline flex items-center gap-1"
+                      className="font-mono text-primary hover:underline flex items-center gap-1"
                     >
                       {latest.tx_hash.slice(0, 10)}...{latest.tx_hash.slice(-8)}
                       <ExternalLink className="size-3" />
@@ -274,7 +303,7 @@ export default function CertificationPage() {
                   Public Verification URL
                 </p>
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 truncate font-mono text-xs text-primary-500">
+                  <code className="flex-1 truncate font-mono text-xs text-primary">
                     {verifyUrl}
                   </code>
                   <Button variant="outline" size="sm" asChild className="h-7 gap-1.5 text-xs shrink-0">

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { SiteHeader } from "@/components/dashboard/site-header";
+import { useStoredUser } from "@/hooks/use-stored-user";
 
 export default function DashboardLayout({
   children,
@@ -13,30 +14,13 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [user, setUser] = useState<{
-    name: string;
-    email: string;
-    avatar: string;
-  } | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, isLoading } = useStoredUser();
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (!stored) {
+    if (!isLoading && !user) {
       router.replace("/auth/signin");
-      return;
     }
-    try {
-      const parsed = JSON.parse(stored);
-      const u = parsed.data || parsed;
-      if (!u.avatar) u.avatar = "";
-      setUser(u);
-    } catch {
-      router.replace("/auth/signin");
-      return;
-    }
-    setIsLoading(false);
-  }, [router]);
+  }, [isLoading, user, router]);
 
   if (isLoading || !user) {
     return (
@@ -50,7 +34,7 @@ export default function DashboardLayout({
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <SiteHeader user={user} />
+        <SiteHeader user={{ name: user.name || "", email: user.email || "", avatar: user.avatar || "" }} />
         <main className="flex-1 overflow-x-hidden">
           <div className="mx-auto w-full max-w-6xl">{children}</div>
         </main>

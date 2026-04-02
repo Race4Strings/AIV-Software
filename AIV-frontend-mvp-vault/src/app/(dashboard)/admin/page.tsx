@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from "react";
 import {
-  Shield, Key, Users, UserPlus, CheckCircle2, Clock,
-  Loader2, Copy, RefreshCw, Mail, Trash2,
+  Key, Users, UserPlus, CheckCircle2, Clock,
+  Loader2, Copy, RefreshCw, Trash2,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { adminApi, type AccessCode, type WaitlistEntry } from "@/lib/api/admin";
@@ -24,6 +25,8 @@ export default function AdminDashboard() {
   const [codeLabel, setCodeLabel] = useState("");
   const [codeCount, setCodeCount] = useState(5);
   const [granting, setGranting] = useState<string | null>(null);
+  const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
+  const [batchGranting, setBatchGranting] = useState(false);
 
   useEffect(() => {
     try {
@@ -83,6 +86,41 @@ export default function AdminDashboard() {
     } catch { toast.error("Failed to remove"); }
   }
 
+  function toggleSelectEntry(entryId: string) {
+    setSelectedEntries((prev) => {
+      const next = new Set(prev);
+      if (next.has(entryId)) next.delete(entryId);
+      else next.add(entryId);
+      return next;
+    });
+  }
+
+  function toggleSelectAll(pending: WaitlistEntry[]) {
+    if (selectedEntries.size === pending.length) {
+      setSelectedEntries(new Set());
+    } else {
+      setSelectedEntries(new Set(pending.map((w) => w.id)));
+    }
+  }
+
+  async function batchGrant() {
+    if (selectedEntries.size === 0) return;
+    setBatchGranting(true);
+    let succeeded = 0;
+    for (const entryId of selectedEntries) {
+      try {
+        await adminApi.grantAccess(entryId);
+        succeeded++;
+      } catch {
+        // Continue with remaining
+      }
+    }
+    toast.success(`Access granted to ${succeeded} of ${selectedEntries.size} entries`);
+    setSelectedEntries(new Set());
+    await loadData();
+    setBatchGranting(false);
+  }
+
   function copyCode(code: string) {
     navigator.clipboard.writeText(code);
     toast.success("Code copied");
@@ -118,7 +156,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-5 pb-4 text-center">
             <div className="text-2xl font-bold">{unusedCodes.length}</div>
@@ -177,9 +215,9 @@ export default function AdminDashboard() {
       </section>
 
       {/* Available Codes */}
-      {unusedCodes.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Available Codes ({unusedCodes.length})</h2>
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Available Codes ({unusedCodes.length})</h2>
+        {unusedCodes.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {unusedCodes.map((c) => (
               <Card key={c.id} className="border-border/50">
@@ -194,8 +232,14 @@ export default function AdminDashboard() {
               </Card>
             ))}
           </div>
-        </section>
-      )}
+        ) : (
+          <Card className="border-border/50">
+            <CardContent className="py-6 text-center">
+              <p className="text-sm text-muted-foreground">All codes have been claimed. Generate more above.</p>
+            </CardContent>
+          </Card>
+        )}
+      </section>
 
       {/* Waitlist */}
       <section className="space-y-3">
@@ -203,13 +247,34 @@ export default function AdminDashboard() {
 
         {pendingWaitlist.length > 0 && (
           <div className="space-y-2">
-            <h3 className="text-sm font-medium text-yellow-500 flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5" /> Pending ({pendingWaitlist.length})
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-yellow-500 flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5" /> Pending ({pendingWaitlist.length})
+              </h3>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                  <Checkbox
+                    checked={selectedEntries.size === pendingWaitlist.length && pendingWaitlist.length > 0}
+                    onCheckedChange={() => toggleSelectAll(pendingWaitlist)}
+                  />
+                  Select all
+                </label>
+                {selectedEntries.size > 0 && (
+                  <Button size="sm" onClick={batchGrant} disabled={batchGranting} className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-xs">
+                    {batchGranting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <UserPlus className="h-3 w-3 mr-1" />}
+                    Grant {selectedEntries.size} selected
+                  </Button>
+                )}
+              </div>
+            </div>
             {pendingWaitlist.map((w) => (
               <Card key={w.id} className="border-yellow-500/20">
                 <CardContent className="flex items-center gap-4 py-4">
-                  <Mail className="h-5 w-5 text-muted-foreground shrink-0" />
+                  <Checkbox
+                    checked={selectedEntries.has(w.id)}
+                    onCheckedChange={() => toggleSelectEntry(w.id)}
+                    className="shrink-0"
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-sm truncate">{w.name || w.email}</span>

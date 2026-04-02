@@ -2,17 +2,22 @@
 
 import { forwardRef, useMemo, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useReducedMotion } from '@/hooks/use-reduced-motion';
 
-function useAnimationFrame(callback: () => void) {
+function useAnimationFrame(callback: () => void, enabled: boolean = true) {
+    const callbackRef = useRef(callback);
+    callbackRef.current = callback;
+
     useEffect(() => {
+        if (!enabled) return;
         let frameId: number;
         const loop = () => {
-            callback();
+            callbackRef.current();
             frameId = requestAnimationFrame(loop);
         };
         frameId = requestAnimationFrame(loop);
         return () => cancelAnimationFrame(frameId);
-    }, [callback]);
+    }, [enabled]);
 }
 
 function useMousePositionRef(containerRef: React.RefObject<HTMLElement | null>) {
@@ -72,6 +77,7 @@ const VariableProximity = forwardRef<HTMLSpanElement, VariableProximityProps>((p
         ...restProps
     } = props;
 
+    const reducedMotion = useReducedMotion();
     const letterRefs = useRef<(HTMLSpanElement | null)[]>([]);
     const interpolatedSettingsRef = useRef<string[]>([]);
     const mousePositionRef = useMousePositionRef(containerRef);
@@ -113,6 +119,16 @@ const VariableProximity = forwardRef<HTMLSpanElement, VariableProximityProps>((p
                 return norm;
         }
     };
+
+    // Compute a static midpoint font-variation-settings for reduced motion
+    const staticMiddleSettings = useMemo(() => {
+        return parsedSettings
+            .map(({ axis, fromValue, toValue }) => {
+                const midValue = (fromValue + toValue) / 2;
+                return `'${axis}' ${midValue}`;
+            })
+            .join(', ');
+    }, [parsedSettings]);
 
     useAnimationFrame(() => {
         if (!containerRef?.current) return;
@@ -159,7 +175,7 @@ const VariableProximity = forwardRef<HTMLSpanElement, VariableProximityProps>((p
             interpolatedSettingsRef.current[index] = newSettings;
             letterRef.style.fontVariationSettings = newSettings;
         });
-    });
+    }, !reducedMotion);
 
     const words = label.split(' ');
     let letterIndex = 0;
@@ -185,7 +201,9 @@ const VariableProximity = forwardRef<HTMLSpanElement, VariableProximityProps>((p
                                 style={{
                                     display: 'inline-block',
                                     overflow: 'visible',
-                                    fontVariationSettings: interpolatedSettingsRef.current[currentLetterIndex] || fromFontVariationSettings
+                                    fontVariationSettings: reducedMotion
+                                        ? staticMiddleSettings
+                                        : (interpolatedSettingsRef.current[currentLetterIndex] || fromFontVariationSettings)
                                 }}
                                 aria-hidden="true"
                             >

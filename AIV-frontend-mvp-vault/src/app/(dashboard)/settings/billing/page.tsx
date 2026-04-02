@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { licensingApi } from "@/lib/api/licensing";
 import { paymentsApi } from "@/lib/api/payments";
+import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
 interface Invoice {
@@ -127,7 +128,7 @@ export default function BillingPage() {
                   );
                   if (result.checkout_url) window.location.href = result.checkout_url;
                 } catch {
-                  // Toast would go here
+                  toast.error("Failed to connect payment method. Please try again.");
                 }
               }}
             >
@@ -178,7 +179,7 @@ export default function BillingPage() {
         <h2 className="text-lg font-semibold">Commission Structure</h2>
         <Card className="border-border/50">
           <CardContent className="py-5">
-            <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
               <div>
                 <div className="text-2xl font-bold">30%</div>
                 <div className="text-xs text-muted-foreground mt-1">First deal</div>
@@ -308,7 +309,7 @@ export default function BillingPage() {
                   );
                   if (result.onboarding_url) window.location.href = result.onboarding_url;
                 } catch {
-                  // Toast would go here
+                  toast.error("Failed to set up payouts. Please try again.");
                 }
               }}
             >

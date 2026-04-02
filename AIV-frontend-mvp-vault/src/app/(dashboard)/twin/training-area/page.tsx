@@ -55,12 +55,15 @@ export default function TrainingAreaPage() {
       <div className="flex items-center gap-3 border-b px-6 py-3 shrink-0">
         <Bot className="h-5 w-5 text-primary" />
         <div>
-          <h1 className="text-sm font-semibold">Training Area</h1>
-          <p className="text-xs text-muted-foreground">{twinName}</p>
+          <h1 className="text-2xl font-bold">Training Area</h1>
+          <p className="text-sm text-muted-foreground">{twinName}</p>
         </div>
-        <Badge variant="outline" className="ml-auto text-xs">
+        <Link href="/twin/training" className="ml-auto text-xs text-primary hover:underline">
+          View Training Submissions
+        </Link>
+        <Badge variant="outline" className="text-xs">
           <Activity className="h-3 w-3 mr-1" />
-          {twinStatus.toLowerCase().replace("_", " ")}
+          {twinStatus.toLowerCase().replace(/_/g, " ")}
         </Badge>
       </div>
 

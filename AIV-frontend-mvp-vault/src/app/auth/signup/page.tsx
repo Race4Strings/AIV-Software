@@ -113,7 +113,7 @@ function SignupForm() {
               value={accessCode}
               onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
               placeholder="AIV-XXXXXX"
-              className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors font-mono tracking-wider"
+              className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none focus:outline-none focus:border-blue-500 transition-colors font-mono tracking-wider"
             />
           )}
         </div>
@@ -130,7 +130,7 @@ function SignupForm() {
               placeholder="Full name"
               maxLength={255}
               disabled={signupMutation.isPending}
-              className={`w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border ${touched.name && fieldErrors.name ? 'border-red-500/50' : 'border-white/12'} text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors`}
+              className={`w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border ${touched.name && fieldErrors.name ? 'border-red-500/50' : 'border-white/[0.12]'} text-white text-sm placeholder:text-white/30 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none focus:outline-none focus:border-blue-500 transition-colors`}
               autoFocus={!!codeFromUrl}
             />
             {touched.name && fieldErrors.name && <p className="text-[10px] text-red-400 mt-1">{fieldErrors.name}</p>}
@@ -145,7 +145,7 @@ function SignupForm() {
               placeholder="johndoe"
               maxLength={50}
               disabled={signupMutation.isPending}
-              className={`w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border ${touched.username && fieldErrors.username ? 'border-red-500/50' : 'border-white/12'} text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors`}
+              className={`w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border ${touched.username && fieldErrors.username ? 'border-red-500/50' : 'border-white/[0.12]'} text-white text-sm placeholder:text-white/30 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none focus:outline-none focus:border-blue-500 transition-colors`}
             />
             {touched.username && fieldErrors.username && <p className="text-[10px] text-red-400 mt-1">{fieldErrors.username}</p>}
           </div>
@@ -162,7 +162,7 @@ function SignupForm() {
             placeholder="you@example.com"
             maxLength={255}
             disabled={signupMutation.isPending}
-            className={`w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border ${touched.email && fieldErrors.email ? 'border-red-500/50' : 'border-white/12'} text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors`}
+            className={`w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border ${touched.email && fieldErrors.email ? 'border-red-500/50' : 'border-white/[0.12]'} text-white text-sm placeholder:text-white/30 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none focus:outline-none focus:border-blue-500 transition-colors`}
           />
           {touched.email && fieldErrors.email && <p className="text-[10px] text-red-400 mt-1">{fieldErrors.email}</p>}
         </div>
@@ -177,13 +177,13 @@ function SignupForm() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Min 8 characters"
               disabled={signupMutation.isPending}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors pr-10"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none focus:outline-none focus:border-blue-500 transition-colors pr-10"
             />
             <button
               type="button"
               onClick={() => setShowPassword((p) => !p)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
-              tabIndex={-1}
+              aria-label="Toggle password visibility"
             >
               {showPassword ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
             </button>
@@ -197,6 +197,7 @@ function SignupForm() {
               (/[^A-Za-z0-9]/.test(password) ? 1 : 0)
             )
             const colors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-emerald-500']
+            const textColors = ['text-red-500', 'text-orange-500', 'text-yellow-500', 'text-emerald-500']
             const labels = ['', 'Weak', 'Fair', 'Good', 'Strong']
             return (
               <div className="mt-2 space-y-1">
@@ -210,7 +211,7 @@ function SignupForm() {
                     />
                   ))}
                 </div>
-                <p className="text-[10px] text-white/40">
+                <p className={`text-[10px] ${password.length < 8 ? 'text-white/40' : textColors[strength - 1]}`}>
                   {password.length < 8 ? 'At least 8 characters' : labels[strength]}
                 </p>
               </div>
@@ -227,13 +228,13 @@ function SignupForm() {
             onChange={(e) => setPasswordConfirm(e.target.value)}
             placeholder="Confirm your password"
             disabled={signupMutation.isPending}
-            className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/12 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-blue-500 transition-colors"
+            className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none focus:outline-none focus:border-blue-500 transition-colors"
           />
         </div>
 
         <button
           type="submit"
-          className="w-full py-3 rounded-xl bg-[#2563eb] text-white text-[15px] font-medium shadow-[0_0_20px_rgba(37,99,235,0.35)] hover:bg-[#3b82f6] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2 mt-1"
+          className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2 mt-1 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
           disabled={signupMutation.isPending || !name.trim() || !username.trim() || !email.trim() || !password.trim()}
         >
           {signupMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}

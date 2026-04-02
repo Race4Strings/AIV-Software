@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import {
     FileText, Globe, Shield, Lock, DollarSign,
     BookOpen, Clock, BarChart3, AlertTriangle, Users,
@@ -371,6 +372,7 @@ export function MobileSignalCarousel() {
     const [visible, setVisible] = useState(false)
     const [hasRoom, setHasRoom] = useState(true)
     const autoAdvanceRef = useRef<NodeJS.Timeout | null>(null)
+    const reducedMotion = useReducedMotion()
 
     // Check if screen is tall enough to show the carousel without overlapping content
     useEffect(() => {
@@ -390,12 +392,12 @@ export function MobileSignalCarousel() {
     }, [])
 
     useEffect(() => {
-        if (!visible) return
+        if (!visible || reducedMotion) return
         autoAdvanceRef.current = setInterval(advance, 5000)
         return () => {
             if (autoAdvanceRef.current) clearInterval(autoAdvanceRef.current)
         }
-    }, [visible, advance])
+    }, [visible, advance, reducedMotion])
 
     // Tap to skip to next card
     const handleTap = () => {
@@ -410,20 +412,28 @@ export function MobileSignalCarousel() {
 
     return (
         <div className="w-full flex justify-center cursor-pointer" style={{ minHeight: '64px' }} onClick={handleTap}>
-            <AnimatePresence mode="wait">
-                <motion.div
-                    key={`mobile-${signal.id}-${currentIndex}`}
-                    className="w-full max-w-[300px]"
-                    variants={mobileCardVariants}
-                    initial="initial"
-                    animate="animate"
-                    exit="exit"
-                >
+            {reducedMotion ? (
+                <div className="w-full max-w-[300px]">
                     <div className="rounded-xl border border-white/15 bg-gradient-to-br from-white/10 to-white/5 p-2.5 backdrop-blur-2xl shadow-[0_4px_20px_0_rgba(0,0,0,0.3)] scale-[0.75] origin-center">
                         {renderCardContent(signal)}
                     </div>
-                </motion.div>
-            </AnimatePresence>
+                </div>
+            ) : (
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={`mobile-${signal.id}-${currentIndex}`}
+                        className="w-full max-w-[300px]"
+                        variants={mobileCardVariants}
+                        initial="initial"
+                        animate="animate"
+                        exit="exit"
+                    >
+                        <div className="rounded-xl border border-white/15 bg-gradient-to-br from-white/10 to-white/5 p-2.5 backdrop-blur-2xl shadow-[0_4px_20px_0_rgba(0,0,0,0.3)] scale-[0.75] origin-center">
+                            {renderCardContent(signal)}
+                        </div>
+                    </motion.div>
+                </AnimatePresence>
+            )}
         </div>
     )
 }
@@ -437,6 +447,7 @@ export function SignalCard({ side }: SignalCardProps) {
     const positionRef = useRef(getRandomPosition(side))
     const [visible, setVisible] = useState(false)
     const autoAdvanceRef = useRef<NodeJS.Timeout | null>(null)
+    const reducedMotion = useReducedMotion()
 
     // Randomized interval between 3.5s and 5.5s for each cycle
     const getRandomInterval = () => 3500 + Math.random() * 2000
@@ -461,13 +472,13 @@ export function SignalCard({ side }: SignalCardProps) {
             : 2500 + Math.random() * 1500
         const showTimeout = setTimeout(() => {
             setVisible(true)
-            scheduleNext()
+            if (!reducedMotion) scheduleNext()
         }, initialDelay)
         return () => {
             clearTimeout(showTimeout)
             if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current)
         }
-    }, [scheduleNext, side])
+    }, [scheduleNext, side, reducedMotion])
 
     // Click handler
     const handleClick = () => {
@@ -494,6 +505,20 @@ export function SignalCard({ side }: SignalCardProps) {
 
     const signal = shuffledSignals[currentIndex]
     const pos = positionRef.current
+
+    if (reducedMotion) {
+        return (
+            <div
+                className="absolute pointer-events-auto cursor-pointer"
+                style={pos.style}
+                onClick={handleClick}
+            >
+                <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-white/15 to-white/5 p-4 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] min-w-[280px]">
+                    {renderCardContent(signal)}
+                </div>
+            </div>
+        )
+    }
 
     return (
         <AnimatePresence mode="wait">

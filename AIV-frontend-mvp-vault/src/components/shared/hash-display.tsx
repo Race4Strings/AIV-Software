@@ -14,9 +14,13 @@ export function HashDisplay({ hash, className }: HashDisplayProps) {
   const truncated = hash.length > 16 ? `${hash.slice(0, 8)}...${hash.slice(-8)}` : hash;
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(hash);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(hash);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API unavailable (insecure context, denied permission, etc.)
+    }
   };
 
   return (

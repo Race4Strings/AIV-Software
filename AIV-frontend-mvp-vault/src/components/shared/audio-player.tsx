@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { Play, Pause, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -71,6 +71,19 @@ export function AudioPlayer({ src, className }: AudioPlayerProps) {
     audio.currentTime = pct * audio.duration;
   };
 
+  const handleSeekKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    const audio = audioRef.current;
+    if (!audio || !audio.duration) return;
+    const step = 5; // seconds
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      audio.currentTime = Math.min(audio.currentTime + step, audio.duration);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      audio.currentTime = Math.max(audio.currentTime - step, 0);
+    }
+  }, []);
+
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
     const sec = Math.floor(s % 60);
@@ -95,10 +108,13 @@ export function AudioPlayer({ src, className }: AudioPlayerProps) {
       <div
         className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden cursor-pointer"
         onClick={handleProgressClick}
-        role="progressbar"
-        aria-valuenow={progress}
+        onKeyDown={handleSeekKeyDown}
+        role="slider"
+        aria-label="Seek"
+        aria-valuenow={audioRef.current?.currentTime ?? 0}
         aria-valuemin={0}
-        aria-valuemax={100}
+        aria-valuemax={duration}
+        tabIndex={0}
       >
         <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} />
       </div>

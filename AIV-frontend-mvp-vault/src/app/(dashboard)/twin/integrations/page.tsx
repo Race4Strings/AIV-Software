@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Fingerprint, Loader2, ArrowRight, Link2, FileText, Upload } from "lucide-react";
+import { Fingerprint, Loader2, ArrowRight, Link2, FileText, Upload, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,8 +51,7 @@ export default function IntegrationsPage() {
   }
 
   function isYouTubeUrl(inputUrl: string): boolean {
-    const lower = inputUrl.toLowerCase();
-    return lower.includes("youtube.com") || lower.includes("youtu.be");
+    return /^https?:\/\/(www\.)?(youtube\.com\/watch|youtu\.be\/|youtube\.com\/shorts\/)/.test(inputUrl.trim());
   }
 
   async function handleSubmit() {
@@ -89,7 +88,7 @@ export default function IntegrationsPage() {
       </div>
 
       {/* Quick context */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="flex flex-col items-center gap-2 rounded-xl border border-border/50 p-3 text-center">
           <FileText className="h-5 w-5 text-muted-foreground" />
           <span className="text-xs font-medium">Paste transcripts</span>
@@ -119,6 +118,11 @@ export default function IntegrationsPage() {
               rows={8}
               className="resize-y"
             />
+            {content.length > 0 && (
+              <p className="text-xs text-muted-foreground text-right mt-1">
+                {content.length.toLocaleString()} characters
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -163,6 +167,15 @@ export default function IntegrationsPage() {
             {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowRight className="h-4 w-4 mr-2" />}
             Feed to Twin
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Recent Submissions */}
+      <Card className="border-dashed bg-muted/30">
+        <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+          <Clock className="h-5 w-5 text-muted-foreground/40 mb-2" />
+          <p className="text-sm font-medium text-muted-foreground">Submission history coming soon</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">Your recent submissions will appear here.</p>
         </CardContent>
       </Card>
 

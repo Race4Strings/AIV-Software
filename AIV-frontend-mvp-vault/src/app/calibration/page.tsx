@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, CheckCircle2, Loader2, Brain } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
@@ -20,11 +20,11 @@ import {
 // ──────────────────────────────────────────────────────
 
 const SCALE_LABELS = [
-  { value: 1, label: "Disagree strongly" },
-  { value: 2, label: "Disagree a little" },
-  { value: 3, label: "Neutral" },
-  { value: 4, label: "Agree a little" },
-  { value: 5, label: "Agree strongly" },
+  { value: 1, label: "Strongly Disagree", abbrev: "SD" },
+  { value: 2, label: "Disagree", abbrev: "D" },
+  { value: 3, label: "Neutral", abbrev: "N" },
+  { value: 4, label: "Agree", abbrev: "A" },
+  { value: 5, label: "Strongly Agree", abbrev: "SA" },
 ];
 
 // ──────────────────────────────────────────────────────
@@ -121,6 +121,29 @@ export default function CalibrationPage() {
   // Track per-item responses as a map for the current page
   const [pageResponses, setPageResponses] = useState<Record<number, number>>({});
 
+  // Keyboard shortcuts: press 1-5 to answer the next unanswered item
+  useEffect(() => {
+    if (phase !== "tuning") return;
+    const currentPage = pages[currentIndex];
+    if (!currentPage) return;
+
+    const handleKeyPress = (e: KeyboardEvent) => {
+      const num = parseInt(e.key, 10);
+      if (num < 1 || num > 5) return;
+      // Ignore if user is typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      // Find the first unanswered item on the current page
+      const nextUnanswered = currentPage.find((item) => pageResponses[item.item] === undefined);
+      if (nextUnanswered) {
+        setPageResponses((prev) => ({ ...prev, [nextUnanswered.item]: num }));
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [phase, pages, currentIndex, pageResponses]);
+
   // Handle setting an answer for one item on the current page
   const setItemResponse = useCallback((itemNum: number, value: number) => {
     setPageResponses((prev) => ({ ...prev, [itemNum]: value }));
@@ -191,7 +214,7 @@ export default function CalibrationPage() {
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed">
               Your digital twin is built from public data — interviews, posts,
-              articles. This 10-minute session helps it understand the{" "}
+              articles. This quick session (about 5 minutes) helps it understand the{" "}
               <span className="text-foreground font-medium">real you</span> — not just
               the public you.
             </p>
@@ -270,8 +293,11 @@ export default function CalibrationPage() {
 
   // ── TUNING SESSION (10 items per page) ──
   const currentPage = pages[currentIndex] || [];
-  const progress = (currentIndex / totalPages) * 100;
   const answeredOnPage = currentPage.filter((item) => pageResponses[item.item] !== undefined).length;
+  // Per-item progress: all items from completed pages + answered items on current page
+  const completedItemsFromPrevPages = currentIndex * ITEMS_PER_PAGE;
+  const totalItems = items.length || 1;
+  const progress = ((completedItemsFromPrevPages + answeredOnPage) / totalItems) * 100;
   const currentDomain = currentPage[0]?.domain_label || "";
 
   return (
@@ -318,9 +344,9 @@ export default function CalibrationPage() {
               )}
 
               {/* Scale legend */}
-              <div className="flex justify-end gap-4 mb-4 text-[10px] text-muted-foreground">
-                {SCALE_LABELS.map(({ value, label }) => (
-                  <span key={value} className="text-center w-12">{value} = {label.split(" ")[0]}</span>
+              <div className="flex justify-between mb-4 text-[10px] text-muted-foreground">
+                {SCALE_LABELS.map(({ value, label, abbrev }) => (
+                  <span key={value} className="text-center flex-1">{value} = {label}</span>
                 ))}
               </div>
 
@@ -340,12 +366,13 @@ export default function CalibrationPage() {
                         <span className="font-medium">{item.text.toLowerCase()}</span>
                       </p>
                       <div className="flex gap-2">
-                        {SCALE_LABELS.map(({ value, label }) => (
+                        {SCALE_LABELS.map(({ value, label, abbrev }) => (
                           <button
                             key={value}
                             onClick={() => setItemResponse(item.item, value)}
                             className={`
-                              flex-1 h-10 rounded-lg border text-sm font-medium transition-all duration-150
+                              flex-1 min-h-[2.75rem] rounded-lg border text-sm font-medium transition-all duration-150
+                              flex flex-col items-center justify-center gap-0.5 py-1
                               ${selected === value
                                 ? "border-primary bg-primary text-primary-foreground"
                                 : "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground"
@@ -353,7 +380,8 @@ export default function CalibrationPage() {
                             `}
                             title={label}
                           >
-                            {value}
+                            <span>{value}</span>
+                            <span className="text-[9px] leading-none font-normal">{abbrev}</span>
                           </button>
                         ))}
                       </div>
@@ -362,12 +390,26 @@ export default function CalibrationPage() {
                 })}
               </div>
 
-              {/* Continue button */}
-              <div className="mt-6">
+              {/* Navigation buttons */}
+              <div className="mt-6 flex gap-3">
+                {currentIndex > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setPageResponses({});
+                      setCurrentIndex((i) => i - 1);
+                    }}
+                    disabled={saving}
+                    className="py-5 text-base px-6"
+                  >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back
+                  </Button>
+                )}
                 <Button
                   onClick={handlePageSubmit}
                   disabled={saving || answeredOnPage < currentPage.length}
-                  className="w-full py-5 text-base"
+                  className="flex-1 py-5 text-base"
                 >
                   {saving ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -375,12 +417,12 @@ export default function CalibrationPage() {
                   {currentIndex + 1 >= totalPages ? "Complete Precision Tuning" : "Continue"}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-                {answeredOnPage < currentPage.length && (
-                  <p className="text-xs text-muted-foreground text-center mt-2">
-                    Answer all {currentPage.length} statements to continue
-                  </p>
-                )}
               </div>
+              {answeredOnPage < currentPage.length && (
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  Answer all {currentPage.length} statements to continue
+                </p>
+              )}
             </motion.div>
           </AnimatePresence>
         </div>

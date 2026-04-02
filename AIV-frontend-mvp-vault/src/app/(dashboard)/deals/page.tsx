@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Briefcase, CheckCircle2, AlertTriangle, Clock,
   DollarSign, ArrowRight, Loader2, Plus, X, Search,
+  XCircle, FileCheck, Send, Eye, Zap, Archive, type LucideIcon,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,11 +28,23 @@ const STATUS_COLORS: Record<string, string> = {
   UNDER_REVIEW: "bg-yellow-500/10 text-yellow-500",
   APPROVED: "bg-emerald-500/10 text-emerald-500",
   CONTRACT_SENT: "bg-purple-500/10 text-purple-500",
-  EXECUTED: "bg-green-500/10 text-green-500",
+  EXECUTED: "bg-teal-500/10 text-teal-500",
   ACTIVE: "bg-green-600/10 text-green-600",
-  COMPLETED: "bg-gray-500/10 text-gray-400",
-  EXPIRED: "bg-red-500/10 text-red-400",
-  TERMINATED: "bg-red-600/10 text-red-500",
+  COMPLETED: "bg-gray-500/10 text-gray-500",
+  EXPIRED: "bg-orange-500/10 text-orange-500",
+  TERMINATED: "bg-red-500/10 text-red-500",
+};
+
+const STATUS_ICONS: Record<string, LucideIcon> = {
+  SUBMITTED: Send,
+  UNDER_REVIEW: Eye,
+  APPROVED: CheckCircle2,
+  CONTRACT_SENT: FileCheck,
+  EXECUTED: Zap,
+  ACTIVE: Zap,
+  COMPLETED: Archive,
+  EXPIRED: Clock,
+  TERMINATED: XCircle,
 };
 
 export default function DealsPage() {
@@ -59,7 +72,9 @@ export default function DealsPage() {
         setDeals(d);
         setRevenue(r);
       })
-      .catch(() => {})
+      .catch(() => {
+        toast.error("Failed to load deals");
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -122,8 +137,9 @@ export default function DealsPage() {
           <CardContent className="py-5 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">Deal Type</Label>
+                <Label htmlFor="deal-type" className="text-xs text-muted-foreground mb-1.5 block">Deal Type</Label>
                 <select
+                  id="deal-type"
                   value={newDeal.deal_type}
                   onChange={(e) => setNewDeal(prev => ({ ...prev, deal_type: e.target.value }))}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
@@ -132,8 +148,9 @@ export default function DealsPage() {
                 </select>
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">Value (USD)</Label>
+                <Label htmlFor="deal-value" className="text-xs text-muted-foreground mb-1.5 block">Value (USD)</Label>
                 <Input
+                  id="deal-value"
                   type="number"
                   min={100}
                   placeholder="50000"
@@ -143,8 +160,9 @@ export default function DealsPage() {
                 <p className="text-[10px] text-muted-foreground mt-1">Minimum $100. Commission: 30% first deal, 25% second, 20% third+</p>
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">Territory (comma-separated)</Label>
+                <Label htmlFor="deal-territory" className="text-xs text-muted-foreground mb-1.5 block">Territory (comma-separated)</Label>
                 <Input
+                  id="deal-territory"
                   placeholder="US, CA, UK"
                   value={newDeal.territory}
                   onChange={(e) => setNewDeal(prev => ({ ...prev, territory: e.target.value }))}
@@ -153,12 +171,12 @@ export default function DealsPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">Start Date</Label>
-                <Input type="date" value={newDeal.start_date} onChange={(e) => setNewDeal(prev => ({ ...prev, start_date: e.target.value }))} />
+                <Label htmlFor="deal-start-date" className="text-xs text-muted-foreground mb-1.5 block">Start Date</Label>
+                <Input id="deal-start-date" type="date" value={newDeal.start_date} onChange={(e) => setNewDeal(prev => ({ ...prev, start_date: e.target.value }))} />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">End Date</Label>
-                <Input type="date" value={newDeal.end_date} onChange={(e) => setNewDeal(prev => ({ ...prev, end_date: e.target.value }))} />
+                <Label htmlFor="deal-end-date" className="text-xs text-muted-foreground mb-1.5 block">End Date</Label>
+                <Input id="deal-end-date" type="date" value={newDeal.end_date} onChange={(e) => setNewDeal(prev => ({ ...prev, end_date: e.target.value }))} />
               </div>
               <div className="flex items-end pb-1">
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -289,9 +307,44 @@ export default function DealsPage() {
             <option value="EXECUTED">Executed</option>
             <option value="ACTIVE">Active</option>
             <option value="COMPLETED">Completed</option>
+            <option value="EXPIRED">Expired</option>
+            <option value="TERMINATED">Terminated</option>
           </select>
         </div>
       )}
+
+      {/* Filtered empty state */}
+      {deals.length > 0 && (() => {
+        const hasVisibleDeals = deals.some((d: Deal) => {
+          const matchesStatus = statusFilter === "ALL" || d.status === statusFilter;
+          const matchesSearch = !searchQuery || (() => {
+            const q = searchQuery.toLowerCase();
+            return (
+              d.deal_type.toLowerCase().includes(q) ||
+              (d.territory || []).some((t: string) => t.toLowerCase().includes(q)) ||
+              String(d.value).includes(q) ||
+              String(d.deal_number).includes(q)
+            );
+          })();
+          return matchesStatus && matchesSearch;
+        });
+        if (!hasVisibleDeals) {
+          return (
+            <div className="text-center py-12">
+              <p className="text-sm text-muted-foreground">No deals match the current filter.</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={() => { setStatusFilter("ALL"); setSearchQuery(""); }}
+              >
+                Clear filters
+              </Button>
+            </div>
+          );
+        }
+        return null;
+      })()}
 
       {/* Pipeline View */}
       {Object.entries(STATUS_GROUPS).map(([group, statuses]) => {
@@ -337,10 +390,11 @@ export default function DealsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-medium truncate">
-                            {deal.deal_type.replace("_", " ")}
+                            {deal.deal_type.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
                           </span>
                           <Badge variant="outline" className={STATUS_COLORS[deal.status] || ""}>
-                            {deal.status.replace("_", " ")}
+                            {(() => { const StatusIcon = STATUS_ICONS[deal.status]; return StatusIcon ? <StatusIcon className="h-3 w-3 mr-1" /> : null; })()}
+                            {deal.status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
                           </Badge>
                           {allOk === true && (
                             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
@@ -349,7 +403,7 @@ export default function DealsPage() {
                             <AlertTriangle className="h-4 w-4 text-yellow-500" />
                           )}
                         </div>
-                        <div className="mt-0.5 flex items-center gap-3 text-sm text-muted-foreground">
+                        <div className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <DollarSign className="h-3.5 w-3.5" />
                             {deal.value.toLocaleString()} {deal.currency}
@@ -361,7 +415,7 @@ export default function DealsPage() {
                           </span>
                           {deal.data_scope?.length > 0 && (
                             <span className="text-xs">
-                              {deal.data_scope.map((s) => s.replace("_", " ")).join(", ")}
+                              {deal.data_scope.map((s) => s.replace(/_/g, " ")).join(", ")}
                             </span>
                           )}
                         </div>

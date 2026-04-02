@@ -66,7 +66,7 @@ export default function DealWorkspacePage() {
       await licensingApi.transitionStatus(dealId, newStatus);
       const updated = await licensingApi.getDeal(dealId);
       setDeal(updated);
-      toast.success(`Deal moved to ${newStatus.replace("_", " ")}`);
+      toast.success(`Deal moved to ${newStatus.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}`);
       setShowTrainPrompt(true);
     } catch (err: any) {
       const detail = err?.response?.data?.detail || "Transition failed";
@@ -85,7 +85,9 @@ export default function DealWorkspacePage() {
 
   useEffect(() => {
     if (!dealId) return;
-    licensingApi.getDeal(dealId).then(setDeal).catch(() => {}).finally(() => setLoading(false));
+    licensingApi.getDeal(dealId).then(setDeal).catch(() => {
+      toast.error("Failed to load deal details");
+    }).finally(() => setLoading(false));
     licensingApi.getMessages(dealId).then(setMessages).catch(() => {});
   }, [dealId]);
 
@@ -131,8 +133,8 @@ export default function DealWorkspacePage() {
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold">{deal.deal_type.replace("_", " ")} — Deal #{deal.deal_number}</h1>
-            <Badge variant="outline">{deal.status.replace("_", " ")}</Badge>
+            <h1 className="text-xl font-bold">{deal.deal_type.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())} — Deal #{deal.deal_number}</h1>
+            <Badge variant="outline">{deal.status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</Badge>
             {allOk === true && <span className="flex items-center gap-1 text-xs text-emerald-500"><CheckCircle2 className="h-4 w-4" /> All parameters within range</span>}
             {allOk === false && <span className="flex items-center gap-1 text-xs text-yellow-500"><AlertTriangle className="h-4 w-4" /> Parameters flagged</span>}
           </div>
@@ -195,7 +197,7 @@ export default function DealWorkspacePage() {
       )}
 
       <Tabs defaultValue="overview">
-        <TabsList>
+        <TabsList className="overflow-x-auto flex-nowrap">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="contract">Contract {deal.contracts?.length ? `(${deal.contracts.length})` : ""}</TabsTrigger>
           <TabsTrigger value="milestones">Milestones {deal.milestones?.length ? `(${deal.milestones.length})` : ""}</TabsTrigger>
@@ -205,12 +207,12 @@ export default function DealWorkspacePage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4 mt-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Card>
               <CardHeader className="pb-2"><CardTitle className="text-sm">Data Scope</CardTitle></CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-1.5">
-                  {deal.data_scope?.map((s) => <Badge key={s} variant="secondary">{s.replace("_", " ")}</Badge>)}
+                  {deal.data_scope?.map((s) => <Badge key={s} variant="secondary">{s.replace(/_/g, " ")}</Badge>)}
                 </div>
               </CardContent>
             </Card>
