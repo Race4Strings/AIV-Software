@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function AuthLayout({
   children,
@@ -20,7 +21,7 @@ export default function AuthLayout({
       {/* Logo */}
       <div className="relative mb-10">
         <Link href="/">
-          <img src="/aiv.svg" alt="AIV" className="h-7 w-auto" />
+          <Image src="/aiv.svg" alt="AIV" width={84} height={28} priority />
         </Link>
       </div>
 

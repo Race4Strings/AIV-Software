@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lock, Search, Brain, Shield, Briefcase, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -96,7 +97,7 @@ export default function HomePage() {
       {/* Header */}
       <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 py-5">
         <Link href="/">
-          <img src="/aiv.svg" alt="AIV" className="h-6 w-auto" />
+          <Image src="/aiv.svg" alt="AIV" width={72} height={24} priority />
         </Link>
         <button
           onClick={() => { setModalInitialStep(8); setModalOpen(true); }}

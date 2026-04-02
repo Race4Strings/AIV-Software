@@ -30,12 +30,21 @@ export const metadata: Metadata = {
       "Own your identity in the AI economy. AIV certifies, protects, and licenses your digital twin with cryptographic proof-of-ownership, custom behavioral guardrails, and a global licensing rail that generates recurring revenue on autopilot.",
     siteName: "AIV",
     type: "website",
+    images: [
+      {
+        url: "/aiv.svg",
+        width: 200,
+        height: 200,
+        alt: "AIV - Identity Infrastructure",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "AIV — Own Your Digital Identity",
     description:
       "Own your identity in the AI economy. AIV certifies, protects, and licenses your digital twin with cryptographic proof-of-ownership, custom behavioral guardrails, and a global licensing rail that generates recurring revenue on autopilot.",
+    images: ["/aiv.svg"],
   },
 };
 
@@ -46,7 +55,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="preload" href="/fonts/SatoshiVF.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+      </head>
       <body className="min-h-[100dvh] bg-background font-sans antialiased" suppressHydrationWarning>
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:bg-background focus:text-foreground focus:px-4 focus:py-2 focus:rounded-md focus:ring-2 focus:ring-ring focus:shadow-lg">
+          Skip to main content
+        </a>
         <Providers>
           {children}
         </Providers>

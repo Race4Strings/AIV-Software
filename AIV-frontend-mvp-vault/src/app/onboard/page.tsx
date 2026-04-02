@@ -199,7 +199,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="dark mx-auto max-w-2xl p-6">
+    <div className="dark mx-auto max-w-2xl p-6 min-h-[100dvh]">
       <ProgressBar currentStep={step} steps={STEPS} totalSteps={TOTAL_STEPS} authorized={authorized} />
 
       {/* Safety message — shown on step 0 */}

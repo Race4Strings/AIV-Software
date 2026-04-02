@@ -13,7 +13,7 @@ export function CompleteStep({
   const router = useRouter();
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 animate-in fade-in duration-700">
+    <div className="flex flex-col items-center justify-center min-h-[60vh] flex-1 text-center p-6 animate-in fade-in duration-700">
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
         {Array.from({ length: 30 }).map((_, i) => (
           <div

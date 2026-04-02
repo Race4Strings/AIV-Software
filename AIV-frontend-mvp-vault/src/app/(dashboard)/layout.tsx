@@ -35,7 +35,7 @@ export default function DashboardLayout({
       <AppSidebar />
       <SidebarInset>
         <SiteHeader user={{ name: user.name || "", email: user.email || "", avatar: user.avatar || "" }} />
-        <main className="flex-1 overflow-x-hidden">
+        <main id="main-content" className="flex-1 overflow-x-hidden">
           <div className="mx-auto w-full max-w-6xl">{children}</div>
         </main>
       </SidebarInset>
