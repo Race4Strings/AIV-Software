@@ -92,11 +92,11 @@ function AnimatedLockBadge() {
           )}
           {phase === "settle" && (
             <motion.div key="settle"
-              initial={{ scale: 1 }}
-              animate={{ scale: [1, 1.12, 1] }}
+              initial={{ scale: 1, opacity: 1 }}
+              animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.5, opacity: 0 }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.5)]" />
+              transition={{ duration: 0.2, ease: "easeIn" }}
+              className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.5)] v2-green-pulse" />
           )}
         </AnimatePresence>
       </div>
@@ -104,6 +104,8 @@ function AnimatedLockBadge() {
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes v2-dot-colors{0%{background:#3b82f6}20%{background:#10b981}40%{background:#ef4444}60%{background:#f59e0b}80%{background:#8b5cf6}100%{background:#10b981}}
         .v2-dot-cycle{animation:v2-dot-colors 1.5s ease-in-out forwards}
+        @keyframes v2-green-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+        .v2-green-pulse{animation:v2-green-breathe 2s ease-in-out infinite}
       ` }} />
     </motion.div>
   );
