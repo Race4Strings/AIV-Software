@@ -59,7 +59,7 @@ export default function HomePage() {
     mouseTimerRef.current = setTimeout(() => {
       shakeScoreRef.current = 0;
       setAuroraOpacity(0.25);
-    }, 1500);
+    }, 300);
   }, []);
 
   useEffect(() => { return () => { if (mouseTimerRef.current) clearTimeout(mouseTimerRef.current); }; }, []);
