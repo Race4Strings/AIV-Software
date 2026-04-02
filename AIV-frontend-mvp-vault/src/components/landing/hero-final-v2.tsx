@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lock, Unlock, Fingerprint, Shield, Briefcase, Search, Brain, X } from "lucide-react";
+import { Lock, Fingerprint, Shield, Briefcase, Search, Brain, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Aurora from "@/components/ui/Aurora";
 
@@ -30,22 +30,32 @@ const PROCESS_ICONS = [
   { word: "License", icon: Briefcase, color: "#10b981" },
 ] as const;
 
-// Lock animation (restored AnimatePresence version).
-// Tweaks from original:
-// 1. dot→settle: no pop (dot exits opacity only, settle enters at scale 1)
-// 2. hover off: current phase "pops away" (scale 0.5), lock "pops in" (scale 1.1→1)
+// Lock animation — ONE icon, CSS transforms, no icon swapping.
+// Lock rotates up-left to "open", then down-left to "close", then
+// crossfades into color dot → green pulse. No AnimatePresence for
+// the lock motion = no flash, no fidget.
 function AnimatedLockBadge() {
   const [hovered, setHovered] = useState(false);
-  const [phase, setPhase] = useState<"lock" | "unlock" | "relock" | "dot" | "settle">("lock");
+  const [phase, setPhase] = useState<"idle" | "opening" | "closing" | "colors" | "green">("idle");
 
   useEffect(() => {
-    if (!hovered) { setPhase("lock"); return; }
-    setPhase("unlock");
-    const t1 = setTimeout(() => setPhase("relock"), 400);
-    const t2 = setTimeout(() => setPhase("dot"), 800);
-    const t3 = setTimeout(() => setPhase("settle"), 2300);
+    if (!hovered) { setPhase("idle"); return; }
+    setPhase("opening");
+    const t1 = setTimeout(() => setPhase("closing"), 300);
+    const t2 = setTimeout(() => setPhase("colors"), 600);
+    const t3 = setTimeout(() => setPhase("green"), 2100);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [hovered]);
+
+  const showLock = phase === "idle" || phase === "opening" || phase === "closing";
+  const showDot = phase === "colors" || phase === "green";
+
+  // Lock transform based on phase
+  const lockTransform = phase === "opening"
+    ? "rotate(-12deg) translateY(-1px)" // shackle lifts up-left
+    : phase === "closing"
+      ? "rotate(4deg) translateY(0.5px)" // shackle comes down-left
+      : "rotate(0deg) translateY(0px)"; // idle
 
   return (
     <motion.div
@@ -53,54 +63,20 @@ function AnimatedLockBadge() {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div className="relative h-3.5 w-3.5 overflow-hidden">
-        <AnimatePresence mode="wait">
-          {phase === "lock" && (
-            <motion.div key="lock" className="absolute inset-0 flex items-center justify-center"
-              initial={{ opacity: 0, scale: 1.1 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.5 }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}>
-              <Lock className="h-3.5 w-3.5 text-blue-400" />
-            </motion.div>
-          )}
-          {phase === "unlock" && (
-            <motion.div key="unlock" className="absolute inset-0 flex items-center justify-center"
-              initial={{ opacity: 0, rotate: -12 }}
-              animate={{ opacity: 1, rotate: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}>
-              <Unlock className="h-3.5 w-3.5 text-blue-400" />
-            </motion.div>
-          )}
-          {phase === "relock" && (
-            <motion.div key="relock" className="absolute inset-0 flex items-center justify-center"
-              initial={{ opacity: 0, rotate: -8 }}
-              animate={{ opacity: 1, rotate: 0 }}
-              exit={{ opacity: 0, scale: 0.7 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}>
-              <Lock className="h-3.5 w-3.5 text-blue-400" />
-            </motion.div>
-          )}
-          {phase === "dot" && (
-            <motion.div key="dot" className="absolute inset-0 flex items-center justify-center"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              exit={{}}
-              transition={{ duration: 0.25, ease: "easeOut" }}>
-              <div className="h-2.5 w-2.5 rounded-full v2-dot-cycle" />
-            </motion.div>
-          )}
-          {phase === "settle" && (
-            <motion.div key="settle" className="absolute inset-0 flex items-center justify-center"
-              initial={{}}
-              animate={{ opacity: 1 }}
-              exit={{ scale: 0.5, opacity: 0 }}
-              transition={{ duration: 0.2, ease: "easeIn" }}>
-              <div className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.5)] v2-green-pulse" />
-            </motion.div>
-          )}
-        </AnimatePresence>
+      <div className="relative h-3.5 w-3.5">
+        {/* Lock icon — always present, animated with CSS transforms */}
+        <div className="absolute inset-0 flex items-center justify-center transition-all duration-200 ease-out"
+          style={{ opacity: showLock ? 1 : 0, transform: lockTransform }}>
+          <Lock className="h-3.5 w-3.5 text-blue-400" />
+        </div>
+        {/* Color dot — crossfades in when lock fades out */}
+        <div className="absolute inset-0 flex items-center justify-center transition-all duration-250 ease-out"
+          style={{ opacity: showDot ? 1 : 0, transform: showDot ? "scale(1)" : "scale(0.3)" }}>
+          <div className={`h-2.5 w-2.5 rounded-full ${phase === "green"
+            ? "bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.5)] v2-green-pulse"
+            : "v2-dot-cycle"
+          }`} />
+        </div>
       </div>
       <span className="text-xs font-medium text-white/50 tracking-widest uppercase">Identity Infrastructure</span>
       <style dangerouslySetInnerHTML={{ __html: `
