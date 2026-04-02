@@ -43,44 +43,52 @@ const ACCENT_COLORS = {
   purple: { dot: "bg-purple-500", bg: "bg-purple-500/10", text: "text-purple-400", badge: "bg-purple-500/15 text-purple-400" },
 };
 
-// GUARANTEED non-overlapping positions.
-// 4 slots: upper-left, upper-right, lower-left, lower-right.
-// Each slot has multiple position variants for visual variety.
-// Minimum 20% vertical gap between any two slots on the same side.
-// All variants within a slot are close to each other (±3%) so any
-// pick from the same slot is safe relative to all other slots.
+// 4 CORNER zones — far from center content, far from each other.
+// Hero content occupies ~25-75% width and ~20-65% height.
+// Signals live OUTSIDE this zone in the four corners.
+//
+// Layout (viewport):
+//   [Slot 0]                    [Slot 1]
+//        ┌──── HERO CONTENT ────┐
+//        │   Badge              │
+//        │   Headline           │
+//        │   Description        │
+//        │   CTA                │
+//        └──────────────────────┘
+//   [Slot 2]                    [Slot 3]
+//
 const SLOT_POSITIONS: Record<string, string>[][] = [
-  // Slot 0: upper-left (12-18% top, 3-12% left)
+  // Slot 0: TOP-LEFT corner (6-12% top, 2-8% left)
   [
-    { top: "12%", left: "3%" },
-    { top: "15%", left: "8%" },
-    { top: "14%", left: "5%" },
-    { top: "18%", left: "10%" },
-    { top: "13%", left: "14%" },
+    { top: "6%", left: "2%" },
+    { top: "8%", left: "5%" },
+    { top: "10%", left: "3%" },
+    { top: "7%", left: "7%" },
+    { top: "12%", left: "2%" },
   ],
-  // Slot 1: upper-right (15-22% top, 3-12% right)
+  // Slot 1: TOP-RIGHT corner (6-12% top, 2-8% right)
   [
-    { top: "18%", right: "4%" },
-    { top: "15%", right: "9%" },
-    { top: "20%", right: "6%" },
-    { top: "22%", right: "12%" },
-    { top: "16%", right: "3%" },
+    { top: "7%", right: "2%" },
+    { top: "9%", right: "6%" },
+    { top: "6%", right: "4%" },
+    { top: "11%", right: "3%" },
+    { top: "8%", right: "7%" },
   ],
-  // Slot 2: lower-left (55-62% top, 3-14% left)
+  // Slot 2: BOTTOM-LEFT corner (72-82% top, 2-8% left)
   [
-    { top: "55%", left: "4%" },
-    { top: "58%", left: "10%" },
-    { top: "60%", left: "6%" },
-    { top: "56%", left: "14%" },
-    { top: "62%", left: "3%" },
+    { top: "72%", left: "2%" },
+    { top: "75%", left: "6%" },
+    { top: "78%", left: "3%" },
+    { top: "74%", left: "7%" },
+    { top: "80%", left: "2%" },
   ],
-  // Slot 3: lower-right (58-66% top, 3-12% right)
+  // Slot 3: BOTTOM-RIGHT corner (72-82% top, 2-8% right)
   [
-    { top: "60%", right: "3%" },
-    { top: "58%", right: "8%" },
-    { top: "63%", right: "5%" },
-    { top: "66%", right: "12%" },
-    { top: "61%", right: "10%" },
+    { top: "73%", right: "3%" },
+    { top: "76%", right: "6%" },
+    { top: "79%", right: "2%" },
+    { top: "75%", right: "7%" },
+    { top: "82%", right: "4%" },
   ],
 ];
 
@@ -218,11 +226,9 @@ export function SignalNotifications() {
   }, []);
 
   useEffect(() => {
-    // First tick after 2s, then every 2s after that. Clean, predictable.
+    // ONE interval. First tick at 2s, then every 2s. Nothing else.
     const timer = setInterval(() => tick(), 2000);
-    // Trigger the first one slightly earlier so page doesn't feel empty
-    const firstTick = setTimeout(() => tick(), 1500);
-    return () => { clearInterval(timer); clearTimeout(firstTick); };
+    return () => clearInterval(timer);
   }, [tick]);
 
   const handleHover = useCallback(() => { pausedRef.current = true; }, []);
