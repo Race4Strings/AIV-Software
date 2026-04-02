@@ -119,8 +119,8 @@ export default function HomePage() {
 
         {/* Signal Notifications — scattered around edges */}
         <SignalNotifications
-          onSignalHover={descVariant === 3 ? (s) => setHoveredSignal(s) : undefined}
-          onSignalLeave={descVariant === 3 ? () => setHoveredSignal(null) : undefined}
+          onSignalHover={(s) => setHoveredSignal(s)}
+          onSignalLeave={() => setHoveredSignal(null)}
         />
 
         {/* Hero */}

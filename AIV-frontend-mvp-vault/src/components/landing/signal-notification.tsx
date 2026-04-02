@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FileText, Globe, Shield, Lock, DollarSign,
@@ -41,17 +41,21 @@ const ACCENT_COLORS = {
   purple: { dot: "bg-purple-500", bg: "bg-purple-500/10", text: "text-purple-400", badge: "bg-purple-500/15 text-purple-400" },
 };
 
-// Predefined positions around the edges — scattered, never center, never overlapping
-const POSITIONS = [
-  { top: "15%", left: "3%" },   // top-left
-  { top: "38%", left: "2%" },   // mid-left
-  { top: "65%", left: "4%" },   // bottom-left
-  { top: "12%", right: "3%" },  // top-right
-  { top: "42%", right: "2%" },  // mid-right
-  { top: "68%", right: "4%" },  // bottom-right
-  { top: "85%", left: "15%" },  // bottom-left-center
-  { top: "8%", right: "18%" },  // top-right-center
-  { top: "82%", right: "12%" }, // bottom-right-center
+// Position groups — one from each group is selected to ensure scatter
+const LEFT_POSITIONS = [
+  { top: "18%", left: "3%" },
+  { top: "42%", left: "2%" },
+  { top: "68%", left: "3%" },
+];
+const RIGHT_POSITIONS = [
+  { top: "15%", right: "3%" },
+  { top: "45%", right: "2%" },
+  { top: "72%", right: "3%" },
+];
+const CORNER_POSITIONS = [
+  { top: "85%", left: "12%" },
+  { top: "8%", right: "15%" },
+  { top: "88%", right: "10%" },
 ];
 
 function SignalPill({
@@ -136,11 +140,14 @@ export function SignalNotifications({
   const reducedMotion = useReducedMotion();
   const [visibleIndices, setVisibleIndices] = useState<number[]>([]);
 
-  // Pick 3 random positions from the 9 available
-  const activePositions = useMemo(() => {
-    const shuffled = [...Array(POSITIONS.length).keys()].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 3);
-  }, []);
+  // Pick 1 from each group to guarantee scatter (left, right, corner)
+  const getScatteredPositions = useCallback(() => [
+    LEFT_POSITIONS[Math.floor(Math.random() * LEFT_POSITIONS.length)],
+    RIGHT_POSITIONS[Math.floor(Math.random() * RIGHT_POSITIONS.length)],
+    CORNER_POSITIONS[Math.floor(Math.random() * CORNER_POSITIONS.length)],
+  ], []);
+
+  const [positions, setPositions] = useState<Record<string, string>[]>([]);
 
   const cycleSignals = useCallback(() => {
     const indices: number[] = [];
@@ -150,7 +157,8 @@ export function SignalNotifications({
       if (!used.has(idx)) { used.add(idx); indices.push(idx); }
     }
     setVisibleIndices(indices);
-  }, []);
+    setPositions(getScatteredPositions());
+  }, [getScatteredPositions]);
 
   useEffect(() => {
     const initTimer = setTimeout(cycleSignals, 2000);
@@ -159,16 +167,14 @@ export function SignalNotifications({
   }, [cycleSignals]);
 
   if (reducedMotion) {
+    const staticPos = [LEFT_POSITIONS[0], RIGHT_POSITIONS[1], CORNER_POSITIONS[0]];
     return (
       <div className="hidden lg:block">
-        {SIGNALS.slice(0, 3).map((signal, i) => {
-          const pos = POSITIONS[i];
-          return (
-            <div key={signal.id} className="fixed z-10" style={pos}>
-              <SignalPill signal={signal} onHoverStart={onSignalHover} onHoverEnd={onSignalLeave} />
-            </div>
-          );
-        })}
+        {SIGNALS.slice(0, 3).map((signal, i) => (
+          <div key={signal.id} className="fixed z-10" style={staticPos[i]}>
+            <SignalPill signal={signal} onHoverStart={onSignalHover} onHoverEnd={onSignalLeave} />
+          </div>
+        ))}
       </div>
     );
   }
@@ -179,8 +185,7 @@ export function SignalNotifications({
         {visibleIndices.map((sigIdx, posSlot) => {
           const signal = SIGNALS[sigIdx];
           if (!signal) return null;
-          const posIdx = activePositions[posSlot] ?? posSlot;
-          const pos = POSITIONS[posIdx] ?? POSITIONS[0];
+          const pos = positions[posSlot] ?? LEFT_POSITIONS[0];
           return (
             <motion.div
               key={signal.id}
