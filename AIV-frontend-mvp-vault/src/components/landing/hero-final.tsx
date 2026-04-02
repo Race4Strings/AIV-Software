@@ -25,7 +25,7 @@ export function HeroFinal({ onRequestAccess, onHowItWorks, variant = 1, hoveredS
   const showSignalContent = variant === 3 && hoveredSignal;
 
   return (
-    <div className="relative z-10 flex flex-col items-center justify-center min-h-[100dvh] px-6 text-center">
+    <div className="relative z-10 flex flex-col items-center justify-center min-h-[100dvh] px-6 text-center pointer-events-none">
       {/* Identity Infrastructure Badge */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
@@ -133,7 +133,7 @@ export function HeroFinal({ onRequestAccess, onHowItWorks, variant = 1, hoveredS
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...spring, delay: 0.8 }}
-        className={variant === 3 ? "flex flex-col items-center gap-4" : "flex flex-col sm:flex-row gap-3"}
+        className={`pointer-events-auto ${variant === 3 ? "flex flex-col items-center gap-4" : "flex flex-col sm:flex-row gap-3"}`}
       >
         <Button
           onClick={onRequestAccess}
@@ -144,7 +144,7 @@ export function HeroFinal({ onRequestAccess, onHowItWorks, variant = 1, hoveredS
         {variant === 3 ? (
           <button
             onClick={onHowItWorks}
-            className="text-xs text-white/30 hover:text-white/50 transition-colors duration-200 cursor-pointer tracking-wider"
+            className="text-xs text-white/30 hover:text-white/50 transition-colors duration-200 cursor-pointer tracking-wider pointer-events-auto"
           >
             See how it works &rarr;
           </button>

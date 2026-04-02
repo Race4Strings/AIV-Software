@@ -200,7 +200,7 @@ export function SignalNotifications({
   if (reducedMotion) {
     const staticPos = [LEFT_POSITIONS[0], RIGHT_POSITIONS[1], CORNER_POSITIONS[0]];
     return (
-      <div className="hidden lg:block fixed inset-0 z-10 pointer-events-none">
+      <div className="hidden lg:block fixed inset-0 z-30 pointer-events-none">
         {SIGNALS.slice(0, 3).map((signal, i) => (
           <div key={signal.id} className="absolute pointer-events-auto" style={staticPos[i]}>
             <SignalPill signal={signal} onHoverStart={onSignalHover} onHoverEnd={onSignalLeave} />
@@ -211,7 +211,7 @@ export function SignalNotifications({
   }
 
   return (
-    <div className="hidden lg:block fixed inset-0 z-10 pointer-events-none">
+    <div className="hidden lg:block fixed inset-0 z-30 pointer-events-none">
       <AnimatePresence>
         {slots.map((slot) => {
           const signal = SIGNALS[slot.signalIdx];
