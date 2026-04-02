@@ -16,7 +16,7 @@ export default function HomePage() {
   const [modalInitialStep, setModalInitialStep] = useState(0);
 
   // Aurora — shake detection via direction reversals
-  const [auroraOpacity, setAuroraOpacity] = useState(0.15);
+  const [auroraOpacity, setAuroraOpacity] = useState(0.25);
   const mouseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastMouseRef = useRef({ x: 0, y: 0, time: 0, dx: 0, dy: 0 });
   const shakeScoreRef = useRef(0);
@@ -50,15 +50,15 @@ export default function HomePage() {
     // Score → opacity: smooth mapping
     // 0 = still (invisible), 0.5 = gentle movement, 2+ = shaking
     const score = shakeScoreRef.current;
-    // Base 0.15 (always visible) + movement adds up to 0.70 more
-    const targetOpacity = Math.min(0.85, 0.15 + score * 0.20);
+    // Base 0.25 (always visible) + movement adds up to 0.60 more
+    const targetOpacity = Math.min(0.85, 0.25 + score * 0.18);
 
     setAuroraOpacity(targetOpacity);
 
     if (mouseTimerRef.current) clearTimeout(mouseTimerRef.current);
     mouseTimerRef.current = setTimeout(() => {
       shakeScoreRef.current = 0;
-      setAuroraOpacity(0.15);
+      setAuroraOpacity(0.25);
     }, 600);
   }, []);
 

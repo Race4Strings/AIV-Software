@@ -43,35 +43,51 @@ const ACCENT_COLORS = {
   purple: { dot: "bg-purple-500", bg: "bg-purple-500/10", text: "text-purple-400", badge: "bg-purple-500/15 text-purple-400" },
 };
 
-// Generate a random position for a given side within allowed ranges.
-// Vertical: 10-75% (wide spread above and below hero).
-// Horizontal: 4-14% from edge (not too close to edge, not too close to center).
-function randomPosition(side: "left" | "right"): Record<string, string> {
-  const top = 8 + Math.floor(Math.random() * 74); // 8-82% (expanded bottom)
-  const horiz = 3 + Math.floor(Math.random() * 16); // 3-19% (closer to middle allowed)
-  return side === "left" ? { top: `${top}%`, left: `${horiz}%` } : { top: `${top}%`, right: `${horiz}%` };
-}
+// GUARANTEED non-overlapping positions.
+// 4 slots: upper-left, upper-right, lower-left, lower-right.
+// Each slot has multiple position variants for visual variety.
+// Minimum 20% vertical gap between any two slots on the same side.
+// All variants within a slot are close to each other (±3%) so any
+// pick from the same slot is safe relative to all other slots.
+const SLOT_POSITIONS: Record<string, string>[][] = [
+  // Slot 0: upper-left (12-18% top, 3-12% left)
+  [
+    { top: "12%", left: "3%" },
+    { top: "15%", left: "8%" },
+    { top: "14%", left: "5%" },
+    { top: "18%", left: "10%" },
+    { top: "13%", left: "14%" },
+  ],
+  // Slot 1: upper-right (15-22% top, 3-12% right)
+  [
+    { top: "18%", right: "4%" },
+    { top: "15%", right: "9%" },
+    { top: "20%", right: "6%" },
+    { top: "22%", right: "12%" },
+    { top: "16%", right: "3%" },
+  ],
+  // Slot 2: lower-left (55-62% top, 3-14% left)
+  [
+    { top: "55%", left: "4%" },
+    { top: "58%", left: "10%" },
+    { top: "60%", left: "6%" },
+    { top: "56%", left: "14%" },
+    { top: "62%", left: "3%" },
+  ],
+  // Slot 3: lower-right (58-66% top, 3-12% right)
+  [
+    { top: "60%", right: "3%" },
+    { top: "58%", right: "8%" },
+    { top: "63%", right: "5%" },
+    { top: "66%", right: "12%" },
+    { top: "61%", right: "10%" },
+  ],
+];
 
-// ALL signals must have minimum 20% vertical gap from each other — no exceptions.
-// This prevents any visual proximity regardless of which side they're on.
-function isFarEnough(a: Record<string, string>, b: Record<string, string>): boolean {
-  const aTop = parseInt(a.top || "0");
-  const bTop = parseInt(b.top || "0");
-  return Math.abs(aTop - bTop) >= 20;
+function pickFromSlot(slotIndex: number): Record<string, string> {
+  const variants = SLOT_POSITIONS[slotIndex];
+  return variants[Math.floor(Math.random() * variants.length)];
 }
-
-// Generate a position that's far from all existing positions
-function safePosition(side: "left" | "right", existing: Record<string, string>[]): Record<string, string> {
-  for (let attempt = 0; attempt < 50; attempt++) {
-    const pos = randomPosition(side);
-    if (existing.every(ex => isFarEnough(pos, ex))) return pos;
-  }
-  // Fallback: just return a random one
-  return randomPosition(side);
-}
-
-// Zone assignments: which side each zone uses
-const ZONE_SIDES: ("left" | "right")[] = ["left", "right", "left", "right"];
 
 function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: () => void; onLeave?: () => void }) {
   const [hovered, setHovered] = useState(false);
@@ -180,25 +196,23 @@ export function SignalNotifications() {
     stepRef.current++;
 
     if (step < 4) {
-      // Staggered entry: add signal to alternating sides
-      const side: "left" | "right" = step % 2 === 0 ? "left" : "right";
+      // Staggered entry: add signal to slot [step]
       const sigIdx = signalCounterRef.current;
       signalCounterRef.current = (sigIdx + 1) % SIGNALS.length;
-
-      setSlots(prev => {
-        const pos = safePosition(side, prev.map(s => s.pos));
-        return [...prev, { id: `${step}-${sigIdx}`, signalIdx: sigIdx, pos, side }];
-      });
+      const pos = pickFromSlot(step);
+      setSlots(prev => [...prev, { id: `${step}-${sigIdx}`, signalIdx: sigIdx, pos, side: step % 2 === 0 ? "left" : "right" }]);
     } else {
-      // Rotation: replace the oldest signal
+      // Rotation: replace the oldest signal, pick new variant from its slot
       setSlots(prev => {
         if (prev.length === 0) return prev;
-        const oldest = prev[0];
+        const oldestIdx = 0;
+        const slotIndex = prev.length > 0 ? (step - 4 + oldestIdx) % 4 : 0;
         const remaining = prev.slice(1);
         const sigIdx = signalCounterRef.current;
         signalCounterRef.current = (sigIdx + 1) % SIGNALS.length;
-        const pos = safePosition(oldest.side, remaining.map(s => s.pos));
-        return [...remaining, { id: `${step}-${sigIdx}`, signalIdx: sigIdx, pos, side: oldest.side }];
+        const pos = pickFromSlot(slotIndex);
+        const side: "left" | "right" = slotIndex % 2 === 0 ? "left" : "right";
+        return [...remaining, { id: `${step}-${sigIdx}`, signalIdx: sigIdx, pos, side }];
       });
     }
   }, []);
@@ -218,7 +232,7 @@ export function SignalNotifications() {
     return (
       <div className="hidden lg:block fixed inset-0 z-30 pointer-events-none">
         {[0, 1, 2, 3].map(g => (
-          <div key={g} className="absolute pointer-events-auto" style={randomPosition(ZONE_SIDES[g])}>
+          <div key={g} className="absolute pointer-events-auto" style={SLOT_POSITIONS[g][0]}>
             <SignalPill signal={SIGNALS[g]} />
           </div>
         ))}
