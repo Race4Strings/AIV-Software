@@ -210,7 +210,6 @@ export function HeroFinal({ onRequestAccess, onOverlayChange }: HeroFinalProps) 
                         className="pointer-events-auto bg-primary hover:bg-primary/90 text-white px-8 py-6 text-base font-medium rounded-xl shadow-lg shadow-primary/20 active:scale-[0.97] cursor-pointer">
                         Request Early Access <span aria-hidden="true">&rarr;</span>
                       </Button>
-                      <p className="text-[10px] text-white/15 mt-4 tracking-wider">Identity infrastructure for the AI economy</p>
                     </motion.div>
                   </motion.div>
                 )}
