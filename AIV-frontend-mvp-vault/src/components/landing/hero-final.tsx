@@ -110,7 +110,6 @@ export function HeroFinal({ onRequestAccess, onOverlayChange }: HeroFinalProps) 
           </button>
         </motion.div>
 
-        <div className="mt-16" />
       </div>
 
       {/* ─── Motion Overlay ─── */}

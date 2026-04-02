@@ -43,22 +43,22 @@ const ACCENT_COLORS = {
   purple: { dot: "bg-purple-500", bg: "bg-purple-500/10", text: "text-purple-400", badge: "bg-purple-500/15 text-purple-400" },
 };
 
-// 4 zones: 2 left, 2 right. ~20% vertical gap between same-side zones.
-// Centered around the hero (30-55% range). Enough room for hover expansion (~120px).
+// 4 zones with wide spread: 15-70% vertical range, 2-14% from edges
+// ~20%+ gap between same-side zones. Safe distance for hover expansion.
 const POSITION_POOLS = [
-  // Zone 0: upper-left
-  [{ top: "25%", left: "2%" }, { top: "28%", left: "4%" }, { top: "23%", left: "3%" }],
-  // Zone 1: upper-right
-  [{ top: "27%", right: "2%" }, { top: "24%", right: "4%" }, { top: "30%", right: "3%" }],
-  // Zone 2: lower-left
-  [{ top: "50%", left: "2%" }, { top: "52%", left: "5%" }, { top: "48%", left: "3%" }],
-  // Zone 3: lower-right
-  [{ top: "53%", right: "2%" }, { top: "50%", right: "4%" }, { top: "55%", right: "3%" }],
+  // Zone 0: upper-left (15-25% top)
+  [{ top: "15%", left: "2%" }, { top: "20%", left: "6%" }, { top: "18%", left: "10%" }, { top: "22%", left: "3%" }],
+  // Zone 1: upper-right (18-28% top)
+  [{ top: "18%", right: "3%" }, { top: "23%", right: "7%" }, { top: "20%", right: "12%" }, { top: "25%", right: "2%" }],
+  // Zone 2: lower-left (50-60% top)
+  [{ top: "50%", left: "2%" }, { top: "55%", left: "8%" }, { top: "52%", left: "4%" }, { top: "58%", left: "12%" }],
+  // Zone 3: lower-right (52-65% top)
+  [{ top: "55%", right: "3%" }, { top: "60%", right: "10%" }, { top: "52%", right: "5%" }, { top: "63%", right: "2%" }],
 ];
 
 function jitter(pos: { top: string; left?: string; right?: string }) {
-  const jY = Math.floor(Math.random() * 6) - 3; // ±3% vertical (safe for hover expansion)
-  const jX = Math.floor(Math.random() * 2); // 0-1% horizontal
+  const jY = Math.floor(Math.random() * 8) - 4; // ±4% vertical
+  const jX = Math.floor(Math.random() * 4) - 2; // ±2% horizontal
   const result: Record<string, string> = { top: `${parseInt(pos.top) + jY}%` };
   if (pos.left) result.left = `${parseInt(pos.left) + jX}%`;
   if (pos.right) result.right = `${parseInt(pos.right) + jX}%`;
