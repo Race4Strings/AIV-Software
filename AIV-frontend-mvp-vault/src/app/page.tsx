@@ -10,9 +10,7 @@ import { Button } from "@/components/ui/button";
 import { EarlyAccessModal } from "@/components/landing/early-access-modal";
 import { SignalNotifications, MobileSignalNotifications } from "@/components/landing/signal-notification";
 import Aurora from "@/components/ui/Aurora";
-import { HeroOptionA } from "@/components/landing/hero-option-a";
-import { HeroOptionB } from "@/components/landing/hero-option-b";
-import { HeroOptionC } from "@/components/landing/hero-option-c";
+import { HeroFinal } from "@/components/landing/hero-final";
 
 const HOW_IT_WORKS_STEPS = [
   {
@@ -41,46 +39,49 @@ const HOW_IT_WORKS_STEPS = [
   },
 ];
 
-type ActiveOption = "a" | "b" | "c";
-
-const LOGO_MAP: Record<ActiveOption, { src: string; width: number; height: number }> = {
-  a: { src: "/aiv-light.svg", width: 36, height: 14 },
-  b: { src: "/aiv-mono.svg", width: 28, height: 28 },
-  c: { src: "/aiv-lower.svg", width: 40, height: 16 },
-};
-
 export default function HomePage() {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalInitialStep, setModalInitialStep] = useState(0);
   const [howItWorksOpen, setHowItWorksOpen] = useState(false);
-  const [activeOption, setActiveOption] = useState<ActiveOption>("a");
 
-  // Mouse-triggered Aurora opacity
+  // Mouse-triggered Aurora with shake intensity
   const [auroraOpacity, setAuroraOpacity] = useState(0.05);
   const mouseTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const lastMouseRef = useRef({ x: 0, y: 0, time: 0 });
+  const velocityRef = useRef(0);
 
-  const handleMouseMove = useCallback(() => {
-    // Rise to 0.35 on movement
-    setAuroraOpacity(0.35);
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    const now = Date.now();
+    const last = lastMouseRef.current;
+    const dt = now - last.time;
 
-    // Clear existing idle timer
+    if (dt > 0 && dt < 100) {
+      const dx = e.clientX - last.x;
+      const dy = e.clientY - last.y;
+      const speed = Math.sqrt(dx * dx + dy * dy) / dt;
+      // Smooth velocity with decay
+      velocityRef.current = velocityRef.current * 0.7 + speed * 0.3;
+    }
+
+    lastMouseRef.current = { x: e.clientX, y: e.clientY, time: now };
+
+    // Map velocity to opacity: gentle movement = 0.2, fast shaking = 0.5, cap at 0.55
+    const targetOpacity = Math.min(0.55, 0.15 + velocityRef.current * 0.3);
+    setAuroraOpacity(targetOpacity);
+
     if (mouseTimerRef.current) clearTimeout(mouseTimerRef.current);
-
-    // Start fade-back after 500ms of no movement
     mouseTimerRef.current = setTimeout(() => {
+      velocityRef.current = 0;
       setAuroraOpacity(0.05);
-    }, 500);
+    }, 600);
   }, []);
 
   useEffect(() => {
-    return () => {
-      if (mouseTimerRef.current) clearTimeout(mouseTimerRef.current);
-    };
+    return () => { if (mouseTimerRef.current) clearTimeout(mouseTimerRef.current); };
   }, []);
 
-  // Escape key for How It Works modal
   useEffect(() => {
     if (!howItWorksOpen) return;
     const handleEscape = (e: KeyboardEvent) => {
@@ -90,7 +91,6 @@ export default function HomePage() {
     return () => document.removeEventListener("keydown", handleEscape);
   }, [howItWorksOpen]);
 
-  // Auth redirect
   useEffect(() => {
     try {
       const user = localStorage.getItem("user");
@@ -105,39 +105,30 @@ export default function HomePage() {
     setModalOpen(true);
   }
 
-  const heroProps = {
-    containerRef,
-    onRequestAccess: handleRequestAccess,
-    onHowItWorks: () => setHowItWorksOpen(true),
-    auroraOpacity,
-  };
-
-  const logo = LOGO_MAP[activeOption];
-
   return (
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
       className="dark relative min-h-[100dvh] overflow-hidden bg-[oklch(0.09_0.01_262)]"
     >
-      {/* Mouse-triggered Aurora */}
+      {/* Mouse-reactive Aurora — brightness scales with mouse speed */}
       <div
         className="pointer-events-none absolute inset-0 z-0"
         style={{
           opacity: auroraOpacity,
           transition: auroraOpacity > 0.1
-            ? "opacity 600ms ease-out"
+            ? "opacity 400ms ease-out"
             : "opacity 1200ms ease-in",
         }}
       >
         <Aurora colorStops={["#0a1e42", "#2563eb", "#0a1e42"]} amplitude={0.8} blend={0.5} speed={0.3} />
       </div>
 
-      {/* Subtle static glow fallback */}
+      {/* Subtle static glow */}
       <div
         className="pointer-events-none absolute inset-0 z-0"
         style={{
-          background: "radial-gradient(ellipse 50% 40% at 50% 50%, rgba(59,130,246,0.04) 0%, transparent 60%)",
+          background: "radial-gradient(ellipse 50% 40% at 50% 50%, rgba(59,130,246,0.03) 0%, transparent 60%)",
         }}
       />
 
@@ -146,14 +137,7 @@ export default function HomePage() {
         {/* Header */}
         <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 py-5">
           <Link href="/">
-            <Image
-              src={logo.src}
-              alt="AIV"
-              width={logo.width}
-              height={logo.height}
-              priority
-              className="opacity-80 hover:opacity-100 transition-opacity duration-200"
-            />
+            <Image src="/aiv-light.svg" alt="AIV" width={36} height={14} priority className="opacity-70 hover:opacity-100 transition-opacity duration-200" />
           </Link>
           <button
             onClick={() => { setModalInitialStep(8); setModalOpen(true); }}
@@ -167,42 +151,15 @@ export default function HomePage() {
         <SignalNotifications side="left" />
         <SignalNotifications side="right" />
 
-        {/* Hero Content */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeOption}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-          >
-            {activeOption === "a" && <HeroOptionA {...heroProps} />}
-            {activeOption === "b" && <HeroOptionB {...heroProps} />}
-            {activeOption === "c" && <HeroOptionC {...heroProps} />}
-          </motion.div>
-        </AnimatePresence>
+        {/* Hero */}
+        <HeroFinal
+          containerRef={containerRef}
+          onRequestAccess={handleRequestAccess}
+          onHowItWorks={() => setHowItWorksOpen(true)}
+        />
 
         {/* Signal Notifications — Mobile */}
         <MobileSignalNotifications />
-
-        {/* ─── Option Selector ─── */}
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 rounded-full border border-white/[0.08] bg-black/70 backdrop-blur-xl px-1.5 py-1 shadow-2xl shadow-black/40">
-          {(["a", "b", "c"] as ActiveOption[]).map((opt) => (
-            <button
-              key={opt}
-              onClick={() => setActiveOption(opt)}
-              className={`px-4 py-2 rounded-full text-[11px] font-medium tracking-wider transition-all duration-200 cursor-pointer ${
-                activeOption === opt
-                  ? "bg-white/90 text-black shadow-sm"
-                  : "text-white/40 hover:text-white/60 hover:bg-white/[0.05]"
-              }`}
-            >
-              {opt === "a" && "Elevated"}
-              {opt === "b" && "Statement"}
-              {opt === "c" && "Identity"}
-            </button>
-          ))}
-        </div>
 
         {/* How It Works Modal */}
         <AnimatePresence>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FileText, Globe, Shield, Lock, DollarSign,
@@ -75,6 +75,14 @@ function SignalPill({ signal }: { signal: Signal }) {
           >
             <div className="px-3 pb-3 pt-0.5">
               <p className="text-[10px] text-white/40 leading-relaxed">{signal.description}</p>
+              <div className="mt-2 h-1 w-full rounded-full bg-white/[0.06] overflow-hidden">
+                <motion.div
+                  className={`h-full rounded-full ${colors.dot}`}
+                  initial={{ width: "0%" }}
+                  animate={{ width: `${50 + Math.random() * 40}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                />
+              </div>
               {signal.badge && (
                 <span className={`mt-2 inline-block text-[9px] font-semibold px-2 py-0.5 rounded-full ${colors.badge}`}>
                   {signal.badge}
@@ -94,6 +102,14 @@ export function SignalNotifications({ side }: { side: "left" | "right" }) {
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const sideSignals = SIGNALS.filter((_, i) => side === "left" ? i % 2 === 0 : i % 2 !== 0);
+
+  // Generate stable scattered positions once on mount
+  const scatteredPositions = useMemo(() => {
+    return sideSignals.map((_, i) => ({
+      top: 20 + ((i * 17 + 7) % 50), // deterministic spread between 20%-70%
+      offsetX: Math.round(((i * 13 + 3) % 20)), // 0-20px horizontal jitter
+    }));
+  }, [sideSignals.length]);
 
   const cycleSignals = useCallback(() => {
     // Show 2-3 signals at a time, cycle through
@@ -125,15 +141,25 @@ export function SignalNotifications({ side }: { side: "left" | "right" }) {
   }, [cycleSignals, side]);
 
   if (reducedMotion) {
-    // Show first 2 signals statically
+    // Show first 2 signals statically, scattered
     return (
       <div
-        className={`hidden lg:flex fixed top-1/2 -translate-y-1/2 flex-col gap-3 z-10 ${
+        className={`hidden lg:block fixed inset-y-0 z-10 ${
           side === "left" ? "left-6" : "right-6"
         }`}
+        style={{ width: 280 }}
       >
-        {sideSignals.slice(0, 2).map((signal) => (
-          <SignalPill key={signal.id} signal={signal} />
+        {sideSignals.slice(0, 2).map((signal, i) => (
+          <div
+            key={signal.id}
+            className="absolute"
+            style={{
+              top: `${scatteredPositions[i]?.top ?? 30}%`,
+              [side === "left" ? "left" : "right"]: `${scatteredPositions[i]?.offsetX ?? 0}px`,
+            }}
+          >
+            <SignalPill signal={signal} />
+          </div>
         ))}
       </div>
     );
@@ -141,17 +167,24 @@ export function SignalNotifications({ side }: { side: "left" | "right" }) {
 
   return (
     <div
-      className={`hidden lg:flex fixed top-1/2 -translate-y-1/2 flex-col gap-3 z-10 ${
+      className={`hidden lg:block fixed inset-y-0 z-10 ${
         side === "left" ? "left-6" : "right-6"
       }`}
+      style={{ width: 280 }}
     >
       <AnimatePresence mode="popLayout">
         {visibleIndices.map((idx) => {
           const signal = sideSignals[idx];
           if (!signal) return null;
+          const pos = scatteredPositions[idx];
           return (
             <motion.div
               key={signal.id}
+              className="absolute"
+              style={{
+                top: `${pos?.top ?? 30}%`,
+                [side === "left" ? "left" : "right"]: `${pos?.offsetX ?? 0}px`,
+              }}
               initial={{ opacity: 0, scale: 0.95, x: side === "left" ? -20 : 20 }}
               animate={{ opacity: 1, scale: 1, x: 0 }}
               exit={{ opacity: 0, scale: 0.95, x: side === "left" ? -20 : 20 }}
