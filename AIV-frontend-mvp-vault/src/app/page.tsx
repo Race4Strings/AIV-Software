@@ -95,7 +95,7 @@ export default function HomePage() {
         <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 py-5">
           <Link href="/">
             <Image src="/aiv-light.svg" alt="AIV" width={36} height={14} priority
-              className="opacity-70 hover:opacity-100 transition-opacity duration-200" />
+              className="opacity-80 hover:opacity-100 transition-opacity duration-200" />
           </Link>
           <button onClick={() => { setModalInitialStep(8); setModalOpen(true); }}
             className="text-xs font-medium text-white/40 hover:text-white/70 transition-colors duration-200 cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none tracking-wider uppercase pointer-events-auto">
@@ -107,12 +107,11 @@ export default function HomePage() {
         <HeroFinal
           containerRef={containerRef}
           onRequestAccess={handleRequestAccess}
-          onHowItWorks={() => {}}
           onOverlayChange={setOverlayOpen}
         />
 
-        {/* Mobile Signals */}
-        <MobileSignalNotifications />
+        {/* Mobile Signals — hidden when overlay is open */}
+        {!overlayOpen && <MobileSignalNotifications />}
 
         {/* Early Access Modal */}
         <EarlyAccessModal open={modalOpen} onClose={() => setModalOpen(false)} initialStep={modalInitialStep} />

@@ -135,7 +135,7 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
             exit={{ height: 0, opacity: 0 }} transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="overflow-hidden">
             <div className="px-3 pb-3 pt-0.5">
-              <p className="text-[10px] text-white/40 leading-relaxed">{signal.description}</p>
+              <p className="text-[11px] text-white/40 leading-relaxed">{signal.description}</p>
               {signal.metric && (
                 <div className="mt-2 flex items-baseline gap-2">
                   <span className="text-lg font-bold text-white font-mono tabular-nums">{getDynamic()}</span>

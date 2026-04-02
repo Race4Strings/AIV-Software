@@ -9,11 +9,12 @@ import Aurora from "@/components/ui/Aurora";
 export interface HeroFinalProps {
   containerRef: React.RefObject<HTMLDivElement | null>;
   onRequestAccess: () => void;
-  onHowItWorks: () => void;
   onOverlayChange?: (open: boolean) => void;
 }
 
-const spring = { type: "spring" as const, damping: 25, stiffness: 300 };
+// Smooth easing — no spring (avoids trembling/shaky feel)
+const fadeIn = { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] };
+const stagger = (delay: number) => ({ duration: 0.5, ease: [0.25, 0.1, 0.25, 1], delay });
 
 const REVEAL_STEPS = [
   { icon: Search, label: "Discover", desc: "Your public presence assembled from across the web", num: "01" },
@@ -47,9 +48,7 @@ export function HeroFinal({ onRequestAccess, onOverlayChange }: HeroFinalProps) 
       const dy = e.clientY - last.y;
       const speed = Math.sqrt(dx * dx + dy * dy) / dt;
       const rev = ((dx > 0 && last.dx < 0) || (dx < 0 && last.dx > 0) || (dy > 0 && last.dy < 0) || (dy < 0 && last.dy > 0));
-      const speedBoost = Math.min(0.4, speed * 0.15);
-      const shakeBoost = rev && speed > 0.3 ? 0.6 : 0;
-      overlayScoreRef.current = Math.min(5, overlayScoreRef.current * 0.85 + speedBoost + shakeBoost);
+      overlayScoreRef.current = Math.min(5, overlayScoreRef.current * 0.85 + Math.min(0.4, speed * 0.15) + (rev && speed > 0.3 ? 0.6 : 0));
       overlayMouseRef.current = { x: e.clientX, y: e.clientY, time: now, dx, dy };
     } else {
       overlayMouseRef.current = { ...last, x: e.clientX, y: e.clientY, time: now };
@@ -79,31 +78,35 @@ export function HeroFinal({ onRequestAccess, onOverlayChange }: HeroFinalProps) 
   return (
     <>
       <div className="relative z-10 flex flex-col items-center justify-center min-h-[100dvh] px-6 text-center pointer-events-none">
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.3 }}
+        {/* Badge */}
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={stagger(0.3)}
           className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 mb-8 backdrop-blur-sm">
           <Lock className="h-3.5 w-3.5 text-blue-400" />
           <span className="text-xs font-medium text-white/50 tracking-widest uppercase">Identity Infrastructure</span>
         </motion.div>
 
-        <motion.h1 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.5 }}
+        {/* Headline */}
+        <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={stagger(0.5)}
           className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-white leading-[1.08] tracking-tight mb-7">
           Own Your Digital Identity
         </motion.h1>
 
-        <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.7 }}
+        {/* Description */}
+        <motion.p initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={stagger(0.7)}
           className="text-lg sm:text-xl text-white/50 max-w-[560px] mb-10 leading-relaxed">
           Capture, certify, and license your digital identity — with full control over every guardrail and every deal. Built for athletes, musicians, actors, executives, and creators.
         </motion.p>
 
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.9 }}
+        {/* CTA */}
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={stagger(0.9)}
           className="pointer-events-auto flex flex-col items-center gap-4">
           <Button onClick={onRequestAccess}
             className="bg-primary hover:bg-primary/90 text-white px-8 py-6 text-base font-medium rounded-xl shadow-lg shadow-primary/20 transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer">
-            Request Early Access &rarr;
+            Request Early Access <span aria-hidden="true">&rarr;</span>
           </Button>
           <button onClick={() => setShowMotion(true)}
-            className="text-xs text-white/30 hover:text-white/50 transition-colors duration-200 cursor-pointer tracking-wider pointer-events-auto">
-            See how it works &rarr;
+            className="text-xs text-white/30 hover:text-white/50 transition-colors duration-200 cursor-pointer tracking-wider pointer-events-auto py-2 px-4">
+            See how it works
           </button>
         </motion.div>
 
@@ -121,12 +124,13 @@ export function HeroFinal({ onRequestAccess, onOverlayChange }: HeroFinalProps) 
             onMouseMove={handleOverlayMouse}
             className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[oklch(0.06_0.008_262)]"
           >
-            {/* Aurora inside overlay */}
+            {/* Aurora */}
             <div className="pointer-events-none absolute inset-0 z-0"
               style={{ opacity: overlayAurora, transition: overlayAurora > 0.1 ? "opacity 300ms ease-out" : "opacity 800ms ease-in" }}>
               <Aurora colorStops={["#0a1e42", "#2563eb", "#0a1e42"]} amplitude={0.8} blend={0.5} speed={0.3} />
             </div>
 
+            {/* Close */}
             <div className="absolute top-6 left-6 flex items-center gap-3 pointer-events-auto z-10">
               <button onClick={() => setShowMotion(false)}
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] text-white/40 hover:text-white/70 hover:bg-white/[0.1] transition-colors duration-150 cursor-pointer">
@@ -138,34 +142,34 @@ export function HeroFinal({ onRequestAccess, onOverlayChange }: HeroFinalProps) 
               </button>
             </div>
 
-            <div className="max-w-4xl w-full px-6">
+            <div className="max-w-4xl w-full px-6 relative z-10">
               <AnimatePresence mode="wait">
-                {/* Stage 0: 3 icons — fade in/out (no rising) */}
+                {/* Stage 0: 3 icons — smooth fade */}
                 {motionStage === 0 && (
                   <motion.div key="s0" className="flex items-center justify-center gap-12"
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4 }}>
+                    transition={fadeIn}>
                     {PROCESS_ICONS.map((s, i) => (
                       <motion.div key={s.word}
-                        initial={{ opacity: 0, scale: 0.7 }}
+                        initial={{ opacity: 0, scale: 0.85 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={{ ...spring, delay: 0.2 + i * 0.2 }}>
+                        transition={stagger(0.15 + i * 0.15)}>
                         <s.icon className="h-10 w-10 text-white/25" />
                       </motion.div>
                     ))}
                   </motion.div>
                 )}
 
-                {/* Stage 1: icons + words — fade in/out (no rising) */}
+                {/* Stage 1: icons + words — smooth fade */}
                 {motionStage === 1 && (
                   <motion.div key="s1" className="flex items-center justify-center gap-8"
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4 }}>
+                    transition={fadeIn}>
                     {PROCESS_ICONS.map((s, i) => (
                       <motion.div key={s.word}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ duration: 0.3, delay: i * 0.15 }}
+                        transition={stagger(i * 0.12)}
                         className="flex items-center gap-3">
                         <s.icon className="h-7 w-7 text-white/30" />
                         <span className="text-xl text-white/50 tracking-wider font-medium">{s.word}.</span>
@@ -174,9 +178,9 @@ export function HeroFinal({ onRequestAccess, onOverlayChange }: HeroFinalProps) 
                   </motion.div>
                 )}
 
-                {/* Stage 2: Final grid — sleek standard style + numbered steps + tagline */}
+                {/* Stage 2: Final grid — smooth fade, no spring */}
                 {motionStage >= 2 && (
-                  <motion.div key="s2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
+                  <motion.div key="s2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, ease: "easeOut" }}>
                     <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}
                       className="text-center text-xs text-white/25 mb-8 tracking-[0.15em] uppercase">
                       How It Works
@@ -187,7 +191,7 @@ export function HeroFinal({ onRequestAccess, onOverlayChange }: HeroFinalProps) 
                         <motion.div key={item.label}
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
-                          transition={{ duration: 0.4, delay: i * 0.1 }}
+                          transition={{ duration: 0.4, delay: 0.1 + i * 0.08 }}
                           className="relative rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 hover:bg-white/[0.04] transition-colors duration-200">
                           <span className="absolute top-3 right-3 text-[10px] font-mono text-white/10 tracking-wider">{item.num}</span>
                           <div className="flex items-center gap-2.5 mb-2.5">
@@ -202,10 +206,10 @@ export function HeroFinal({ onRequestAccess, onOverlayChange }: HeroFinalProps) 
                     </div>
 
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                      transition={{ duration: 0.4, delay: 0.8 }} className="text-center mt-10">
+                      transition={{ duration: 0.4, delay: 0.7 }} className="text-center mt-10">
                       <Button onClick={() => { setShowMotion(false); onRequestAccess(); }}
                         className="pointer-events-auto bg-primary hover:bg-primary/90 text-white px-8 py-5 text-sm font-medium rounded-xl shadow-lg shadow-primary/15 active:scale-[0.97] cursor-pointer">
-                        Request Early Access &rarr;
+                        Request Early Access <span aria-hidden="true">&rarr;</span>
                       </Button>
                       <p className="text-[10px] text-white/15 mt-4 tracking-wider">Identity infrastructure for the AI economy</p>
                     </motion.div>

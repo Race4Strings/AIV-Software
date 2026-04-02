@@ -1,5 +1,8 @@
 # dependencies
 node_modules
+
+# brainstorm sessions
+.superpowers/
 .pnp
 .pnp.js
 

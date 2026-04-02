@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://aiv.chat"),
   title: "AIV — Own Your Digital Identity",
   description:
-    "Own your identity in the AI economy. AIV certifies, protects, and licenses your digital twin with cryptographic proof-of-ownership, custom behavioral guardrails, and a global licensing rail that generates recurring revenue on autopilot.",
+    "Capture, certify, and license your digital identity — with full control over every guardrail and every deal. Built for athletes, musicians, actors, executives, and creators.",
   keywords: [
     "AI",
     "digital identity",
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "AIV — Own Your Digital Identity",
     description:
-      "Own your identity in the AI economy. AIV certifies, protects, and licenses your digital twin with cryptographic proof-of-ownership, custom behavioral guardrails, and a global licensing rail that generates recurring revenue on autopilot.",
+      "Capture, certify, and license your digital identity — with full control over every guardrail and every deal. Built for athletes, musicians, actors, executives, and creators.",
     siteName: "AIV",
     type: "website",
     images: [
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "AIV — Own Your Digital Identity",
     description:
-      "Own your identity in the AI economy. AIV certifies, protects, and licenses your digital twin with cryptographic proof-of-ownership, custom behavioral guardrails, and a global licensing rail that generates recurring revenue on autopilot.",
+      "Capture, certify, and license your digital identity — with full control over every guardrail and every deal. Built for athletes, musicians, actors, executives, and creators.",
     images: ["/aiv.svg"],
   },
 };
