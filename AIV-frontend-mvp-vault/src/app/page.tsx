@@ -9,8 +9,6 @@ import { SignalNotifications, MobileSignalNotifications } from "@/components/lan
 import Aurora from "@/components/ui/Aurora";
 import { HeroFinal } from "@/components/landing/hero-final";
 import { HeroFinalV2 } from "@/components/landing/hero-final-v2";
-import { HeroFinalV3 } from "@/components/landing/hero-final-v3";
-import { AutoPlaySignalNotifications } from "@/components/landing/signal-notification";
 
 export default function HomePage() {
   const router = useRouter();
@@ -73,7 +71,7 @@ export default function HomePage() {
   }, [router]);
 
   const [overlayOpen, setOverlayOpen] = useState(false);
-  const [version, setVersion] = useState<1 | 2 | 3>(1);
+  const [version, setVersion] = useState<1 | 2>(1);
 
   function handleRequestAccess() { setModalInitialStep(0); setModalOpen(true); }
 
@@ -92,7 +90,7 @@ export default function HomePage() {
         style={{ background: "radial-gradient(ellipse 50% 40% at 50% 50%, rgba(59,130,246,0.07) 0%, transparent 60%)" }} />
 
       {/* Signals — hidden when motion overlay is open */}
-      {!overlayOpen && (version === 3 ? <AutoPlaySignalNotifications /> : <SignalNotifications />)}
+      {!overlayOpen && <SignalNotifications />}
 
       {/* Main */}
       <div className="relative z-10 max-w-[1920px] mx-auto">
@@ -115,13 +113,9 @@ export default function HomePage() {
         {version === 2 && (
           <HeroFinalV2 containerRef={containerRef} onRequestAccess={handleRequestAccess} onOverlayChange={setOverlayOpen} />
         )}
-        {version === 3 && (
-          <HeroFinalV3 containerRef={containerRef} onRequestAccess={handleRequestAccess} onOverlayChange={setOverlayOpen} />
-        )}
-
         {/* Version toggle — bottom-right */}
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-1 rounded-full border border-white/[0.08] bg-black/70 backdrop-blur-xl px-1.5 py-1 shadow-2xl shadow-black/40 pointer-events-auto">
-          {([1, 2, 3] as const).map(v => (
+          {([1, 2] as const).map(v => (
             <button key={v} onClick={() => setVersion(v)}
               className={`px-3 py-1.5 rounded-full text-[10px] font-medium tracking-wider transition-all duration-200 cursor-pointer ${version === v ? "bg-white/90 text-black shadow-sm" : "text-white/40 hover:text-white/60"}`}>
               v{v}

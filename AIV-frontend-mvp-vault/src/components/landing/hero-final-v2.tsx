@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lock, Unlock, Fingerprint, Shield, Briefcase, Search, Brain, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Aurora from "@/components/ui/Aurora";
 
 export interface HeroFinalV2Props {
   containerRef: React.RefObject<HTMLDivElement | null>;
@@ -29,7 +30,7 @@ const PROCESS_ICONS = [
   { word: "License", icon: Briefcase, color: "#10b981" },
 ] as const;
 
-// Lock badge: closed → hover → opens → closes → color cycle → green pulse
+// Lock: closed → hover → open → re-close → color cycle → pulsing green
 function AnimatedLockBadge() {
   const [hovered, setHovered] = useState(false);
   const [phase, setPhase] = useState<"lock" | "unlock" | "relock" | "dot" | "settle">("lock");
@@ -37,9 +38,9 @@ function AnimatedLockBadge() {
   useEffect(() => {
     if (!hovered) { setPhase("lock"); return; }
     setPhase("unlock");
-    const t1 = setTimeout(() => setPhase("relock"), 350);
-    const t2 = setTimeout(() => setPhase("dot"), 700);
-    const t3 = setTimeout(() => setPhase("settle"), 2200);
+    const t1 = setTimeout(() => setPhase("relock"), 400);
+    const t2 = setTimeout(() => setPhase("dot"), 800);
+    const t3 = setTimeout(() => setPhase("settle"), 2300);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [hovered]);
 
@@ -52,76 +53,68 @@ function AnimatedLockBadge() {
       <div className="relative h-3.5 w-3.5 flex items-center justify-center">
         <AnimatePresence mode="wait">
           {phase === "lock" && (
-            <motion.div key="lock" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+            <motion.div key="lock" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}>
               <Lock className="h-3.5 w-3.5 text-blue-400" />
             </motion.div>
           )}
           {phase === "unlock" && (
-            <motion.div key="unlock" initial={{ opacity: 0, rotate: -15 }} animate={{ opacity: 1, rotate: 0 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}>
+            <motion.div key="unlock" initial={{ opacity: 0, rotate: -12 }} animate={{ opacity: 1, rotate: 0 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}>
               <Unlock className="h-3.5 w-3.5 text-blue-400" />
             </motion.div>
           )}
           {phase === "relock" && (
-            <motion.div key="relock" initial={{ opacity: 0, rotate: 10 }} animate={{ opacity: 1, rotate: 0 }} exit={{ opacity: 0, scale: 0.6 }}
-              transition={{ duration: 0.2 }}>
+            <motion.div key="relock" initial={{ opacity: 0, rotate: 8 }} animate={{ opacity: 1, rotate: 0 }} exit={{ opacity: 0, scale: 0.7 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}>
               <Lock className="h-3.5 w-3.5 text-blue-400" />
             </motion.div>
           )}
           {phase === "dot" && (
             <motion.div key="dot" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
               className="h-2.5 w-2.5 rounded-full v2-dot-cycle" />
           )}
           {phase === "settle" && (
-            <motion.div key="settle" initial={{ scale: 1.2 }} animate={{ scale: [1, 1.15, 1] }}
-              transition={{ duration: 0.3, repeat: Infinity, repeatDelay: 1.5 }}
+            <motion.div key="settle" initial={{ scale: 1.2 }} animate={{ scale: [1, 1.12, 1] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
               className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.5)]" />
           )}
         </AnimatePresence>
       </div>
       <span className="text-xs font-medium text-white/50 tracking-widest uppercase">Identity Infrastructure</span>
       <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes v2-dot-colors { 0%{background:#3b82f6}20%{background:#10b981}40%{background:#ef4444}60%{background:#f59e0b}80%{background:#8b5cf6}100%{background:#10b981} }
-        .v2-dot-cycle{animation:v2-dot-colors 1.5s ease-in-out;animation-fill-mode:forwards}
+        @keyframes v2-dot-colors{0%{background:#3b82f6}20%{background:#10b981}40%{background:#ef4444}60%{background:#f59e0b}80%{background:#8b5cf6}100%{background:#10b981}}
+        .v2-dot-cycle{animation:v2-dot-colors 1.5s ease-in-out forwards}
       ` }} />
     </motion.div>
   );
 }
 
-// How It Works card with hover color + animation
+// Card with hover color + auto-flash on mount
 function HowItWorksCard({ item, index, autoFlash }: { item: typeof REVEAL_STEPS[number]; index: number; autoFlash: boolean }) {
   const [hovered, setHovered] = useState(false);
   const [flashActive, setFlashActive] = useState(false);
   const Icon = item.icon;
 
-  // Auto flash on mount when autoFlash is true (sequential 1→6)
   useEffect(() => {
     if (!autoFlash) return;
-    const delay = index * 200;
-    const t1 = setTimeout(() => setFlashActive(true), delay);
-    const t2 = setTimeout(() => setFlashActive(false), delay + 600);
+    const t1 = setTimeout(() => setFlashActive(true), index * 200);
+    const t2 = setTimeout(() => setFlashActive(false), index * 200 + 600);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [autoFlash, index]);
 
   const showColor = hovered || flashActive;
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeOut", delay: 0.15 + index * 0.1 }}
       className="relative rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 hover:bg-white/[0.04] transition-colors duration-200 cursor-default"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
+      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
       <span className="absolute top-3 right-3 text-[10px] font-mono text-white/10 tracking-wider">{item.num}</span>
       <div className="flex items-center gap-2.5 mb-2.5">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200"
-          style={{
-            transform: showColor ? "scale(1.15) rotate(5deg)" : "scale(1) rotate(0deg)",
-            backgroundColor: showColor ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.04)",
-          }}>
+          style={{ transform: showColor ? "scale(1.15) rotate(5deg)" : "scale(1)", backgroundColor: showColor ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.04)" }}>
           <Icon className="h-4 w-4 transition-colors duration-200" style={{ color: showColor ? item.color : "rgba(255,255,255,0.3)" }} />
         </div>
         <span className="text-sm text-white/50 font-medium">{item.label}</span>
@@ -136,16 +129,38 @@ export function HeroFinalV2({ onRequestAccess, onOverlayChange }: HeroFinalV2Pro
   const [motionStage, setMotionStage] = useState(0);
   const [cardFlashTriggered, setCardFlashTriggered] = useState(false);
 
+  // Aurora for overlay (mouse-driven, same as landing)
+  const [overlayAurora, setOverlayAurora] = useState(0);
+  const overlayMouseRef = useRef({ x: 0, y: 0, time: 0, dx: 0, dy: 0 });
+  const overlayScoreRef = useRef(0);
+  const overlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleOverlayMouse = useCallback((e: React.MouseEvent) => {
+    const now = Date.now();
+    const last = overlayMouseRef.current;
+    const dt = now - last.time;
+    if (dt > 0 && dt < 100) {
+      const dx = e.clientX - last.x;
+      const dy = e.clientY - last.y;
+      const speed = Math.sqrt(dx * dx + dy * dy) / dt;
+      const rev = ((dx > 0 && last.dx < 0) || (dx < 0 && last.dx > 0) || (dy > 0 && last.dy < 0) || (dy < 0 && last.dy > 0));
+      overlayScoreRef.current = Math.min(5, overlayScoreRef.current * 0.85 + Math.min(0.4, speed * 0.15) + (rev && speed > 0.3 ? 0.6 : 0));
+      overlayMouseRef.current = { x: e.clientX, y: e.clientY, time: now, dx, dy };
+    } else {
+      overlayMouseRef.current = { ...last, x: e.clientX, y: e.clientY, time: now };
+    }
+    setOverlayAurora(Math.min(0.85, 0.25 + overlayScoreRef.current * 0.18));
+    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+    overlayTimerRef.current = setTimeout(() => { overlayScoreRef.current = 0; setOverlayAurora(0.25); }, 300);
+  }, []);
+
   useEffect(() => { onOverlayChange?.(showMotion); }, [showMotion, onOverlayChange]);
 
   useEffect(() => {
     if (!showMotion) { setCardFlashTriggered(false); return; }
     setMotionStage(0);
     const t1 = setTimeout(() => setMotionStage(1), 1500);
-    const t2 = setTimeout(() => {
-      setMotionStage(2);
-      setCardFlashTriggered(true);
-    }, 3800);
+    const t2 = setTimeout(() => { setMotionStage(2); setCardFlashTriggered(true); }, 3800);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [showMotion]);
 
@@ -186,7 +201,7 @@ export function HeroFinalV2({ onRequestAccess, onOverlayChange }: HeroFinalV2Pro
         </motion.div>
       </div>
 
-      {/* Motion Overlay — NO aurora (removed per request) */}
+      {/* Motion Overlay WITH aurora */}
       <AnimatePresence>
         {showMotion && (
           <motion.div
@@ -194,8 +209,15 @@ export function HeroFinalV2({ onRequestAccess, onOverlayChange }: HeroFinalV2Pro
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5, ease: "easeInOut" }}
+            onMouseMove={handleOverlayMouse}
             className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[oklch(0.06_0.008_262)]"
           >
+            {/* Aurora in overlay */}
+            <div className="pointer-events-none absolute inset-0 z-0"
+              style={{ opacity: overlayAurora, transition: "opacity 1000ms cubic-bezier(0.4, 0, 0.2, 1)" }}>
+              <Aurora colorStops={["#0a1e42", "#2563eb", "#0a1e42"]} amplitude={0.8} blend={0.5} speed={0.3} />
+            </div>
+
             <div className="absolute top-6 left-6 flex items-center gap-3 pointer-events-auto z-10">
               <button onClick={() => setShowMotion(false)}
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] text-white/40 hover:text-white/70 hover:bg-white/[0.1] transition-colors duration-150 cursor-pointer">
@@ -209,7 +231,7 @@ export function HeroFinalV2({ onRequestAccess, onOverlayChange }: HeroFinalV2Pro
 
             <div className="max-w-4xl w-full px-6 relative z-10">
               <AnimatePresence mode="wait">
-                {/* Stage 0: icons with color flash */}
+                {/* Stage 0 ONLY: icons with color flash */}
                 {motionStage === 0 && (
                   <motion.div key="s0" className="flex items-center justify-center gap-14"
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -230,7 +252,7 @@ export function HeroFinalV2({ onRequestAccess, onOverlayChange }: HeroFinalV2Pro
                   </motion.div>
                 )}
 
-                {/* Stage 1: icons + words with color flash */}
+                {/* Stage 1: icons + words — NO color flash (plain) */}
                 {motionStage === 1 && (
                   <motion.div key="s1" className="flex items-center justify-center gap-10"
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -241,12 +263,7 @@ export function HeroFinalV2({ onRequestAccess, onOverlayChange }: HeroFinalV2Pro
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.5, ease: "easeOut", delay: i * 0.15 }}
                         className="flex items-center gap-3">
-                        <motion.div
-                          initial={{ color: s.color }}
-                          animate={{ color: "rgba(255,255,255,0.3)" }}
-                          transition={{ duration: 0.8, delay: 0.3 + i * 0.15 }}>
-                          <s.icon className="h-7 w-7" style={{ color: "inherit" }} />
-                        </motion.div>
+                        <s.icon className="h-7 w-7 text-white/30" />
                         <span className="text-xl text-white/50 tracking-wider font-medium">{s.word}.</span>
                       </motion.div>
                     ))}
