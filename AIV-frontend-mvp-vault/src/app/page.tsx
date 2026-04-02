@@ -78,7 +78,7 @@ export default function HomePage() {
       className="relative min-h-[100dvh] overflow-hidden bg-[oklch(0.11_0.015_262)]"
     >
       {/* Aurora animated background */}
-      <div className="pointer-events-none absolute inset-0 z-0 opacity-60">
+      <div className="pointer-events-none absolute inset-0 z-0 opacity-45">
         <Aurora colorStops={["#0f2a5e", "#3b82f6", "#0f2a5e"]} amplitude={1.0} blend={0.6} speed={0.4} />
       </div>
 
@@ -100,7 +100,7 @@ export default function HomePage() {
         </Link>
         <button
           onClick={() => { setModalInitialStep(8); setModalOpen(true); }}
-          className="text-sm font-medium text-white/60 hover:text-white transition-colors duration-200"
+          className="text-sm font-medium text-white/60 hover:text-white transition-colors duration-200 cursor-pointer"
         >
           Sign In
         </button>
@@ -165,14 +165,14 @@ export default function HomePage() {
         >
           <Button
             onClick={handleRequestAccess}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-6 text-base font-medium rounded-xl shadow-lg shadow-blue-600/25 transition-all duration-200 hover:shadow-blue-500/30"
+            className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-6 text-base font-medium rounded-xl shadow-lg shadow-blue-600/25 transition-[transform,box-shadow,background-color] duration-150 hover:shadow-blue-500/30 active:scale-[0.97] cursor-pointer"
           >
             Request Early Access &rarr;
           </Button>
           <Button
             onClick={() => setHowItWorksOpen(true)}
             variant="outline"
-            className="border-white/[0.12] text-white/60 hover:text-white hover:border-white/25 hover:bg-white/[0.04] px-8 py-6 text-base font-medium rounded-xl bg-transparent transition-all duration-200"
+            className="border-white/[0.12] text-white/60 hover:text-white hover:border-white/25 hover:bg-white/[0.04] px-8 py-6 text-base font-medium rounded-xl bg-transparent transition-[transform,color,border-color,background-color] duration-150 active:scale-[0.97] cursor-pointer"
           >
             See How It Works
           </Button>
@@ -206,10 +206,13 @@ export default function HomePage() {
 
             {/* Modal Content */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: 12 }}
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 12 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              transition={{
+                default: { type: "spring", damping: 25, stiffness: 300 },
+                exit: { duration: 0.15, ease: "easeIn" },
+              }}
               className="relative z-10 w-full max-w-3xl rounded-2xl border border-white/[0.1] bg-[#0a1a3a]/95 backdrop-blur-xl shadow-2xl shadow-black/40 overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
@@ -224,7 +227,7 @@ export default function HomePage() {
                 <button
                   onClick={() => setHowItWorksOpen(false)}
                   aria-label="Close"
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] text-white/50 hover:text-white hover:bg-white/[0.1] transition-colors duration-150"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] text-white/50 hover:text-white hover:bg-white/[0.1] transition-colors duration-150 cursor-pointer"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -259,7 +262,7 @@ export default function HomePage() {
               <div className="px-8 pb-8 pt-2">
                 <Button
                   onClick={() => { setHowItWorksOpen(false); handleRequestAccess(); }}
-                  className="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 text-base font-medium rounded-xl shadow-lg shadow-blue-600/20 transition-all duration-200"
+                  className="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 text-base font-medium rounded-xl shadow-lg shadow-blue-600/20 transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer"
                 >
                   Request Early Access &rarr;
                 </Button>

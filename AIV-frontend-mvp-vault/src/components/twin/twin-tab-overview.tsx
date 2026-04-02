@@ -58,7 +58,7 @@ export function TwinTabOverview({
   return (
     <div className="space-y-4 mt-4">
       {/* Hero identity card */}
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden shadow-lg shadow-primary/5">
         <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6">
           <div className="flex items-start gap-6">
             <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-background/80 border border-border/50 shadow-sm">
@@ -97,17 +97,17 @@ export function TwinTabOverview({
             {isBuilding ? (
               <>
                 Your identity is being assembled.
-                {health && health.cfs > 0 ? ` Profile accuracy is at ${(health.cfs * 100).toFixed(0)}% — ` : " "}
+                {health && health.cfs > 0 ? <> Profile accuracy is at <span className="font-mono tabular-nums">{(health.cfs * 100).toFixed(0)}%</span> — </> : " "}
                 {health && health.cfs >= 0.65 ? "your identity is ready for licensing." :
                  health && health.cfs >= 0.5 ? "nearly ready for licensing. Continue training to reach the activation threshold." :
                  "visit the Training Area to strengthen your profile and activate licensing."}
-                {dealCount > 0 && ` You have ${dealCount} deal${dealCount !== 1 ? "s" : ""} in your pipeline.`}
+                {dealCount > 0 && <> You have <span className="font-mono tabular-nums">{dealCount}</span> deal{dealCount !== 1 ? "s" : ""} in your pipeline.</>}
               </>
             ) : (
               <>
                 Your identity is active and available for licensing.
-                {dealCount > 0 ? ` ${dealCount} deal${dealCount !== 1 ? "s" : ""} in your pipeline` : " No active deals yet"}
-                {revenue?.net_revenue ? `, generating $${revenue.net_revenue.toLocaleString()} in net revenue.` : "."}
+                {dealCount > 0 ? <> <span className="font-mono tabular-nums">{dealCount}</span> deal{dealCount !== 1 ? "s" : ""} in your pipeline</> : " No active deals yet"}
+                {revenue?.net_revenue ? <>, generating <span className="font-mono tabular-nums">${revenue.net_revenue.toLocaleString()}</span> in net revenue.</> : "."}
                 {` Created ${twin.created_at ? new Date(twin.created_at).toLocaleDateString() : "recently"}.`}
               </>
             )}

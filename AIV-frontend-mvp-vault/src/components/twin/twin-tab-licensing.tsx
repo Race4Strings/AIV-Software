@@ -95,7 +95,7 @@ export function TwinTabLicensing({
   const rules = licensingRules || {};
 
   return (
-    <div className="space-y-4 mt-4">
+    <div className="space-y-6 mt-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">Define the commercial parameters for licensing your identity. These rules are checked against every deal submission.</p>
         {editing ? (
@@ -149,7 +149,7 @@ export function TwinTabLicensing({
                 <p className="text-[10px] text-muted-foreground/60 mt-1">Typical range for {category}: {categoryHints[category] || "$10K-$100K"}</p>
               </>
             ) : (
-              <div className="text-2xl font-bold mt-2">${((rules.pricing_floor as number) || 0).toLocaleString()}</div>
+              <div className="text-2xl font-bold font-mono tabular-nums mt-2">${((rules.pricing_floor as number) || 0).toLocaleString()}</div>
             )}
           </CardContent>
         </Card>
@@ -187,7 +187,7 @@ export function TwinTabLicensing({
                 <span className="text-sm text-muted-foreground">hours</span>
               </div>
             ) : (
-              <div className="text-lg font-medium mt-2">{(rules.default_grace_period_hours as number) || 48}h</div>
+              <div className="text-lg font-medium font-mono tabular-nums mt-2">{(rules.default_grace_period_hours as number) || 48}h</div>
             )}
           </CardContent>
         </Card>
@@ -223,7 +223,7 @@ export function TwinTabLicensing({
       {/* Blacklisted use cases */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Blacklisted Use Cases</CardTitle>
+          <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Blacklisted Use Cases</CardTitle>
           <CardDescription>Industries or use cases that are prohibited from licensing your identity</CardDescription>
         </CardHeader>
         <CardContent>
@@ -245,7 +245,7 @@ export function TwinTabLicensing({
       {/* Permitted use cases */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Permitted Use Cases</CardTitle>
+          <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Permitted Use Cases</CardTitle>
           <CardDescription>Explicitly allowed industries or use cases for licensing</CardDescription>
         </CardHeader>
         <CardContent>
@@ -267,7 +267,7 @@ export function TwinTabLicensing({
       {/* Territory restrictions */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Territory Restrictions</CardTitle>
+          <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Territory Restrictions</CardTitle>
           <CardDescription>Geographic restrictions on where deals can operate</CardDescription>
         </CardHeader>
         <CardContent>

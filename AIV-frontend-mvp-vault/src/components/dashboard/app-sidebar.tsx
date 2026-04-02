@@ -94,7 +94,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.title}>
-                    <Link href={item.href}>
+                    <Link href={item.href} className={isActive(item.href) ? "border-l-2 border-primary bg-primary/10 rounded-l-none" : ""}>
                       <item.icon className="size-4 shrink-0" />
                       <span className="truncate">{item.title}</span>
                     </Link>
@@ -116,7 +116,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
               {secondaryItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.href)} tooltip={item.title}>
-                    <Link href={item.href}>
+                    <Link href={item.href} className={isActive(item.href) ? "border-l-2 border-primary bg-primary/10 rounded-l-none" : ""}>
                       <item.icon className="size-4 shrink-0" />
                       <span className="truncate">{item.title}</span>
                     </Link>

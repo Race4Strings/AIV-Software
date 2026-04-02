@@ -116,32 +116,35 @@ export function AuthorizeStep({
         </CardContent>
       </Card>
 
+      {/* Signature Section Divider */}
+      <div className="border-t border-primary/10" />
+
       {/* Consent Statement */}
-      <Card className="border-2 border-primary bg-primary/5">
-        <CardContent className="py-6 text-center">
-          <ShieldCheck className="h-8 w-8 text-primary mx-auto mb-3" />
-          <p className="text-base font-medium leading-relaxed">
+      <Card className="border-2 border-primary/40 bg-primary/5 ring-2 ring-primary/20">
+        <CardContent className="py-8 px-6 text-center space-y-4">
+          <ShieldCheck className="h-8 w-8 text-primary mx-auto" />
+          <p className="text-base font-medium leading-relaxed max-w-lg mx-auto">
             {isManager
               ? `"I confirm that ${profileDraft.display_name || "the talent"} has authorized me to act on their behalf for the creation and commercial licensing of their digital identity under the terms reviewed above."`
               : `"This is me. I authorize this version of my digital identity for commercial use under the terms reviewed above."`}
           </p>
-          <p className="text-xs text-muted-foreground mt-3">
+          <p className="text-xs text-muted-foreground leading-relaxed">
             This is a recorded consent event. You can revoke this authorization at any time from your Identity settings. Revoking consent while deals are active may affect those deals.
           </p>
         </CardContent>
       </Card>
 
-      <div className="flex gap-3">
-        <Button variant="outline" onClick={() => setStep(3)} disabled={loading} className="py-5">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back
-        </Button>
+      <div className="space-y-3">
         <Button
           onClick={submitGate2}
           disabled={loading}
-          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-5 text-base font-semibold"
+          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-base font-semibold active:scale-[0.97] transition-transform duration-150"
         >
           {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <UserCheck className="h-5 w-5 mr-2" />}
           I Authorize This Identity
+        </Button>
+        <Button variant="ghost" onClick={() => setStep(3)} disabled={loading} className="w-full py-3 active:scale-[0.97] transition-transform duration-150">
+          <ArrowLeft className="h-4 w-4 mr-1" /> Back
         </Button>
       </div>
     </div>

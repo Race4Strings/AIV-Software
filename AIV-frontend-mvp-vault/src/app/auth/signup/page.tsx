@@ -113,7 +113,7 @@ function SignupForm() {
               value={accessCode}
               onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
               placeholder="AIV-XXXXXX"
-              className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none focus:outline-none focus:border-blue-500 transition-colors font-mono tracking-wider"
+              className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none focus:outline-none focus:border-blue-500 transition-colors duration-150 font-mono tracking-wider"
             />
           )}
         </div>
@@ -130,7 +130,7 @@ function SignupForm() {
               placeholder="Full name"
               maxLength={255}
               disabled={signupMutation.isPending}
-              className={`w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border ${touched.name && fieldErrors.name ? 'border-red-500/50' : 'border-white/[0.12]'} text-white text-sm placeholder:text-white/30 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none focus:outline-none focus:border-blue-500 transition-colors`}
+              className={`w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border ${touched.name && fieldErrors.name ? 'border-red-500/50' : 'border-white/[0.12]'} text-white text-sm placeholder:text-white/30 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none focus:outline-none focus:border-blue-500 transition-colors duration-150`}
               autoFocus={!!codeFromUrl}
             />
             {touched.name && fieldErrors.name && <p className="text-[10px] text-red-400 mt-1">{fieldErrors.name}</p>}
@@ -145,7 +145,7 @@ function SignupForm() {
               placeholder="johndoe"
               maxLength={50}
               disabled={signupMutation.isPending}
-              className={`w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border ${touched.username && fieldErrors.username ? 'border-red-500/50' : 'border-white/[0.12]'} text-white text-sm placeholder:text-white/30 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none focus:outline-none focus:border-blue-500 transition-colors`}
+              className={`w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border ${touched.username && fieldErrors.username ? 'border-red-500/50' : 'border-white/[0.12]'} text-white text-sm placeholder:text-white/30 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none focus:outline-none focus:border-blue-500 transition-colors duration-150`}
             />
             {touched.username && fieldErrors.username && <p className="text-[10px] text-red-400 mt-1">{fieldErrors.username}</p>}
           </div>
@@ -162,7 +162,7 @@ function SignupForm() {
             placeholder="you@example.com"
             maxLength={255}
             disabled={signupMutation.isPending}
-            className={`w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border ${touched.email && fieldErrors.email ? 'border-red-500/50' : 'border-white/[0.12]'} text-white text-sm placeholder:text-white/30 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none focus:outline-none focus:border-blue-500 transition-colors`}
+            className={`w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border ${touched.email && fieldErrors.email ? 'border-red-500/50' : 'border-white/[0.12]'} text-white text-sm placeholder:text-white/30 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none focus:outline-none focus:border-blue-500 transition-colors duration-150`}
           />
           {touched.email && fieldErrors.email && <p className="text-[10px] text-red-400 mt-1">{fieldErrors.email}</p>}
         </div>
@@ -177,7 +177,7 @@ function SignupForm() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Min 8 characters"
               disabled={signupMutation.isPending}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none focus:outline-none focus:border-blue-500 transition-colors pr-10"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none focus:outline-none focus:border-blue-500 transition-colors duration-150 pr-10"
             />
             <button
               type="button"
@@ -228,13 +228,13 @@ function SignupForm() {
             onChange={(e) => setPasswordConfirm(e.target.value)}
             placeholder="Confirm your password"
             disabled={signupMutation.isPending}
-            className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none focus:outline-none focus:border-blue-500 transition-colors"
+            className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none focus:outline-none focus:border-blue-500 transition-colors duration-150"
           />
         </div>
 
         <button
           type="submit"
-          className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2 mt-1 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+          className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer flex items-center justify-center gap-2 mt-1 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
           disabled={signupMutation.isPending || !name.trim() || !username.trim() || !email.trim() || !password.trim()}
         >
           {signupMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}

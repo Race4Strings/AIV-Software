@@ -85,7 +85,7 @@ export function TwinTabGuardrails({ twinId, guardrails, onGuardrailsChange }: Tw
   }
 
   return (
-    <div className="space-y-4 mt-4">
+    <div className="space-y-6 mt-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">Control what your twin can and cannot say. These rules are enforced on every generated output.</p>
         {editing ? (
@@ -123,7 +123,7 @@ export function TwinTabGuardrails({ twinId, guardrails, onGuardrailsChange }: Tw
       {/* Blocked Topics */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Blocked Topics</CardTitle>
+          <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Blocked Topics</CardTitle>
           <CardDescription>Topics your twin will never discuss or engage with</CardDescription>
         </CardHeader>
         <CardContent>
@@ -145,7 +145,7 @@ export function TwinTabGuardrails({ twinId, guardrails, onGuardrailsChange }: Tw
       {/* Restricted Topics */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Restricted Topics</CardTitle>
+          <CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Restricted Topics</CardTitle>
           <CardDescription>Topics your twin will handle with extra caution and disclaimers</CardDescription>
         </CardHeader>
         <CardContent>
@@ -217,7 +217,7 @@ export function TwinTabGuardrails({ twinId, guardrails, onGuardrailsChange }: Tw
           <CardContent className="pt-6">
             <div className="text-sm font-medium">Config Version</div>
             <p className="text-xs text-muted-foreground mt-0.5">Every change creates a new version for audit</p>
-            <div className="text-lg font-medium mt-2">v{guardrails?.version ?? 1}</div>
+            <div className="text-lg font-medium font-mono tabular-nums mt-2">v{guardrails?.version ?? 1}</div>
           </CardContent>
         </Card>
 

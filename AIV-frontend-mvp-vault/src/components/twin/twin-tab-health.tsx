@@ -46,13 +46,13 @@ export function TwinTabHealth({ health, isBuilding, healthCfg }: TwinTabHealthPr
                   <CardContent className="pt-6">
                     <div className="text-sm font-medium">{metric.label}</div>
                     <div className="flex items-baseline gap-2 mt-1">
-                      <span className="text-3xl font-bold">{pct.toFixed(0)}%</span>
+                      <span className="text-3xl font-bold font-mono tabular-nums">{pct.toFixed(0)}%</span>
                       <span className={`text-xs font-semibold ${qualColor}`}>{qualLabel}</span>
                     </div>
                     <div className="mt-3 h-2 rounded-full bg-muted overflow-hidden">
-                      <div className={`h-full rounded-full ${metric.color} transition-all`} style={{ width: `${pct}%` }} />
+                      <div className={`h-full rounded-full ${metric.color} transition-all duration-500 ease-out`} style={{ width: `${pct}%` }} />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2">{metric.desc}. Target: {(metric.target * 100).toFixed(0)}%.</p>
+                    <p className="text-xs text-muted-foreground mt-2">{metric.desc}. Target: <span className="font-mono tabular-nums">{(metric.target * 100).toFixed(0)}%</span>.</p>
                   </CardContent>
                 </Card>
               );

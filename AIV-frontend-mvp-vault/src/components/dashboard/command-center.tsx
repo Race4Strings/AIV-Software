@@ -283,7 +283,7 @@ export function CommandCenter() {
         <Skeleton className="h-24 w-full rounded-xl" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-28 rounded-xl" />
+            <Skeleton key={i} className="h-28 rounded-xl" style={{ animationDelay: `${(i - 1) * 75}ms` }} />
           ))}
         </div>
         <Skeleton className="h-16 w-full rounded-xl" />
@@ -438,7 +438,7 @@ export function CommandCenter() {
               const { label, color } = getPillarStateLabel(info.state);
               const Icon = pillar.icon;
               return (
-                <Card key={pillar.key} className="border-border/50">
+                <Card key={pillar.key} className="border-border/50 hover:shadow-md hover:border-primary/20 transition-all duration-200 cursor-pointer">
                   <CardContent className="pt-5 pb-4">
                     <div className="flex items-center gap-2.5 mb-2">
                       <Icon className="h-4.5 w-4.5 text-muted-foreground" />
@@ -596,10 +596,10 @@ export function CommandCenter() {
                 <TrendingUp className="h-4 w-4" />
                 Net Revenue
               </div>
-              <div className="mt-2 text-3xl font-bold text-emerald-500">
+              <div className="mt-2 text-3xl font-bold text-emerald-500 font-mono tabular-nums">
                 ${revenue.net_revenue.toLocaleString()}
               </div>
-              <div className="mt-1 text-xs text-muted-foreground">
+              <div className="mt-1 text-xs text-muted-foreground font-mono tabular-nums">
                 {revenue.total_deals} deal{revenue.total_deals !== 1 ? "s" : ""} total
               </div>
             </CardContent>
@@ -628,7 +628,7 @@ export function CommandCenter() {
                       <span className="font-medium">{d.deal_type.replace(/_/g, " ")}</span>
                       <div className="flex items-center gap-3">
                         <span className="text-[10px] text-muted-foreground">{ageLabel}</span>
-                        <span className="text-muted-foreground">${d.value.toLocaleString()}</span>
+                        <span className="text-muted-foreground font-mono tabular-nums">${d.value.toLocaleString()}</span>
                         <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
                       </div>
                     </div>

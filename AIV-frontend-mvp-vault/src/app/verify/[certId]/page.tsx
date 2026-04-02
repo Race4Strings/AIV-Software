@@ -211,9 +211,13 @@ export default function VerifyPage({ params }: VerifyPageProps) {
         Certificate authenticity confirmed by the AIV platform
       </p>
 
-      <Card className="w-full max-w-lg border-[oklch(0.25_0.02_262)] bg-[oklch(0.16_0.018_262)]">
-        <CardHeader className="items-center gap-4 pb-2">
-          <Badge className="gap-1.5 border-emerald-500/30 bg-emerald-500/15 px-3 py-1 text-sm text-emerald-400 hover:bg-emerald-500/15">
+      <Card className="relative w-full max-w-lg border-[oklch(0.25_0.02_262)] bg-[oklch(0.16_0.018_262)] overflow-hidden print:shadow-none print:border">
+        {/* Watermark */}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center print:hidden">
+          <Image src="/aiv.svg" alt="" width={280} height={280} className="opacity-[0.03] rotate-[-12deg] brightness-0 invert select-none" aria-hidden="true" />
+        </div>
+        <CardHeader className="relative items-center gap-4 pb-2">
+          <Badge className="gap-1.5 border-emerald-500/30 bg-emerald-500/15 px-3 py-1 text-sm text-emerald-400 hover:bg-emerald-500/15 shadow-lg shadow-emerald-500/20">
             <ShieldCheck className="h-4 w-4" />
             Verified
           </Badge>
@@ -222,13 +226,13 @@ export default function VerifyPage({ params }: VerifyPageProps) {
               <BadgeCheck className="h-5 w-5 text-[oklch(0.55_0.2_262)]" />
               <span className="text-lg font-semibold text-white">Verified Identity</span>
             </div>
-            <span className="text-sm text-[oklch(0.65_0.015_262)]">
+            <span className="text-sm uppercase tracking-wider text-[oklch(0.65_0.015_262)]">
               Certificate of Digital Identity Ownership
             </span>
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-5">
+        <CardContent className="relative space-y-5">
           <div className="h-px w-full bg-[oklch(0.25_0.02_262)]" />
 
           <div className="space-y-4">
@@ -278,8 +282,8 @@ export default function VerifyPage({ params }: VerifyPageProps) {
                 <p className="text-xs font-medium uppercase tracking-wider text-[oklch(0.65_0.015_262)]">
                   SHA-256 Hash
                 </p>
-                <div className="mt-1 flex items-center gap-2">
-                  <code className="min-w-0 truncate rounded bg-[oklch(0.13_0.015_262)] px-2 py-1 font-mono text-xs text-emerald-400">
+                <div className="mt-1 flex items-center gap-2 bg-[oklch(0.12_0.015_262)] rounded-lg p-3">
+                  <code className="min-w-0 truncate font-mono text-xs text-emerald-400">
                     {truncatedHash}
                   </code>
                   <Button variant="ghost" size="icon"
@@ -292,7 +296,7 @@ export default function VerifyPage({ params }: VerifyPageProps) {
             </div>
 
             {/* Blockchain Anchor */}
-            <div className="flex items-start gap-3 pt-2 pb-2">
+            <div className="flex items-start gap-3 pt-3 pb-3 mt-1 rounded-lg bg-[oklch(0.14_0.015_262)] px-3">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-purple-500" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
@@ -366,7 +370,7 @@ export default function VerifyPage({ params }: VerifyPageProps) {
       </Card>
 
       <div className="mt-4 flex justify-center print:hidden">
-        <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2 border-[oklch(0.25_0.02_262)] text-[oklch(0.65_0.015_262)] hover:text-white">
+        <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2 border-[oklch(0.25_0.02_262)] text-[oklch(0.65_0.015_262)] hover:text-white active:scale-[0.97] transition-transform duration-150">
           <Printer className="h-3.5 w-3.5" /> Print Certificate
         </Button>
       </div>
@@ -374,7 +378,7 @@ export default function VerifyPage({ params }: VerifyPageProps) {
       <p className="mt-8 text-center text-xs text-[oklch(0.45_0.01_262)]">
         © {new Date().getFullYear()} AIV — Digital Identity Protection
       </p>
-      <div className="text-center text-xs text-muted-foreground mt-6">
+      <div className="text-center text-[10px] uppercase tracking-widest text-[oklch(0.40_0.01_262)] mt-6">
         Issued by AIV — Digital Identity Infrastructure
       </div>
     </main>

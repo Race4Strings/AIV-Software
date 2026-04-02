@@ -149,7 +149,7 @@ export default function CertificationPage() {
           </p>
         </div>
         {!latest ? (
-          <Button onClick={handleCertify} disabled={certifying}>
+          <Button onClick={handleCertify} disabled={certifying} className="active:scale-[0.97] transition-transform duration-150">
             {certifying ? (
               <Loader2 className="mr-2 size-4 animate-spin" />
             ) : (
@@ -159,7 +159,7 @@ export default function CertificationPage() {
           </Button>
         ) : (
           <div className="flex flex-col items-end gap-1">
-            <Button variant="outline" onClick={handleCertify} disabled={certifying}>
+            <Button variant="outline" onClick={handleCertify} disabled={certifying} className="active:scale-[0.97] transition-transform duration-150">
               {certifying ? (
                 <Loader2 className="mr-2 size-4 animate-spin" />
               ) : (
@@ -173,7 +173,7 @@ export default function CertificationPage() {
       </div>
 
       {latest ? (
-        <Card id="certificate-card" className="overflow-hidden border-border/50">
+        <Card id="certificate-card" className="overflow-hidden border border-border/50 ring-1 ring-border/20 ring-inset print:shadow-none print:border">
           {/* Certificate Header Bar */}
           <div className="bg-primary/10 px-6 py-3 flex items-center justify-between border-b border-border/50">
             <div className="flex items-center gap-2">
@@ -183,15 +183,12 @@ export default function CertificationPage() {
             <span className="text-xs text-muted-foreground">Version {latest.version}</span>
           </div>
 
-          <CardContent className="p-8 space-y-6">
+          <CardContent className="p-8 md:p-10 space-y-8">
             {/* Title */}
-            <div className="text-center space-y-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                Certificate of
+            <div className="text-center space-y-3">
+              <p className="text-sm uppercase tracking-widest text-muted-foreground font-medium">
+                Certificate of Digital Identity Ownership
               </p>
-              <h2 className="text-2xl font-bold tracking-tight">
-                Digital Identity Ownership
-              </h2>
               <div className="mx-auto h-px w-24 bg-primary/30" />
             </div>
 
@@ -219,7 +216,7 @@ export default function CertificationPage() {
             </p>
 
             {/* Hash & Blockchain Seal */}
-            <div className="rounded-lg border border-border/50 bg-muted/30 p-4">
+            <div className="rounded-lg border-t border border-border/50 bg-muted/30 p-5 mt-2">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                   <ShieldCheck className="size-4 text-emerald-500" />
@@ -342,12 +339,12 @@ export default function CertificationPage() {
 
             {/* Actions */}
             <div className="flex justify-center gap-3 pt-2">
-              <Button variant="outline" size="sm" className="gap-2" asChild>
+              <Button variant="ghost" size="sm" className="gap-2 active:scale-[0.97] transition-transform duration-150" asChild>
                 <Link href="/twin/documents/templates">
                   <FileText className="size-3.5" /> Generate Legal Document
                 </Link>
               </Button>
-              <Button variant="outline" size="sm" className="gap-2" onClick={handleDownloadPdf}>
+              <Button variant="outline" size="sm" className="gap-2 active:scale-[0.97] transition-transform duration-150" onClick={handleDownloadPdf}>
                 <Download className="size-3.5" /> Download Certificate
               </Button>
             </div>

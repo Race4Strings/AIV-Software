@@ -393,10 +393,13 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
       <motion.div
         ref={modalRef}
         className="relative bg-popover border border-white/10 rounded-2xl p-6 sm:p-8 max-w-[520px] w-full shadow-2xl backdrop-blur-xl transition-transform duration-200 max-h-[90vh] overflow-y-auto"
-        initial={{ opacity: 0, y: 12, scale: 0.97 }}
+        initial={{ opacity: 0, y: 12, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 12, scale: 0.97 }}
-        transition={{ duration: 0.25 }}
+        exit={{ opacity: 0, y: 12, scale: 0.95 }}
+        transition={{
+          default: { type: "spring", damping: 25, stiffness: 300 },
+          exit: { duration: 0.15, ease: "easeIn" },
+        }}
       >
         <AnimatePresence mode="wait">
           {step === 0 && (
@@ -415,7 +418,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                       setRole(r.key)
                       setTimeout(() => setStep(1), 250)
                     }}
-                    className={`text-left rounded-xl p-4 border-[1.5px] transition-all cursor-pointer ${
+                    className={`text-left rounded-xl p-4 border-[1.5px] transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer ${
                       role === r.key
                         ? 'bg-blue-500/15 border-blue-500'
                         : 'bg-white/[0.03] border-transparent hover:bg-blue-500/10 hover:border-blue-500/30'
@@ -465,13 +468,13 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 ))}
               </div>
               <div className="flex gap-2.5">
-                <button onClick={() => setStep(0)} className="px-5 py-3 rounded-xl bg-white/[0.06] border border-white/10 text-white/70 text-sm hover:bg-white/10 transition-all cursor-pointer">
+                <button onClick={() => setStep(0)} className="px-5 py-3 rounded-xl bg-white/[0.06] border border-white/10 text-white/70 text-sm hover:bg-white/10 transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer">
                   <ArrowLeft className="h-4 w-4 inline mr-1" />Back
                 </button>
                 <button
                   onClick={() => setStep(2)}
                   disabled={!requiredDetailsFilled}
-                  className="flex-1 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                  className="flex-1 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer"
                 >
                   Continue &rarr;
                 </button>
@@ -527,13 +530,13 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 </div>
               </div>
               <div className="flex gap-2.5">
-                <button onClick={() => setStep(1)} className="px-5 py-3 rounded-xl bg-white/[0.06] border border-white/10 text-white/70 text-sm hover:bg-white/10 transition-all cursor-pointer">
+                <button onClick={() => setStep(1)} className="px-5 py-3 rounded-xl bg-white/[0.06] border border-white/10 text-white/70 text-sm hover:bg-white/10 transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer">
                   <ArrowLeft className="h-4 w-4 inline mr-1" />Back
                 </button>
                 <button
                   onClick={handleSubmit}
                   disabled={submitting || !fields.email?.trim()}
-                  className="flex-1 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer flex items-center justify-center gap-2"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Request Access <ArrowRight className="h-4 w-4" /></>}
                 </button>
@@ -566,7 +569,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
               </div>
               <button
                 onClick={handleClose}
-                className="w-full mt-5 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 transition-all cursor-pointer"
+                className="w-full mt-5 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer"
               >
                 Done
               </button>
@@ -606,13 +609,13 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 )}
               </div>
               <div className="flex gap-2.5">
-                <button onClick={() => { setStep(0); setCodeError(null) }} className="px-5 py-3 rounded-xl bg-white/[0.06] border border-white/10 text-white/70 text-sm hover:bg-white/10 transition-all cursor-pointer">
+                <button onClick={() => { setStep(0); setCodeError(null) }} className="px-5 py-3 rounded-xl bg-white/[0.06] border border-white/10 text-white/70 text-sm hover:bg-white/10 transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer">
                   <ArrowLeft className="h-4 w-4 inline mr-1" />Back
                 </button>
                 <button
                   onClick={handleValidateCode}
                   disabled={validatingCode || !fields.code?.trim() || (fields.code?.trim().length || 0) < 6}
-                  className="flex-1 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer flex items-center justify-center gap-2"
                 >
                   {validatingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Verify &amp; Enter &rarr;</>}
                 </button>
@@ -704,13 +707,13 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 </div>
               </div>
               <div className="flex gap-2.5">
-                <button onClick={() => setStep(4)} className="px-5 py-3 rounded-xl bg-white/[0.06] border border-white/10 text-white/70 text-sm hover:bg-white/10 transition-all cursor-pointer">
+                <button onClick={() => setStep(4)} className="px-5 py-3 rounded-xl bg-white/[0.06] border border-white/10 text-white/70 text-sm hover:bg-white/10 transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer">
                   <ArrowLeft className="h-4 w-4 inline mr-1" />Back
                 </button>
                 <button
                   onClick={handleSignup}
                   disabled={submitting || !fields.signupName?.trim() || !fields.signupUsername?.trim() || !fields.signupEmail?.trim() || !fields.signupPassword?.trim()}
-                  className="flex-1 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer flex items-center justify-center gap-2"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Create Account &rarr;</>}
                 </button>
@@ -754,7 +757,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
               <button
                 onClick={handleVerifyEmail}
                 disabled={submitting || (fields.otp?.length || 0) < 6}
-                className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer flex items-center justify-center gap-2"
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Verify &amp; Enter &rarr;</>}
               </button>
@@ -772,7 +775,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
               </div>
               <button
                 onClick={() => { window.location.href = '/onboard' }}
-                className="w-full mt-4 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 transition-all cursor-pointer"
+                className="w-full mt-4 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer"
               >
                 Get Started &rarr;
               </button>
@@ -831,7 +834,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
               <button
                 onClick={handleSignin}
                 disabled={submitting || !fields.signinIdentifier?.trim() || !fields.signinPassword?.trim()}
-                className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer flex items-center justify-center gap-2"
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Sign In &rarr;</>}
               </button>
@@ -879,7 +882,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 <button
                   onClick={handleForgotPassword}
                   disabled={submitting || !fields.forgotEmail?.trim()}
-                  className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer flex items-center justify-center gap-2"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Send Reset Link &rarr;</>}
                 </button>

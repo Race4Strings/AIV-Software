@@ -321,7 +321,7 @@ const cardVariants = {
         filter: 'blur(0px)',
         transition: {
             duration: 0.3,
-            ease: 'easeIn' as const,
+            ease: 'easeOut' as const,
         },
     },
     exit: {
@@ -329,7 +329,7 @@ const cardVariants = {
         opacity: 0,
         filter: 'blur(4px)',
         transition: {
-            duration: 0.3,
+            duration: 0.2,
             ease: 'easeOut' as const,
         },
     },
@@ -360,7 +360,7 @@ const mobileCardVariants = {
         filter: 'blur(6px)',
         scale: 0.97,
         transition: {
-            duration: 0.35,
+            duration: 0.22,
             ease: 'easeIn' as const,
         },
     },
@@ -528,13 +528,13 @@ export function SignalCard({ side }: SignalCardProps) {
                 style={pos.style}
                 initial={{ scale: 0.95, opacity: 0, filter: 'blur(4px)', rotate: pos.rotation }}
                 animate={{ scale: 1, opacity: 1, filter: 'blur(0px)', rotate: pos.rotation, transition: { duration: 0.3, ease: 'easeOut' } }}
-                exit={{ scale: 0.95, opacity: 0, filter: 'blur(4px)', transition: { duration: 0.3, ease: 'easeIn' } }}
+                exit={{ scale: 0.95, opacity: 0, filter: 'blur(4px)', transition: { duration: 0.2, ease: 'easeIn' } }}
                 onClick={handleClick}
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
             >
                 <motion.div
-                    className="rounded-2xl border border-white/20 bg-gradient-to-br from-white/15 to-white/5 p-4 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] transition-all hover:from-white/20 hover:to-white/10 min-w-[280px]"
+                    className="rounded-2xl border border-white/20 bg-gradient-to-br from-white/15 to-white/5 p-4 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] transition-[transform,background] duration-200 hover:from-white/20 hover:to-white/10 min-w-[280px]"
                     whileHover={{ scale: DESKTOP_HOVER_SCALE }}
                 >
                     {renderCardContent(signal)}
