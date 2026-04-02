@@ -92,7 +92,7 @@ export function HeroFinal({ onRequestAccess, onOverlayChange }: HeroFinalProps) 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5, ease: "easeInOut" }}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[oklch(0.05_0.008_262)]"
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[oklch(0.05_0.008_262)]/90 backdrop-blur-sm"
           >
             <div className="absolute top-6 left-6 flex items-center gap-3 pointer-events-auto z-10">
               <button onClick={() => setShowMotion(false)}
@@ -141,39 +141,37 @@ export function HeroFinal({ onRequestAccess, onOverlayChange }: HeroFinalProps) 
                   </motion.div>
                 )}
 
-                {/* Stage 2: Premium final grid — numbered cards */}
+                {/* Stage 2: Final grid — sleek standard style + numbered steps + tagline */}
                 {motionStage >= 2 && (
                   <motion.div key="s2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
                     <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}
-                      className="text-center text-[10px] text-white/20 uppercase font-medium tracking-[0.3em] mb-10">
+                      className="text-center text-xs text-white/25 mb-8 tracking-[0.15em] uppercase">
                       How It Works
                     </motion.p>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {REVEAL_STEPS.map((item, i) => (
                         <motion.div key={item.label}
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           transition={{ duration: 0.4, delay: i * 0.1 }}
-                          className="group relative rounded-2xl border border-white/[0.06] bg-white/[0.015] p-6 hover:bg-white/[0.03] hover:border-white/[0.1] transition-all duration-300"
-                        >
-                          <span className="absolute top-4 right-4 text-[10px] font-mono text-white/10 tracking-wider">{item.num}</span>
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.04] border border-white/[0.06] mb-4 group-hover:bg-white/[0.06] transition-colors duration-300">
-                            <item.icon className="h-5 w-5 text-white/25 group-hover:text-white/40 transition-colors duration-300" />
+                          className="relative rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 hover:bg-white/[0.04] transition-colors duration-200">
+                          <span className="absolute top-3 right-3 text-[10px] font-mono text-white/10 tracking-wider">{item.num}</span>
+                          <div className="flex items-center gap-2.5 mb-2.5">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/[0.04]">
+                              <item.icon className="h-4 w-4 text-white/30" />
+                            </div>
+                            <span className="text-sm text-white/50 font-medium">{item.label}</span>
                           </div>
-                          <h3 className="text-sm font-semibold text-white/60 mb-2 tracking-wide">{item.label}</h3>
-                          <p className="text-[12px] text-white/25 leading-relaxed group-hover:text-white/35 transition-colors duration-300">{item.desc}</p>
-                          <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}
-                            transition={{ duration: 0.6, delay: 0.8 + i * 0.08 }}
-                            className="absolute bottom-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent origin-left" />
+                          <p className="text-[12px] text-white/30 leading-relaxed">{item.desc}</p>
                         </motion.div>
                       ))}
                     </div>
 
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                      transition={{ duration: 0.4, delay: 0.8 }} className="text-center mt-12">
+                      transition={{ duration: 0.4, delay: 0.8 }} className="text-center mt-10">
                       <Button onClick={() => { setShowMotion(false); onRequestAccess(); }}
-                        className="pointer-events-auto bg-primary hover:bg-primary/90 text-white px-10 py-5 text-sm font-medium rounded-xl shadow-lg shadow-primary/15 active:scale-[0.97] cursor-pointer tracking-wide">
+                        className="pointer-events-auto bg-primary hover:bg-primary/90 text-white px-8 py-5 text-sm font-medium rounded-xl shadow-lg shadow-primary/15 active:scale-[0.97] cursor-pointer">
                         Request Early Access &rarr;
                       </Button>
                       <p className="text-[10px] text-white/15 mt-4 tracking-wider">Identity infrastructure for the AI economy</p>
