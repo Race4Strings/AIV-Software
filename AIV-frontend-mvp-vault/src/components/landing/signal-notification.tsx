@@ -43,39 +43,60 @@ const ACCENT_COLORS = {
   purple: { dot: "bg-purple-500", bg: "bg-purple-500/10", text: "text-purple-400", badge: "bg-purple-500/15 text-purple-400" },
 };
 
-// 3 slots in triangle formations. Multiple triangle shapes that rotate
-// to avoid always looking like "2 on one side, 1 on the other."
-// Each formation is a set of 3 positions that form a triangle.
-const TRIANGLE_FORMATIONS: Record<string, string>[][] = [
-  // Formation 0: upper-left, upper-right, lower-center-left
-  [{ top: "13%", left: "5%" }, { top: "14%", right: "6%" }, { top: "74%", left: "8%" }],
-  // Formation 1: upper-left, lower-right, lower-center-left
-  [{ top: "14%", left: "7%" }, { top: "73%", right: "5%" }, { top: "75%", left: "5%" }],
-  // Formation 2: upper-right, lower-left, lower-right
-  [{ top: "13%", right: "8%" }, { top: "74%", left: "6%" }, { top: "76%", right: "9%" }],
-  // Formation 3: upper-left, upper-right, lower-right
-  [{ top: "15%", left: "6%" }, { top: "12%", right: "5%" }, { top: "75%", right: "7%" }],
-  // Formation 4: upper-center-right, lower-left, lower-right
-  [{ top: "14%", right: "10%" }, { top: "73%", left: "4%" }, { top: "74%", right: "4%" }],
-  // Formation 5: upper-left, lower-left, lower-center-right
-  [{ top: "12%", left: "4%" }, { top: "75%", left: "10%" }, { top: "73%", right: "6%" }],
+// TRULY RANDOM positioning. No pre-defined slots.
+// Safe bounds: 10-85% top, 4-16% from edges, exclude center hero zone.
+// Minimum 20% 2D distance between any two signals.
+// If no valid position found, skip (fewer signals > overlapping).
+
+type NumPos = { top: number; left?: number; right?: number };
+
+function randomNumPos(): NumPos {
+  const top = 10 + Math.random() * 75;
+  const side = Math.random() > 0.5 ? "left" : "right";
+  const h = 4 + Math.random() * 12;
+  return side === "left" ? { top, left: h } : { top, right: h };
+}
+
+function inCenterZone(p: NumPos): boolean {
+  return p.top >= 25 && p.top <= 65;
+}
+
+function dist2D(a: NumPos, b: NumPos): number {
+  const dy = Math.abs(a.top - b.top);
+  const aX = a.left ?? (100 - (a.right ?? 0));
+  const bX = b.left ?? (100 - (b.right ?? 0));
+  return Math.sqrt((aX - bX) ** 2 + dy ** 2);
+}
+
+function findSafe(existing: NumPos[]): NumPos | null {
+  for (let i = 0; i < 80; i++) {
+    const c = randomNumPos();
+    if (inCenterZone(c)) continue;
+    if (existing.some(e => dist2D(c, e) < 20)) continue;
+    return c;
+  }
+  return null;
+}
+
+function toStyle(p: NumPos): Record<string, string> {
+  const s: Record<string, string> = { top: `${p.top.toFixed(1)}%` };
+  if (p.left !== undefined) s.left = `${p.left.toFixed(1)}%`;
+  if (p.right !== undefined) s.right = `${p.right.toFixed(1)}%`;
+  return s;
+}
+
+// Legacy compat
+function pickFromSlot(_: number): Record<string, string> {
+  const p = randomNumPos();
+  return toStyle(inCenterZone(p) ? { top: 12, left: 5 } : p);
+}
+
+// For reduced motion static fallback
+const STATIC_POSITIONS = [
+  { top: "13%", left: "5%" },
+  { top: "15%", right: "7%" },
+  { top: "74%", left: "8%" },
 ];
-
-const SLOT_POSITIONS = TRIANGLE_FORMATIONS; // alias for compatibility
-
-let currentFormation = Math.floor(Math.random() * TRIANGLE_FORMATIONS.length);
-
-function pickTrianglePositions(): Record<string, string>[] {
-  currentFormation = (currentFormation + 1) % TRIANGLE_FORMATIONS.length;
-  return TRIANGLE_FORMATIONS[currentFormation];
-}
-
-// Legacy compat for v3 auto-play (uses 4 slots)
-function pickFromSlot(slotIndex: number): Record<string, string> {
-  // For 3-slot system, wrap around
-  const formation = TRIANGLE_FORMATIONS[currentFormation] || TRIANGLE_FORMATIONS[0];
-  return formation[slotIndex % formation.length];
-}
 
 function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: () => void; onLeave?: () => void }) {
   const [hovered, setHovered] = useState(false);
@@ -168,49 +189,55 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
 
 export function SignalNotifications() {
   const reducedMotion = useReducedMotion();
-  type Slot = { id: string; signalIdx: number; pos: Record<string, string>; side: "left" | "right" };
+  type Slot = { id: string; signalIdx: number; pos: Record<string, string>; numPos: NumPos; side: "left" | "right" };
   const [slots, setSlots] = useState<Slot[]>([]);
   const pausedRef = useRef(false);
   const signalCounterRef = useRef(0);
-  const stepRef = useRef(0); // tracks which action to take next
+  const stepRef = useRef(0);
 
-  // 3 signals in triangle formations
-  // Steps 0-2: staggered entry (one per triangle vertex)
-  // Steps 3+: rotate oldest, switch formation every 3 rotations
-  const tick = useCallback(() => {
-    if (pausedRef.current) return;
-    const step = stepRef.current;
-    stepRef.current++;
-
-    if (step < 3) {
+  const addSignal = useCallback(() => {
+    setSlots(prev => {
+      if (prev.length >= 3) return prev;
+      const existing = prev.map(s => s.numPos);
+      const numPos = findSafe(existing);
+      if (!numPos) return prev; // No valid position — don't force it
       const sigIdx = signalCounterRef.current;
       signalCounterRef.current = (sigIdx + 1) % SIGNALS.length;
-      const positions = TRIANGLE_FORMATIONS[currentFormation] || TRIANGLE_FORMATIONS[0];
-      const pos = positions[step];
-      const side: "left" | "right" = "left" in pos ? "left" : "right";
-      setSlots(prev => [...prev, { id: `${step}-${sigIdx}`, signalIdx: sigIdx, pos, side }]);
-    } else {
-      // Every 3 rotations, switch triangle formation for variety
-      if ((step - 3) % 3 === 0) currentFormation = (currentFormation + 1) % TRIANGLE_FORMATIONS.length;
-      setSlots(prev => {
-        if (prev.length === 0) return prev;
-        const remaining = prev.slice(1);
-        const sigIdx = signalCounterRef.current;
-        signalCounterRef.current = (sigIdx + 1) % SIGNALS.length;
-        const slotInTriangle = (step - 3) % 3;
-        const positions = TRIANGLE_FORMATIONS[currentFormation] || TRIANGLE_FORMATIONS[0];
-        const pos = positions[slotInTriangle];
-        const side: "left" | "right" = "left" in pos ? "left" : "right";
-        return [...remaining, { id: `${step}-${sigIdx}`, signalIdx: sigIdx, pos, side }];
-      });
-    }
+      const step = stepRef.current++;
+      const side: "left" | "right" = numPos.left !== undefined ? "left" : "right";
+      return [...prev, { id: `s-${step}-${sigIdx}`, signalIdx: sigIdx, pos: toStyle(numPos), numPos, side }];
+    });
+  }, []);
+
+  const rotateOldest = useCallback(() => {
+    if (pausedRef.current) return;
+    setSlots(prev => {
+      if (prev.length === 0) return prev;
+      const remaining = prev.slice(1);
+      const existing = remaining.map(s => s.numPos);
+      const numPos = findSafe(existing);
+      if (!numPos) return remaining; // Couldn't place — just remove oldest
+      const sigIdx = signalCounterRef.current;
+      signalCounterRef.current = (sigIdx + 1) % SIGNALS.length;
+      const step = stepRef.current++;
+      const side: "left" | "right" = numPos.left !== undefined ? "left" : "right";
+      return [...remaining, { id: `s-${step}-${sigIdx}`, signalIdx: sigIdx, pos: toStyle(numPos), numPos, side }];
+    });
   }, []);
 
   useEffect(() => {
-    // ONE interval. First tick at 2s, then every 2s. Nothing else.
-    const timer = setInterval(() => tick(), 2000);
-    return () => clearInterval(timer);
-  }, [tick]);
+    // Staggered entry: 2s, 4s, 6s
+    const t1 = setTimeout(addSignal, 2000);
+    const t2 = setTimeout(addSignal, 4000);
+    const t3 = setTimeout(addSignal, 6000);
+    // Then rotate every 2s
+    const interval = setInterval(() => {
+      if (!pausedRef.current) rotateOldest();
+    }, 2000);
+    // Start interval after initial signals placed
+    const startInterval = setTimeout(() => {}, 6500);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(startInterval); clearInterval(interval); };
+  }, [addSignal, rotateOldest]);
 
   const handleHover = useCallback(() => { pausedRef.current = true; }, []);
   const handleLeave = useCallback(() => { pausedRef.current = false; }, []);
@@ -218,7 +245,7 @@ export function SignalNotifications() {
   if (reducedMotion) {
     return (
       <div className="hidden lg:block fixed inset-0 z-30 pointer-events-none">
-        {TRIANGLE_FORMATIONS[0].map((pos, g) => (
+        {STATIC_POSITIONS.map((pos, g) => (
           <div key={g} className="absolute pointer-events-auto" style={pos}>
             <SignalPill signal={SIGNALS[g]} />
           </div>
@@ -326,7 +353,7 @@ export function AutoPlaySignalNotifications() {
   if (reducedMotion) {
     return (
       <div className="hidden lg:block fixed inset-0 z-30 pointer-events-none">
-        {TRIANGLE_FORMATIONS[0].map((pos, g) => (
+        {STATIC_POSITIONS.map((pos, g) => (
           <div key={g} className="absolute pointer-events-auto" style={pos}>
             <SignalPill signal={SIGNALS[g]} />
           </div>

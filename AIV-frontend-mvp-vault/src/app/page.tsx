@@ -97,7 +97,7 @@ export default function HomePage() {
         {/* Header */}
         <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 py-5">
           <Link href="/">
-            <Image src="/aiv-light.svg" alt="AIV" width={36} height={14} priority
+            <Image src="/aiv-light.svg" alt="AIV" width={44} height={17} priority
               className="opacity-80 hover:opacity-100 transition-opacity duration-200" />
           </Link>
           <button onClick={() => { setModalInitialStep(8); setModalOpen(true); }}
