@@ -13,8 +13,9 @@ export interface HeroFinalProps {
 }
 
 // Smooth easing — no spring (avoids trembling/shaky feel)
-const fadeIn = { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] };
-const stagger = (delay: number) => ({ duration: 0.5, ease: [0.25, 0.1, 0.25, 1], delay });
+const smoothEase = [0.25, 0.1, 0.25, 1] as const;
+const fadeIn = { duration: 0.5, ease: smoothEase };
+const stagger = (delay: number) => ({ duration: 0.5, ease: smoothEase, delay });
 
 const REVEAL_STEPS = [
   { icon: Search, label: "Discover", desc: "Your public presence assembled from across the web", num: "01" },
@@ -208,10 +209,9 @@ export function HeroFinal({ onRequestAccess, onOverlayChange }: HeroFinalProps) 
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                       transition={{ duration: 0.4, delay: 0.7 }} className="text-center mt-10">
                       <Button onClick={() => { setShowMotion(false); onRequestAccess(); }}
-                        className="pointer-events-auto bg-primary hover:bg-primary/90 text-white px-8 py-5 text-sm font-medium rounded-xl shadow-lg shadow-primary/15 active:scale-[0.97] cursor-pointer">
+                        className="pointer-events-auto bg-primary hover:bg-primary/90 text-white px-8 py-6 text-base font-medium rounded-xl shadow-lg shadow-primary/20 active:scale-[0.97] cursor-pointer">
                         Request Early Access <span aria-hidden="true">&rarr;</span>
                       </Button>
-                      <p className="text-[10px] text-white/15 mt-4 tracking-wider">Identity infrastructure for the AI economy</p>
                     </motion.div>
                   </motion.div>
                 )}

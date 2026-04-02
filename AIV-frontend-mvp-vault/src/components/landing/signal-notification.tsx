@@ -43,19 +43,28 @@ const ACCENT_COLORS = {
   purple: { dot: "bg-purple-500", bg: "bg-purple-500/10", text: "text-purple-400", badge: "bg-purple-500/15 text-purple-400" },
 };
 
-// Left spots high/mid, right spots mid/low — never same y-axis
-// Positions can be closer to center (8-12%) for more organic spread
-const LEFT_SPOTS = [
-  { top: "15%", left: "2%" },
-  { top: "30%", left: "5%" },
-  { top: "50%", left: "3%" },
-  { top: "22%", left: "8%" },
-];
-const RIGHT_SPOTS = [
-  { top: "35%", right: "2%" },
-  { top: "55%", right: "6%" },
-  { top: "45%", right: "3%" },
-  { top: "65%", right: "8%" },
+// Center horizontal band: 28-55% top range
+// 3 groups: left, right, center-ish — each gets one signal
+const POSITION_POOLS = [
+  // Group 0: left side
+  [
+    { top: "28%", left: "2%" },
+    { top: "38%", left: "4%" },
+    { top: "48%", left: "3%" },
+  ],
+  // Group 1: right side
+  [
+    { top: "30%", right: "2%" },
+    { top: "42%", right: "5%" },
+    { top: "52%", right: "3%" },
+  ],
+  // Group 2: center-left or center-right (closer to middle)
+  [
+    { top: "32%", left: "10%" },
+    { top: "45%", right: "10%" },
+    { top: "35%", left: "12%" },
+    { top: "50%", right: "12%" },
+  ],
 ];
 
 function jitter(pos: { top: string; left?: string; right?: string }) {
@@ -159,38 +168,47 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
 export function SignalNotifications() {
   const reducedMotion = useReducedMotion();
   const currentIdxRef = useRef(0);
-  const [leftSignal, setLeftSignal] = useState<{ idx: number; pos: Record<string, string> } | null>(null);
-  const [rightSignal, setRightSignal] = useState<{ idx: number; pos: Record<string, string> } | null>(null);
+  type Slot = { idx: number; pos: Record<string, string>; group: number };
+  const [slots, setSlots] = useState<Slot[]>([]);
   const pausedRef = useRef(false);
 
+  // Add one signal to a specific group
+  const addToGroup = useCallback((group: number) => {
+    const next = currentIdxRef.current;
+    currentIdxRef.current = (next + 1) % SIGNALS.length;
+    const pool = POSITION_POOLS[group] || POSITION_POOLS[0];
+    const pos = jitter(pool[Math.floor(Math.random() * pool.length)]);
+    setSlots(prev => [...prev.filter(s => s.group !== group), { idx: next, pos, group }]);
+  }, []);
+
+  // Rotate: replace oldest group's signal
   const advance = useCallback(() => {
     if (pausedRef.current) return;
-    const next = (currentIdxRef.current + 1) % SIGNALS.length;
-    currentIdxRef.current = next;
-    if (next % 2 === 0) {
-      setLeftSignal({ idx: next, pos: jitter(LEFT_SPOTS[Math.floor(Math.random() * LEFT_SPOTS.length)]) });
-    } else {
-      setRightSignal({ idx: next, pos: jitter(RIGHT_SPOTS[Math.floor(Math.random() * RIGHT_SPOTS.length)]) });
-    }
+    setSlots(prev => {
+      if (prev.length === 0) return prev;
+      // Replace the oldest signal
+      const oldest = prev[0];
+      const next = currentIdxRef.current;
+      currentIdxRef.current = (next + 1) % SIGNALS.length;
+      const pool = POSITION_POOLS[oldest.group] || POSITION_POOLS[0];
+      const pos = jitter(pool[Math.floor(Math.random() * pool.length)]);
+      return [...prev.slice(1), { idx: next, pos, group: oldest.group }];
+    });
   }, []);
 
   useEffect(() => {
-    // Stagger initial appearance
-    const t1 = setTimeout(() => {
-      setLeftSignal({ idx: 0, pos: jitter(LEFT_SPOTS[1]) });
-    }, 1500);
-    const t2 = setTimeout(() => {
-      setRightSignal({ idx: 1, pos: jitter(RIGHT_SPOTS[0]) });
-      currentIdxRef.current = 1;
-    }, 3000);
+    // Stagger: one by one so user focuses on center first
+    const t1 = setTimeout(() => addToGroup(0), 1500);  // left
+    const t2 = setTimeout(() => addToGroup(1), 3500);  // right
+    const t3 = setTimeout(() => addToGroup(2), 5500);  // center-ish
 
-    // Rotate every 3.5-5s
+    // Rotate every 4-6s
     const interval = setInterval(() => {
       if (!pausedRef.current) advance();
     }, 4000 + Math.random() * 2000);
 
-    return () => { clearTimeout(t1); clearTimeout(t2); clearInterval(interval); };
-  }, [advance]);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearInterval(interval); };
+  }, [addToGroup, advance]);
 
   const handleHover = useCallback(() => { pausedRef.current = true; }, []);
   const handleLeave = useCallback(() => { pausedRef.current = false; }, []);
@@ -198,12 +216,14 @@ export function SignalNotifications() {
   if (reducedMotion) {
     return (
       <div className="hidden lg:block fixed inset-0 z-30 pointer-events-none">
-        <div className="absolute pointer-events-auto" style={LEFT_SPOTS[1]}>
-          <SignalPill signal={SIGNALS[0]} />
-        </div>
-        <div className="absolute pointer-events-auto" style={RIGHT_SPOTS[0]}>
-          <SignalPill signal={SIGNALS[1]} />
-        </div>
+        {[0, 1, 2].map(g => {
+          const pool = POSITION_POOLS[g];
+          return (
+            <div key={g} className="absolute pointer-events-auto" style={pool[0]}>
+              <SignalPill signal={SIGNALS[g]} />
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -211,24 +231,15 @@ export function SignalNotifications() {
   return (
     <div className="hidden lg:block fixed inset-0 z-30 pointer-events-none">
       <AnimatePresence>
-        {leftSignal && (
-          <motion.div key={`left-${leftSignal.idx}`} className="absolute pointer-events-auto" style={leftSignal.pos}
+        {slots.map((slot) => (
+          <motion.div key={`${slot.group}-${slot.idx}`} className="absolute pointer-events-auto" style={slot.pos}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.6, ease: "easeInOut" }}>
-            <SignalPill signal={SIGNALS[leftSignal.idx]} onHover={handleHover} onLeave={handleLeave} />
+            <SignalPill signal={SIGNALS[slot.idx]} onHover={handleHover} onLeave={handleLeave} />
           </motion.div>
-        )}
-        {rightSignal && (
-          <motion.div key={`right-${rightSignal.idx}`} className="absolute pointer-events-auto" style={rightSignal.pos}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.6, ease: "easeInOut" }}>
-            <SignalPill signal={SIGNALS[rightSignal.idx]} onHover={handleHover} onLeave={handleLeave} />
-          </motion.div>
-        )}
+        ))}
       </AnimatePresence>
     </div>
   );
