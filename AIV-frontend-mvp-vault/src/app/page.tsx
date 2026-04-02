@@ -67,6 +67,8 @@ export default function HomePage() {
     try { const user = localStorage.getItem("user"); if (user && JSON.parse(user)?.id) router.replace("/dashboard"); } catch {}
   }, [router]);
 
+  const [overlayOpen, setOverlayOpen] = useState(false);
+
   function handleRequestAccess() { setModalInitialStep(0); setModalOpen(true); }
 
   return (
@@ -83,8 +85,8 @@ export default function HomePage() {
       <div className="pointer-events-none fixed inset-0 z-0"
         style={{ background: "radial-gradient(ellipse 50% 40% at 50% 50%, rgba(59,130,246,0.04) 0%, transparent 60%)" }} />
 
-      {/* Signals */}
-      <SignalNotifications />
+      {/* Signals — hidden when motion overlay is open */}
+      {!overlayOpen && <SignalNotifications />}
 
       {/* Main */}
       <div className="relative z-10 max-w-[1920px] mx-auto">
@@ -105,6 +107,7 @@ export default function HomePage() {
           containerRef={containerRef}
           onRequestAccess={handleRequestAccess}
           onHowItWorks={() => {}}
+          onOverlayChange={setOverlayOpen}
         />
 
         {/* Mobile Signals */}
