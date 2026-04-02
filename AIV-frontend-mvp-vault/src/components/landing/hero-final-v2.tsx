@@ -64,14 +64,20 @@ function AnimatedLockBadge() {
       onMouseLeave={() => setHovered(false)}
     >
       <div className="relative h-3.5 w-3.5">
-        {/* Lock icon — always present, animated with CSS transforms */}
+        {/* Lock icon — subtle pop-out when transitioning to dot, pop-in when returning */}
         <div className="absolute inset-0 flex items-center justify-center transition-all duration-200 ease-out"
-          style={{ opacity: showLock ? 1 : 0, transform: lockTransform }}>
+          style={{
+            opacity: showLock ? 1 : 0,
+            transform: showLock ? lockTransform : `${lockTransform} scale(0.6)`,
+          }}>
           <Lock className="h-3.5 w-3.5 text-blue-400" />
         </div>
-        {/* Color dot — crossfades in when lock fades out */}
+        {/* Color dot — subtle pop-in from scale 0, pop-out on hover off */}
         <div className="absolute inset-0 flex items-center justify-center transition-all duration-250 ease-out"
-          style={{ opacity: showDot ? 1 : 0, transform: showDot ? "scale(1)" : "scale(0.3)" }}>
+          style={{
+            opacity: showDot ? 1 : 0,
+            transform: showDot ? "scale(1)" : "scale(0)",
+          }}>
           <div className={`h-2.5 w-2.5 rounded-full ${phase === "green"
             ? "bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.5)] v2-green-pulse"
             : "v2-dot-cycle"
