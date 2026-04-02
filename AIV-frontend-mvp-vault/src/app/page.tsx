@@ -29,27 +29,28 @@ export default function HomePage() {
     if (dt > 0 && dt < 100) {
       const dx = e.clientX - last.x;
       const dy = e.clientY - last.y;
+      const speed = Math.sqrt(dx * dx + dy * dy) / dt;
       const reversalX = (dx > 0 && last.dx < 0) || (dx < 0 && last.dx > 0);
       const reversalY = (dy > 0 && last.dy < 0) || (dy < 0 && last.dy > 0);
-      const speed = Math.sqrt(dx * dx + dy * dy) / dt;
+      const hasReversal = reversalX || reversalY;
 
-      if ((reversalX || reversalY) && speed > 0.5) {
-        shakeScoreRef.current = Math.min(5, shakeScoreRef.current + 0.8);
-      } else {
-        shakeScoreRef.current = Math.max(0, shakeScoreRef.current - 0.12);
-      }
+      // Speed always contributes — fast movement = more glow
+      // Direction changes amplify it (shaking = extra boost)
+      const speedBoost = Math.min(0.4, speed * 0.15);
+      const shakeBoost = hasReversal && speed > 0.3 ? 0.6 : 0;
+      shakeScoreRef.current = Math.min(5,
+        shakeScoreRef.current * 0.85 + speedBoost + shakeBoost
+      );
 
       lastMouseRef.current = { x: e.clientX, y: e.clientY, time: now, dx, dy };
     } else {
       lastMouseRef.current = { ...last, x: e.clientX, y: e.clientY, time: now };
     }
 
-    const shake = shakeScoreRef.current;
-    // Normal movement: visible subtle glow (0.15-0.20)
-    // Shaking: bright (up to 0.85)
-    const targetOpacity = shake > 1.5
-      ? Math.min(0.85, 0.3 + shake * 0.15)
-      : Math.min(0.45, 0.25 + shake * 0.10);
+    // Score → opacity: smooth mapping
+    // 0 = still (invisible), 0.5 = gentle movement, 2+ = shaking
+    const score = shakeScoreRef.current;
+    const targetOpacity = Math.min(0.85, score * 0.22);
 
     setAuroraOpacity(targetOpacity);
 
