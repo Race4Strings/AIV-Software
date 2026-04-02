@@ -14,7 +14,6 @@ export interface HeroFinalProps {
 
 // Smooth easing — no spring (avoids trembling/shaky feel)
 const smoothEase = [0.25, 0.1, 0.25, 1] as const;
-const fadeIn = { duration: 0.5, ease: smoothEase };
 const stagger = (delay: number) => ({ duration: 0.5, ease: smoothEase, delay });
 
 const REVEAL_STEPS = [
@@ -64,8 +63,8 @@ export function HeroFinal({ onRequestAccess, onOverlayChange }: HeroFinalProps) 
   useEffect(() => {
     if (!showMotion) return;
     setMotionStage(0);
-    const t1 = setTimeout(() => setMotionStage(1), 1200);
-    const t2 = setTimeout(() => setMotionStage(2), 3200);
+    const t1 = setTimeout(() => setMotionStage(1), 1500);
+    const t2 = setTimeout(() => setMotionStage(2), 3800);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [showMotion]);
 
@@ -147,30 +146,30 @@ export function HeroFinal({ onRequestAccess, onOverlayChange }: HeroFinalProps) 
               <AnimatePresence mode="wait">
                 {/* Stage 0: 3 icons — smooth fade */}
                 {motionStage === 0 && (
-                  <motion.div key="s0" className="flex items-center justify-center gap-12"
+                  <motion.div key="s0" className="flex items-center justify-center gap-14"
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    transition={fadeIn}>
+                    transition={{ duration: 0.7, ease: "easeInOut" }}>
                     {PROCESS_ICONS.map((s, i) => (
                       <motion.div key={s.word}
-                        initial={{ opacity: 0, scale: 0.85 }}
+                        initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={stagger(0.15 + i * 0.15)}>
+                        transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 + i * 0.2 }}>
                         <s.icon className="h-10 w-10 text-white/25" />
                       </motion.div>
                     ))}
                   </motion.div>
                 )}
 
-                {/* Stage 1: icons + words — smooth fade */}
+                {/* Stage 1: icons + words — graceful fade */}
                 {motionStage === 1 && (
-                  <motion.div key="s1" className="flex items-center justify-center gap-8"
+                  <motion.div key="s1" className="flex items-center justify-center gap-10"
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    transition={fadeIn}>
+                    transition={{ duration: 0.7, ease: "easeInOut" }}>
                     {PROCESS_ICONS.map((s, i) => (
                       <motion.div key={s.word}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={stagger(i * 0.12)}
+                        transition={{ duration: 0.5, ease: "easeOut", delay: i * 0.15 }}
                         className="flex items-center gap-3">
                         <s.icon className="h-7 w-7 text-white/30" />
                         <span className="text-xl text-white/50 tracking-wider font-medium">{s.word}.</span>
@@ -181,7 +180,7 @@ export function HeroFinal({ onRequestAccess, onOverlayChange }: HeroFinalProps) 
 
                 {/* Stage 2: Final grid — smooth fade, no spring */}
                 {motionStage >= 2 && (
-                  <motion.div key="s2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, ease: "easeOut" }}>
+                  <motion.div key="s2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, ease: "easeInOut" }}>
                     <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}
                       className="text-center text-xs text-white/25 mb-8 tracking-[0.15em] uppercase">
                       How It Works
@@ -192,7 +191,7 @@ export function HeroFinal({ onRequestAccess, onOverlayChange }: HeroFinalProps) 
                         <motion.div key={item.label}
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
-                          transition={{ duration: 0.4, delay: 0.1 + i * 0.08 }}
+                          transition={{ duration: 0.5, ease: "easeOut", delay: 0.15 + i * 0.1 }}
                           className="relative rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 hover:bg-white/[0.04] transition-colors duration-200">
                           <span className="absolute top-3 right-3 text-[10px] font-mono text-white/10 tracking-wider">{item.num}</span>
                           <div className="flex items-center gap-2.5 mb-2.5">
@@ -212,6 +211,7 @@ export function HeroFinal({ onRequestAccess, onOverlayChange }: HeroFinalProps) 
                         className="pointer-events-auto bg-primary hover:bg-primary/90 text-white px-8 py-6 text-base font-medium rounded-xl shadow-lg shadow-primary/20 active:scale-[0.97] cursor-pointer">
                         Request Early Access <span aria-hidden="true">&rarr;</span>
                       </Button>
+                      <p className="text-[10px] text-white/15 mt-4 tracking-wider">Identity infrastructure for the AI economy</p>
                     </motion.div>
                   </motion.div>
                 )}

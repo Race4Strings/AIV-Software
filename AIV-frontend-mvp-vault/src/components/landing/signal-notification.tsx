@@ -43,28 +43,19 @@ const ACCENT_COLORS = {
   purple: { dot: "bg-purple-500", bg: "bg-purple-500/10", text: "text-purple-400", badge: "bg-purple-500/15 text-purple-400" },
 };
 
-// Center horizontal band: 28-55% top range
-// 3 groups: left, right, center-ish — each gets one signal
+// 5 fixed zones — widely separated, safe hover distance (~15% vertical gap)
+// Each zone has a few position options for variety
 const POSITION_POOLS = [
-  // Group 0: left side
-  [
-    { top: "28%", left: "2%" },
-    { top: "38%", left: "4%" },
-    { top: "48%", left: "3%" },
-  ],
-  // Group 1: right side
-  [
-    { top: "30%", right: "2%" },
-    { top: "42%", right: "5%" },
-    { top: "52%", right: "3%" },
-  ],
-  // Group 2: center-left or center-right (closer to middle)
-  [
-    { top: "32%", left: "10%" },
-    { top: "45%", right: "10%" },
-    { top: "35%", left: "12%" },
-    { top: "50%", right: "12%" },
-  ],
+  // Zone 0: top-left
+  [{ top: "18%", left: "2%" }, { top: "20%", left: "4%" }],
+  // Zone 1: top-right
+  [{ top: "22%", right: "2%" }, { top: "18%", right: "5%" }],
+  // Zone 2: mid-left
+  [{ top: "42%", left: "2%" }, { top: "40%", left: "5%" }],
+  // Zone 3: mid-right
+  [{ top: "45%", right: "2%" }, { top: "43%", right: "4%" }],
+  // Zone 4: lower-center (left or right of center)
+  [{ top: "62%", left: "8%" }, { top: "64%", right: "8%" }, { top: "60%", left: "12%" }],
 ];
 
 function jitter(pos: { top: string; left?: string; right?: string }) {
@@ -198,16 +189,18 @@ export function SignalNotifications() {
 
   useEffect(() => {
     // Stagger: one by one so user focuses on center first
-    const t1 = setTimeout(() => addToGroup(0), 1500);  // left
-    const t2 = setTimeout(() => addToGroup(1), 3500);  // right
-    const t3 = setTimeout(() => addToGroup(2), 5500);  // center-ish
+    const t1 = setTimeout(() => addToGroup(0), 1500);
+    const t2 = setTimeout(() => addToGroup(1), 3000);
+    const t3 = setTimeout(() => addToGroup(2), 4500);
+    const t4 = setTimeout(() => addToGroup(3), 6000);
+    const t5 = setTimeout(() => addToGroup(4), 7500);
 
-    // Rotate every 4-6s
+    // Rotate every 3-4.5s (quicker)
     const interval = setInterval(() => {
       if (!pausedRef.current) advance();
-    }, 4000 + Math.random() * 2000);
+    }, 3000 + Math.random() * 1500);
 
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearInterval(interval); };
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); clearTimeout(t5); clearInterval(interval); };
   }, [addToGroup, advance]);
 
   const handleHover = useCallback(() => { pausedRef.current = true; }, []);
@@ -216,7 +209,7 @@ export function SignalNotifications() {
   if (reducedMotion) {
     return (
       <div className="hidden lg:block fixed inset-0 z-30 pointer-events-none">
-        {[0, 1, 2].map(g => {
+        {[0, 1, 2, 3, 4].map(g => {
           const pool = POSITION_POOLS[g];
           return (
             <div key={g} className="absolute pointer-events-auto" style={pool[0]}>
