@@ -149,17 +149,17 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
     }
   }, [hovered, barWidth, signal.metricPercent, signal.metric]);
 
-  const pillSpring = { type: "spring" as const, damping: 16, stiffness: 200, mass: 0.8 };
-
   return (
-    <motion.div ref={pillRef}
+    <div ref={pillRef}
       onMouseEnter={() => { setHovered(true); onHover?.(); }}
       onMouseLeave={() => { setHovered(false); onLeave?.(); }}
       onMouseMove={handleMove}
-      animate={{ minWidth: hovered ? 260 : 180 }}
-      transition={pillSpring}
       className="rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl cursor-default overflow-hidden"
-      style={{ maxWidth: 280 }}>
+      style={{
+        minWidth: hovered ? 260 : 180,
+        maxWidth: 280,
+        transition: "min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}>
       <div className="flex items-center gap-2.5 px-3 py-2.5">
         <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg ${colors.bg}`}>
           <Icon className={`h-3 w-3 ${colors.text}`} />
@@ -169,34 +169,32 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
           <span className={`ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${colors.badge} shrink-0`}>{signal.badge}</span>
         )}
       </div>
-      <AnimatePresence>
-        {hovered && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{
-              ...pillSpring,
-              opacity: { duration: 0.2, ease: "easeIn" },
-            }}
-            className="overflow-hidden">
-            <div className="px-3 pb-3 pt-0.5">
-              <p className="text-[11px] text-white/50 leading-relaxed">{signal.description}</p>
-              {signal.metric && (
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-lg font-bold text-white font-mono tabular-nums">{metricDisplay}</span>
-                  {signal.metricLabel && <span className="text-[9px] text-white/40 uppercase tracking-wider">{signal.metricLabel}</span>}
-                </div>
-              )}
-              <div className="mt-2 h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
-                <motion.div className={`h-full rounded-full ${colors.dot}`} style={{ width: barWidthStr }} />
+      {/* Content: CSS grid-rows for instant, symmetric expand/collapse — no AnimatePresence */}
+      <div
+        className="grid transition-[grid-template-rows,opacity] duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
+        style={{
+          gridTemplateRows: hovered ? "1fr" : "0fr",
+          opacity: hovered ? 1 : 0,
+        }}>
+        <div className="overflow-hidden">
+          <div className="px-3 pb-3 pt-0.5">
+            <p className="text-[11px] text-white/50 leading-relaxed">{signal.description}</p>
+            {signal.metric && (
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-lg font-bold text-white font-mono tabular-nums">{metricDisplay}</span>
+                {signal.metricLabel && <span className="text-[9px] text-white/40 uppercase tracking-wider">{signal.metricLabel}</span>}
               </div>
-              {signal.badge && (
-                <span className={`mt-2 inline-block text-[9px] font-semibold px-2 py-0.5 rounded-full ${colors.badge}`}>{signal.badge}</span>
-              )}
+            )}
+            <div className="mt-2 h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
+              <motion.div className={`h-full rounded-full ${colors.dot}`} style={{ width: barWidthStr }} />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+            {signal.badge && (
+              <span className={`mt-2 inline-block text-[9px] font-semibold px-2 py-0.5 rounded-full ${colors.badge}`}>{signal.badge}</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
