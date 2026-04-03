@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+// Note: overlay aurora has unique lifecycle (disabled until stage 2, starts at 0)
+// so it uses its own shake detection rather than the shared useShakeDetection hook
 import { motion, AnimatePresence } from "framer-motion";
 import { Lock, Fingerprint, Shield, Briefcase, Search, Brain, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,11 +43,12 @@ function AnimatedLockBadge() {
 
   useEffect(() => {
     if (!hovered) { setPhase("idle"); return; }
-    setHoverCount(c => c + 1); // new key = new DOM element = animation restarts
+    setHoverCount(c => c + 1);
     setPhase("opening");
     const t1 = setTimeout(() => setPhase("closing"), 300);
     const t2 = setTimeout(() => setPhase("colors"), 600);
-    const t3 = setTimeout(() => setPhase("green"), 2100);
+    // Purple arrives at 75% of 1.6s: 600 + 200 + 1200 = 2000ms. Green transitions over 375ms (same beat).
+    const t3 = setTimeout(() => setPhase("green"), 2000);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [hovered]);
 
@@ -74,25 +77,20 @@ function AnimatedLockBadge() {
           }}>
           <Lock className="h-3.5 w-3.5 text-blue-400" />
         </div>
-        {/* Color dot — subtle pop-in from scale 0, pop-out on hover off */}
-        <div className="absolute inset-0 flex items-center justify-center transition-all duration-250 ease-out"
+        {/* Color dot — scale-in, color cycle, then crossfade to green */}
+        <div className="absolute inset-0 flex items-center justify-center transition-all duration-200 ease-out"
           style={{
             opacity: showDot ? 1 : 0,
             transform: showDot ? "scale(1)" : "scale(0)",
           }}>
-          <div key={hoverCount} className={`h-2.5 w-2.5 rounded-full ${phase === "green"
-            ? "bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.5)] v2-green-pulse"
-            : "v2-dot-cycle"
-          }`} />
+          <div key={hoverCount} className="h-2.5 w-2.5 rounded-full v2-dot-all" />
         </div>
       </div>
       <span className="text-xs font-medium text-white/50 tracking-widest uppercase">Identity Infrastructure</span>
       <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes v2-dot-colors{0%{background:#3b82f6}20%{background:#10b981}40%{background:#ef4444}60%{background:#f59e0b}80%{background:#8b5cf6}100%{background:#10b981}}
-        .v2-dot-cycle{animation:v2-dot-colors 1.5s ease-in-out forwards}
-        @keyframes v2-green-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
-        .v2-green-pulse{animation:v2-green-breathe 2s ease-in-out infinite,v2-green-glow-in 0.6s ease-out forwards}
-        @keyframes v2-green-glow-in{0%{box-shadow:0 0 0 rgba(16,185,129,0)}100%{box-shadow:0 0 6px rgba(16,185,129,0.5)}}
+        @keyframes v2-colors{0%{background:#3b82f6;box-shadow:none}20%{background:#ef4444;box-shadow:none}40%{background:#f59e0b;box-shadow:none}60%{background:#8b5cf6;box-shadow:none}80%,100%{background:#34d399;box-shadow:0 0 6px rgba(16,185,129,0.5)}}
+        @keyframes v2-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+        .v2-dot-all{animation:v2-colors 2s linear 0.2s forwards,v2-breathe 2s ease-in-out 2.2s infinite}
       ` }} />
     </motion.div>
   );
@@ -120,8 +118,8 @@ function HowItWorksCard({ item, index, autoFlash }: { item: typeof REVEAL_STEPS[
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
       <span className="absolute top-3 right-3 text-[10px] font-mono text-white/10 tracking-wider">{item.num}</span>
       <div className="flex items-center gap-2.5 mb-2.5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-300"
-          style={{ transform: showColor ? "scale(1.15) rotate(5deg)" : "scale(1)", backgroundColor: showColor ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.04)" }}>
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg transition-[transform,background-color] duration-300 ease-out"
+          style={{ willChange: "transform", transformOrigin: "center center", transform: showColor ? "scale(1.15) rotate(5deg)" : "scale(1) rotate(0deg)", backgroundColor: showColor ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.04)" }}>
           <Icon className="h-4 w-4 transition-colors duration-300" style={{ color: showColor ? item.color : "rgba(255,255,255,0.3)" }} />
         </div>
         <span className="text-sm text-white/50 font-medium">{item.label}</span>
@@ -153,7 +151,7 @@ export function HeroFinalV2({ onRequestAccess, onOverlayChange }: HeroFinalV2Pro
       const dy = e.clientY - last.y;
       const speed = Math.sqrt(dx * dx + dy * dy) / dt;
       const rev = ((dx > 0 && last.dx < 0) || (dx < 0 && last.dx > 0) || (dy > 0 && last.dy < 0) || (dy < 0 && last.dy > 0));
-      overlayScoreRef.current = Math.min(5, overlayScoreRef.current * 0.85 + Math.min(0.4, speed * 0.15) + (rev && speed > 0.15 ? 0.6 : 0));
+      overlayScoreRef.current = Math.min(5, overlayScoreRef.current * 0.88 + Math.min(0.5, speed * 0.2) + (rev && speed > 0.08 ? 0.9 : 0));
       overlayMouseRef.current = { x: e.clientX, y: e.clientY, time: now, dx, dy };
     } else {
       overlayMouseRef.current = { ...last, x: e.clientX, y: e.clientY, time: now };
@@ -173,9 +171,12 @@ export function HeroFinalV2({ onRequestAccess, onOverlayChange }: HeroFinalV2Pro
     const t2 = setTimeout(() => {
       setMotionStage(2);
       setCardFlashTriggered(true);
-      setOverlayAurora(0.25); // Restore interactive aurora at final stage
     }, 3800);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    // Aurora comes back AFTER the card flash sequence concludes (~2.5s after stage 2)
+    const t3 = setTimeout(() => {
+      setOverlayAurora(0.25);
+    }, 3800 + 2500);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [showMotion]);
 
   useEffect(() => {
@@ -255,31 +256,22 @@ export function HeroFinalV2({ onRequestAccess, onOverlayChange }: HeroFinalV2Pro
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 + i * 0.2 }}>
-                        <motion.div
-                          initial={{ color: s.color }}
-                          animate={{ color: "rgba(255,255,255,0.25)" }}
-                          transition={{ duration: 0.8, delay: 0.5 + i * 0.2 }}>
-                          <s.icon className="h-10 w-10" style={{ color: "inherit" }} />
-                        </motion.div>
+                        <s.icon className="h-10 w-10" style={{ color: s.color }} />
                       </motion.div>
                     ))}
                   </motion.div>
                 )}
 
-                {/* Stage 1: icons + words — NO color flash (plain) */}
+                {/* Stage 1: icons + words — all appear together, no stagger */}
                 {motionStage === 1 && (
                   <motion.div key="s1" className="flex items-center justify-center gap-10"
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     transition={{ duration: 0.7, ease: "easeInOut" }}>
-                    {PROCESS_ICONS.map((s, i) => (
-                      <motion.div key={s.word}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.5, ease: "easeOut", delay: i * 0.15 }}
-                        className="flex items-center gap-3">
-                        <s.icon className="h-7 w-7 text-white/30" />
+                    {PROCESS_ICONS.map((s) => (
+                      <div key={s.word} className="flex items-center gap-3">
+                        <s.icon className="h-7 w-7" style={{ color: s.color }} />
                         <span className="text-xl text-white/50 tracking-wider font-medium">{s.word}.</span>
-                      </motion.div>
+                      </div>
                     ))}
                   </motion.div>
                 )}

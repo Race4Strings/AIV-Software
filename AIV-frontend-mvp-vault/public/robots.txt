@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /dashboard/
+Disallow: /onboard/
+Disallow: /admin/
+Disallow: /settings/
+Disallow: /calibration/
+
+Sitemap: https://aiv.chat/sitemap.xml

@@ -22,7 +22,12 @@ export const metadata: Metadata = {
     "identity infrastructure",
   ],
   icons: {
-    icon: "/favicon.svg",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
   },
   openGraph: {
     title: "AIV — Own Your Digital Identity",
@@ -32,10 +37,10 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/aiv.svg",
-        width: 200,
-        height: 200,
-        alt: "AIV - Identity Infrastructure",
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "AIV — Own Your Digital Identity",
       },
     ],
   },
@@ -44,7 +49,7 @@ export const metadata: Metadata = {
     title: "AIV — Own Your Digital Identity",
     description:
       "Capture, certify, and license your digital identity — with full control over every guardrail and every deal. Built for athletes, musicians, actors, executives, and creators.",
-    images: ["/aiv.svg"],
+    images: ["/og-image.png"],
   },
 };
 

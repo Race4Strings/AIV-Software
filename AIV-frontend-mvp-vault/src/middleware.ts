@@ -19,7 +19,15 @@ export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
 
     // Allow public routes
-    if (publicRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
+    const isPublic = publicRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))
+
+    // Logged-in users hitting landing page → redirect to dashboard (avoids flash)
+    const sessionCookieEarly = request.cookies.get('session_id')
+    if (pathname === '/' && sessionCookieEarly?.value) {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+
+    if (isPublic) {
         return NextResponse.next()
     }
 
