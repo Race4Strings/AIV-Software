@@ -12,6 +12,7 @@ export interface HeroFinalV2Props {
   containerRef: React.RefObject<HTMLDivElement | null>;
   onRequestAccess: () => void;
   onOverlayChange?: (open: boolean) => void;
+  onBadgeHover?: (hovered: boolean) => void;
 }
 
 const smoothEase = [0.25, 0.1, 0.25, 1] as const;
@@ -36,7 +37,7 @@ const PROCESS_ICONS = [
 // Lock rotates up-left to "open", then down-left to "close", then
 // crossfades into color dot → green pulse. No AnimatePresence for
 // the lock motion = no flash, no fidget.
-function AnimatedLockBadge() {
+function AnimatedLockBadge({ onHoverChange }: { onHoverChange?: (h: boolean) => void }) {
   const [hovered, setHovered] = useState(false);
   const [phase, setPhase] = useState<"idle" | "opening" | "closing" | "colors" | "green">("idle");
   const [hoverCount, setHoverCount] = useState(0); // forces CSS animation restart
@@ -65,8 +66,8 @@ function AnimatedLockBadge() {
   return (
     <motion.div
       className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 mb-8 backdrop-blur-sm cursor-default pointer-events-auto"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={() => { setHovered(true); onHoverChange?.(true); }}
+      onMouseLeave={() => { setHovered(false); onHoverChange?.(false); }}
     >
       <div className="relative h-3.5 w-3.5">
         {/* Lock icon — subtle pop-out when transitioning to dot, pop-in when returning */}
@@ -129,7 +130,7 @@ function HowItWorksCard({ item, index, autoFlash }: { item: typeof REVEAL_STEPS[
   );
 }
 
-export function HeroFinalV2({ onRequestAccess, onOverlayChange }: HeroFinalV2Props) {
+export function HeroFinalV2({ onRequestAccess, onOverlayChange, onBadgeHover }: HeroFinalV2Props) {
   const [showMotion, setShowMotion] = useState(false);
   const [motionStage, setMotionStage] = useState(0);
   const [cardFlashTriggered, setCardFlashTriggered] = useState(false);
@@ -190,7 +191,7 @@ export function HeroFinalV2({ onRequestAccess, onOverlayChange }: HeroFinalV2Pro
     <>
       <div className="relative z-10 flex flex-col items-center justify-center min-h-[100dvh] px-6 text-center pointer-events-none">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={stagger(0.3)}>
-          <AnimatedLockBadge />
+          <AnimatedLockBadge onHoverChange={onBadgeHover} />
         </motion.div>
 
         <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={stagger(0.5)}

@@ -35,11 +35,11 @@ const SIGNALS: Signal[] = [
 ];
 
 const ACCENT_COLORS = {
-  blue: { dot: "bg-blue-500", bg: "bg-blue-500/10", text: "text-blue-400", badge: "bg-blue-500/15 text-blue-400" },
-  green: { dot: "bg-emerald-500", bg: "bg-emerald-500/10", text: "text-emerald-400", badge: "bg-emerald-500/15 text-emerald-400" },
-  red: { dot: "bg-red-500", bg: "bg-red-500/10", text: "text-red-400", badge: "bg-red-500/15 text-red-400" },
-  amber: { dot: "bg-amber-500", bg: "bg-amber-500/10", text: "text-amber-400", badge: "bg-amber-500/15 text-amber-400" },
-  purple: { dot: "bg-purple-500", bg: "bg-purple-500/10", text: "text-purple-400", badge: "bg-purple-500/15 text-purple-400" },
+  blue: { dot: "bg-blue-500", bg: "bg-blue-500/10", text: "text-blue-400", badge: "bg-blue-500/15 text-blue-400", hex: "#3b82f6" },
+  green: { dot: "bg-emerald-500", bg: "bg-emerald-500/10", text: "text-emerald-400", badge: "bg-emerald-500/15 text-emerald-400", hex: "#10b981" },
+  red: { dot: "bg-red-500", bg: "bg-red-500/10", text: "text-red-400", badge: "bg-red-500/15 text-red-400", hex: "#ef4444" },
+  amber: { dot: "bg-amber-500", bg: "bg-amber-500/10", text: "text-amber-400", badge: "bg-amber-500/15 text-amber-400", hex: "#f59e0b" },
+  purple: { dot: "bg-purple-500", bg: "bg-purple-500/10", text: "text-purple-400", badge: "bg-purple-500/15 text-purple-400", hex: "#8b5cf6" },
 };
 
 // Fisher-Yates shuffle
@@ -117,7 +117,7 @@ function getDynamic(signal: Signal, progress: number): string {
   return base;
 }
 
-function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: () => void; onLeave?: () => void }) {
+function SignalPill({ signal, onHover, onLeave, starMode }: { signal: Signal; onHover?: () => void; onLeave?: () => void; starMode?: boolean }) {
   const [hovered, setHovered] = useState(false);
   const [metricDisplay, setMetricDisplay] = useState(signal.metric || "");
   const pillRef = useRef<HTMLDivElement>(null);
@@ -150,59 +150,78 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
   }, [hovered, barWidth, signal.metricPercent, signal.metric]);
 
   const pillSpring = { type: "spring" as const, damping: 24, stiffness: 170, mass: 1 };
+  const hex = colors.hex;
 
   return (
-    <motion.div ref={pillRef}
-      onMouseEnter={() => { setHovered(true); onHover?.(); }}
-      onMouseLeave={() => { setHovered(false); onLeave?.(); }}
-      onMouseMove={handleMove}
-      animate={{ minWidth: hovered ? 260 : 180 }}
-      transition={pillSpring}
-      className="rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl cursor-default overflow-hidden"
-      style={{ maxWidth: 280 }}>
-      <div className="flex items-center gap-2.5 px-3 py-2.5">
-        <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg ${colors.bg}`}>
-          <Icon className={`h-3 w-3 ${colors.text}`} />
-        </div>
-        <span className="text-[11px] font-medium text-white/70 truncate">{signal.title}</span>
-        {signal.badge && !hovered && (
-          <span className={`ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${colors.badge} shrink-0`}>{signal.badge}</span>
-        )}
-      </div>
-      <AnimatePresence>
-        {hovered && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{
-              ...pillSpring,
-              opacity: { duration: 0.2, ease: "easeIn" },
-            }}
-            className="overflow-hidden">
-            <div className="px-3 pb-3 pt-0.5">
-              <p className="text-[11px] text-white/50 leading-relaxed">{signal.description}</p>
-              {signal.metric && (
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-lg font-bold text-white font-mono tabular-nums">{metricDisplay}</span>
-                  {signal.metricLabel && <span className="text-[9px] text-white/40 uppercase tracking-wider">{signal.metricLabel}</span>}
-                </div>
-              )}
-              <div className="mt-2 h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
-                <motion.div className={`h-full rounded-full ${colors.dot}`} style={{ width: barWidthStr }} />
-              </div>
-              {signal.badge && (
-                <span className={`mt-2 inline-block text-[9px] font-semibold px-2 py-0.5 rounded-full ${colors.badge}`}>{signal.badge}</span>
-              )}
+    <AnimatePresence mode="wait">
+      {starMode ? (
+        <motion.div key="star"
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.5 }}
+          transition={{ type: "spring", damping: 20, stiffness: 200 }}
+          className="relative cursor-default">
+          <div className="h-2.5 w-2.5 rounded-full"
+            style={{ backgroundColor: hex, boxShadow: `0 0 8px ${hex}80, 0 0 16px ${hex}40` }} />
+          <div className="absolute inset-0 h-2.5 w-2.5 rounded-full animate-ping"
+            style={{ backgroundColor: hex, opacity: 0.2 }} />
+        </motion.div>
+      ) : (
+        <motion.div key="pill" ref={pillRef}
+          onMouseEnter={() => { setHovered(true); onHover?.(); }}
+          onMouseLeave={() => { setHovered(false); onLeave?.(); }}
+          onMouseMove={handleMove}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1, minWidth: hovered ? 260 : 180 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={pillSpring}
+          className="rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl cursor-default overflow-hidden"
+          style={{ maxWidth: 280 }}>
+          <div className="flex items-center gap-2.5 px-3 py-2.5">
+            <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg ${colors.bg}`}>
+              <Icon className={`h-3 w-3 ${colors.text}`} />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+            <span className="text-[11px] font-medium text-white/70 truncate">{signal.title}</span>
+            {signal.badge && !hovered && (
+              <span className={`ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${colors.badge} shrink-0`}>{signal.badge}</span>
+            )}
+          </div>
+          <AnimatePresence>
+            {hovered && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{
+                  ...pillSpring,
+                  opacity: { duration: 0.2, ease: "easeIn" },
+                }}
+                className="overflow-hidden">
+                <div className="px-3 pb-3 pt-0.5">
+                  <p className="text-[11px] text-white/50 leading-relaxed">{signal.description}</p>
+                  {signal.metric && (
+                    <div className="mt-2 flex items-baseline gap-2">
+                      <span className="text-lg font-bold text-white font-mono tabular-nums">{metricDisplay}</span>
+                      {signal.metricLabel && <span className="text-[9px] text-white/40 uppercase tracking-wider">{signal.metricLabel}</span>}
+                    </div>
+                  )}
+                  <div className="mt-2 h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
+                    <motion.div className={`h-full rounded-full ${colors.dot}`} style={{ width: barWidthStr }} />
+                  </div>
+                  {signal.badge && (
+                    <span className={`mt-2 inline-block text-[9px] font-semibold px-2 py-0.5 rounded-full ${colors.badge}`}>{signal.badge}</span>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
 const ROTATION_MS = 3500;
 
-export function SignalNotifications() {
+export function SignalNotifications({ starMode = false }: { starMode?: boolean } = {}) {
   const reducedMotion = useReducedMotion();
   type Slot = { id: string; signalIdx: number; pos: Record<string, string>; numPos: NumPos; side: "left" | "right" };
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -284,7 +303,7 @@ export function SignalNotifications() {
       <div className="hidden lg:block fixed inset-0 z-30 pointer-events-none" aria-hidden="true">
         {STATIC_POSITIONS.map((pos, g) => (
           <div key={g} className="absolute pointer-events-auto" style={pos}>
-            <SignalPill signal={SIGNALS[g]} />
+            <SignalPill signal={SIGNALS[g]} starMode={starMode} />
           </div>
         ))}
       </div>
@@ -300,7 +319,7 @@ export function SignalNotifications() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.85, y: -10, filter: "blur(2px)" }}
             transition={{ type: "spring", damping: 20, stiffness: 260, mass: 0.6 }}>
-            <SignalPill signal={SIGNALS[slot.signalIdx]} onHover={handleHover} onLeave={handleLeave} />
+            <SignalPill signal={SIGNALS[slot.signalIdx]} onHover={handleHover} onLeave={handleLeave} starMode={starMode} />
           </motion.div>
         ))}
       </AnimatePresence>
