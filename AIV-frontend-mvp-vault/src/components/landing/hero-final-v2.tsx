@@ -119,7 +119,7 @@ function HowItWorksCard({ item, index, autoFlash }: { item: typeof REVEAL_STEPS[
       <span className="absolute top-3 right-3 text-[10px] font-mono text-white/10 tracking-wider">{item.num}</span>
       <div className="flex items-center gap-2.5 mb-2.5">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg transition-[transform,background-color] duration-300 ease-out"
-          style={{ willChange: "transform", transformOrigin: "center center", transform: showColor ? "scale(1.15) rotate(5deg)" : "scale(1) rotate(0deg)", backgroundColor: showColor ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.04)" }}>
+          style={{ willChange: "transform", transformOrigin: "center center", transform: showColor ? "scale(1.2) rotate(8deg) translateY(-2px)" : "scale(1) rotate(0deg) translateY(0px)", backgroundColor: showColor ? `${item.color}15` : "rgba(255,255,255,0.04)" }}>
           <Icon className="h-4 w-4 transition-colors duration-300" style={{ color: showColor ? item.color : "rgba(255,255,255,0.3)" }} />
         </div>
         <span className="text-sm text-white/50 font-medium">{item.label}</span>

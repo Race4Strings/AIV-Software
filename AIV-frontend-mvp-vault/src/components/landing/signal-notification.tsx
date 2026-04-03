@@ -96,29 +96,70 @@ const STATIC_POSITIONS = [
   { top: "74%", left: "8%" },
 ];
 
+function getDynamic(signal: Signal, progress: number): string {
+  if (!signal.metric) return "";
+  const base = signal.metric;
+  if (base.startsWith("$")) {
+    const num = parseFloat(base.replace(/[$,K]/g, "")) * (base.includes("K") ? 1000 : 1);
+    const scaled = Math.round(num * (0.35 + progress * 0.65));
+    if (scaled >= 1000) return `$${(scaled / 1000).toFixed(scaled >= 10000 ? 0 : 1)}K`;
+    return `$${scaled.toLocaleString()}`;
+  }
+  if (base.includes("%")) {
+    const num = parseInt(base);
+    const floor = signal.id === "misuse" ? 70 : 50;
+    return `${Math.round(floor + (num - floor) * progress)}%`;
+  }
+  if (base.startsWith("Step")) return `Step ${Math.max(1, Math.round(1 + progress * 4))}/5`;
+  if (base === "Sealed") return ["Pending", "Hashing", "Anchoring", "Confirming", "Sealed"][Math.min(4, Math.round(progress * 4))];
+  const num = parseInt(base);
+  if (!isNaN(num)) return `${Math.max(1, Math.round(num * (0.15 + progress * 0.85)))}`;
+  return base;
+}
+
 function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: () => void; onLeave?: () => void }) {
   const [hovered, setHovered] = useState(false);
+  const [metricDisplay, setMetricDisplay] = useState(signal.metric || "");
+  const pillRef = useRef<HTMLDivElement>(null);
+  const progressRef = useRef(0);
   const Icon = ICONS[signal.icon];
   const colors = ACCENT_COLORS[signal.accentColor];
   const barWidth = useMotionValue(0);
   const springWidth = useSpring(barWidth, { damping: 28, stiffness: 220 });
   const barWidthStr = useTransform(springWidth, (v) => `${v}%`);
 
+  function handleMove(e: React.MouseEvent) {
+    if (!pillRef.current || !hovered) return;
+    const rect = pillRef.current.getBoundingClientRect();
+    const p = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    progressRef.current = p;
+    barWidth.set(p * (signal.metricPercent ?? 70));
+    const next = getDynamic(signal, p);
+    if (next !== metricDisplay) setMetricDisplay(next);
+  }
+
   useEffect(() => {
-    barWidth.set(hovered ? (signal.metricPercent ?? 70) : 0);
-  }, [hovered, barWidth, signal.metricPercent]);
+    if (hovered) {
+      barWidth.set(signal.metricPercent ?? 70);
+      setMetricDisplay(signal.metric || "");
+    } else {
+      barWidth.set(0);
+      progressRef.current = 0;
+      setMetricDisplay(signal.metric || "");
+    }
+  }, [hovered, barWidth, signal.metricPercent, signal.metric]);
+
+  const pillSpring = { type: "spring" as const, damping: 25, stiffness: 300 };
 
   return (
-    <motion.div
+    <motion.div ref={pillRef}
       onMouseEnter={() => { setHovered(true); onHover?.(); }}
       onMouseLeave={() => { setHovered(false); onLeave?.(); }}
+      onMouseMove={handleMove}
       layout
       className="rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl cursor-default overflow-hidden"
       style={{ minWidth: hovered ? 260 : 180, maxWidth: 280 }}
-      transition={hovered
-        ? { type: "spring", damping: 25, stiffness: 300 }
-        : { type: "spring", damping: 30, stiffness: 200 }
-      }>
+      transition={pillSpring}>
       <div className="flex items-center gap-2.5 px-3 py-2.5">
         <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg ${colors.bg}`}>
           <Icon className={`h-3 w-3 ${colors.text}`} />
@@ -132,16 +173,13 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
         {hovered && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{
-              height: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
-              opacity: { duration: 0.2, ease: "easeOut" },
-            }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
             className="overflow-hidden">
             <div className="px-3 pb-3 pt-0.5">
               <p className="text-[11px] text-white/50 leading-relaxed">{signal.description}</p>
               {signal.metric && (
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-lg font-bold text-white font-mono tabular-nums">{signal.metric}</span>
+                  <span className="text-lg font-bold text-white font-mono tabular-nums">{metricDisplay}</span>
                   {signal.metricLabel && <span className="text-[9px] text-white/40 uppercase tracking-wider">{signal.metricLabel}</span>}
                 </div>
               )}
