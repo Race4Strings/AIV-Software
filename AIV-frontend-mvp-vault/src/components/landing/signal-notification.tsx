@@ -149,7 +149,7 @@ function SignalPill({ signal, onHover, onLeave, starMode }: { signal: Signal; on
     }
   }, [hovered, barWidth, signal.metricPercent, signal.metric]);
 
-  const pillSpring = { type: "spring" as const, damping: 24, stiffness: 170, mass: 1 };
+  const pillSpring = { type: "spring" as const, damping: 14, stiffness: 170, mass: 0.8 };
   const hex = colors.hex;
 
   return (
