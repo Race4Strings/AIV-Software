@@ -149,17 +149,18 @@ function SignalPill({ signal, onHover, onLeave, starMode }: { signal: Signal; on
     }
   }, [hovered, barWidth, signal.metricPercent, signal.metric]);
 
-  const pillSpring = { type: "spring" as const, damping: 14, stiffness: 170, mass: 0.8 };
+  const openSpring = { type: "spring" as const, damping: 14, stiffness: 170, mass: 0.8 };
+  const closeSpring = { type: "spring" as const, damping: 26, stiffness: 300 };
   const hex = colors.hex;
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence>
       {starMode ? (
         <motion.div key="star"
-          initial={{ opacity: 0, scale: 0.5 }}
+          initial={{ opacity: 0, scale: 0.3 }}
           animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.5 }}
-          transition={{ type: "spring", damping: 20, stiffness: 200 }}
+          exit={{ opacity: 0, scale: 0.3 }}
+          transition={{ type: "spring", damping: 15, stiffness: 200 }}
           className="relative cursor-default">
           <div className="h-2.5 w-2.5 rounded-full"
             style={{ backgroundColor: hex, boxShadow: `0 0 8px ${hex}80, 0 0 16px ${hex}40` }} />
@@ -171,10 +172,10 @@ function SignalPill({ signal, onHover, onLeave, starMode }: { signal: Signal; on
           onMouseEnter={() => { setHovered(true); onHover?.(); }}
           onMouseLeave={() => { setHovered(false); onLeave?.(); }}
           onMouseMove={handleMove}
-          initial={{ opacity: 0, scale: 0.95 }}
+          initial={{ opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1, minWidth: hovered ? 260 : 180 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={pillSpring}
+          exit={{ opacity: 0, scale: 0.92, transition: { duration: 0.15 } }}
+          transition={openSpring}
           className="rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl cursor-default overflow-hidden"
           style={{ maxWidth: 280 }}>
           <div className="flex items-center gap-2.5 px-3 py-2.5">
@@ -188,12 +189,10 @@ function SignalPill({ signal, onHover, onLeave, starMode }: { signal: Signal; on
           </div>
           <AnimatePresence>
             {hovered && (
-              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{
-                  ...pillSpring,
-                  opacity: { duration: 0.2, ease: "easeIn" },
-                }}
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1, transition: { ...openSpring, opacity: { duration: 0.2, ease: "easeOut" } } }}
+                exit={{ height: 0, opacity: 0, transition: { ...closeSpring, opacity: { duration: 0.15, ease: "easeIn" } } }}
                 className="overflow-hidden">
                 <div className="px-3 pb-3 pt-0.5">
                   <p className="text-[11px] text-white/50 leading-relaxed">{signal.description}</p>
