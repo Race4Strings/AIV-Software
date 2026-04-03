@@ -149,17 +149,13 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
     }
   }, [hovered, barWidth, signal.metricPercent, signal.metric]);
 
-  const pillSpring = { type: "spring" as const, damping: 25, stiffness: 300 };
-
   return (
-    <motion.div ref={pillRef}
+    <div ref={pillRef}
       onMouseEnter={() => { setHovered(true); onHover?.(); }}
       onMouseLeave={() => { setHovered(false); onLeave?.(); }}
       onMouseMove={handleMove}
-      layout
-      className="rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl cursor-default overflow-hidden"
-      style={{ minWidth: hovered ? 260 : 180, maxWidth: 280 }}
-      transition={pillSpring}>
+      className="rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl cursor-default overflow-hidden transition-[min-width] duration-300 ease-out"
+      style={{ minWidth: hovered ? 260 : 180, maxWidth: 280 }}>
       <div className="flex items-center gap-2.5 px-3 py-2.5">
         <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg ${colors.bg}`}>
           <Icon className={`h-3 w-3 ${colors.text}`} />
@@ -196,7 +192,7 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }
 

@@ -67,9 +67,10 @@ export default function HomePage() {
         />
 
         {!overlayOpen && <MobileSignalNotifications />}
-
-        <EarlyAccessModal open={modalOpen} onClose={() => setModalOpen(false)} initialStep={modalInitialStep} />
       </div>
+
+      {/* Modal — outside pointer-events-none wrapper so backdrop click works */}
+      <EarlyAccessModal open={modalOpen} onClose={() => setModalOpen(false)} initialStep={modalInitialStep} />
     </div>
   );
 }
