@@ -149,13 +149,17 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
     }
   }, [hovered, barWidth, signal.metricPercent, signal.metric]);
 
+  const pillSpring = { type: "spring" as const, damping: 22, stiffness: 280 };
+
   return (
-    <div ref={pillRef}
+    <motion.div ref={pillRef}
       onMouseEnter={() => { setHovered(true); onHover?.(); }}
       onMouseLeave={() => { setHovered(false); onLeave?.(); }}
       onMouseMove={handleMove}
-      className="rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl cursor-default overflow-hidden transition-[min-width] duration-300 ease-out"
-      style={{ minWidth: hovered ? 260 : 180, maxWidth: 280 }}>
+      animate={{ minWidth: hovered ? 260 : 180 }}
+      transition={pillSpring}
+      className="rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl cursor-default overflow-hidden"
+      style={{ maxWidth: 280 }}>
       <div className="flex items-center gap-2.5 px-3 py-2.5">
         <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg ${colors.bg}`}>
           <Icon className={`h-3 w-3 ${colors.text}`} />
@@ -170,8 +174,8 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{
-              type: "spring", damping: 25, stiffness: 300,
-              opacity: { duration: 0.25, ease: "easeIn" },
+              ...pillSpring,
+              opacity: { duration: 0.2, ease: "easeIn" },
             }}
             className="overflow-hidden">
             <div className="px-3 pb-3 pt-0.5">
@@ -192,7 +196,7 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }
 
