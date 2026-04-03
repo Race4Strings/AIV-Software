@@ -58,7 +58,7 @@ type NumPos = { top: number; left?: number; right?: number };
 function randomNumPos(): NumPos {
   const top = 10 + Math.random() * 75;
   const side = Math.random() > 0.5 ? "left" : "right";
-  const h = 4 + Math.random() * 24;
+  const h = 4 + Math.random() * 14; // 4-18% from edge — keeps signals away from center hero
   return side === "left" ? { top, left: h } : { top, right: h };
 }
 
