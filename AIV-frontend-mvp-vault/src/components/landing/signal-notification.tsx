@@ -156,9 +156,10 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
       onMouseMove={handleMove}
       className="rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl cursor-default overflow-hidden"
       style={{
-        minWidth: hovered ? 260 : 180,
-        maxWidth: 280,
-        transition: "min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+        minWidth: hovered ? 260 : 0,
+        width: hovered ? 260 : "auto",
+        maxWidth: hovered ? 280 : 180,
+        transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
       }}>
       <div className="flex items-center gap-2.5 px-3 py-2.5">
         <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg ${colors.bg}`}>
