@@ -62,6 +62,20 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preload" href="/fonts/SatoshiVF.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "AIV",
+              url: "https://aiv.chat",
+              logo: "https://aiv.chat/aiv.svg",
+              description: "Digital identity infrastructure for high-profile talent. Capture, certify, and license your digital identity.",
+              sameAs: [],
+            }),
+          }}
+        />
       </head>
       <body className="min-h-[100dvh] bg-background font-sans antialiased" suppressHydrationWarning>
         <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:bg-background focus:text-foreground focus:px-4 focus:py-2 focus:rounded-md focus:ring-2 focus:ring-ring focus:shadow-lg">
