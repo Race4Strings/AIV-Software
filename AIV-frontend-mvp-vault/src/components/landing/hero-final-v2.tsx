@@ -12,7 +12,6 @@ export interface HeroFinalV2Props {
   containerRef: React.RefObject<HTMLDivElement | null>;
   onRequestAccess: () => void;
   onOverlayChange?: (open: boolean) => void;
-  onBadgeHover?: (hovered: boolean) => void;
 }
 
 const smoothEase = [0.25, 0.1, 0.25, 1] as const;
@@ -37,7 +36,7 @@ const PROCESS_ICONS = [
 // Lock rotates up-left to "open", then down-left to "close", then
 // crossfades into color dot → green pulse. No AnimatePresence for
 // the lock motion = no flash, no fidget.
-function AnimatedLockBadge({ onHoverChange }: { onHoverChange?: (h: boolean) => void }) {
+function AnimatedLockBadge() {
   const [hovered, setHovered] = useState(false);
   const [phase, setPhase] = useState<"idle" | "opening" | "closing" | "colors" | "green">("idle");
   const [hoverCount, setHoverCount] = useState(0); // forces CSS animation restart
@@ -66,8 +65,8 @@ function AnimatedLockBadge({ onHoverChange }: { onHoverChange?: (h: boolean) => 
   return (
     <motion.div
       className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 mb-8 backdrop-blur-sm cursor-default pointer-events-auto"
-      onMouseEnter={() => { setHovered(true); onHoverChange?.(true); }}
-      onMouseLeave={() => { setHovered(false); onHoverChange?.(false); }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       <div className="relative h-3.5 w-3.5">
         {/* Lock icon — subtle pop-out when transitioning to dot, pop-in when returning */}
@@ -130,7 +129,7 @@ function HowItWorksCard({ item, index, autoFlash }: { item: typeof REVEAL_STEPS[
   );
 }
 
-export function HeroFinalV2({ onRequestAccess, onOverlayChange, onBadgeHover }: HeroFinalV2Props) {
+export function HeroFinalV2({ onRequestAccess, onOverlayChange }: HeroFinalV2Props) {
   const [showMotion, setShowMotion] = useState(false);
   const [motionStage, setMotionStage] = useState(0);
   const [cardFlashTriggered, setCardFlashTriggered] = useState(false);
@@ -191,7 +190,7 @@ export function HeroFinalV2({ onRequestAccess, onOverlayChange, onBadgeHover }: 
     <>
       <div className="relative z-10 flex flex-col items-center justify-center min-h-[100dvh] px-6 text-center pointer-events-none">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={stagger(0.3)}>
-          <AnimatedLockBadge onHoverChange={onBadgeHover} />
+          <AnimatedLockBadge />
         </motion.div>
 
         <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={stagger(0.5)}
@@ -234,7 +233,7 @@ export function HeroFinalV2({ onRequestAccess, onOverlayChange, onBadgeHover }: 
               <Aurora colorStops={["#0a1e42", "#2563eb", "#0a1e42"]} amplitude={0.8} blend={0.5} speed={0.3} />
             </div>
 
-            <div className="absolute top-6 left-6 flex items-center gap-3 pointer-events-auto z-10">
+            <div className="absolute top-6 left-6 flex items-center gap-3 pointer-events-auto z-20">
               <button onClick={() => setShowMotion(false)}
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] text-white/40 hover:text-white/70 hover:bg-white/[0.1] transition-colors duration-150 cursor-pointer">
                 <X className="h-4 w-4" />
@@ -245,7 +244,7 @@ export function HeroFinalV2({ onRequestAccess, onOverlayChange, onBadgeHover }: 
               </button>
             </div>
 
-            <div className="max-w-4xl w-full px-6 relative z-10">
+            <div className="max-w-4xl w-full px-6 relative z-10 pt-14 sm:pt-0 max-h-[85vh] overflow-y-auto">
               <AnimatePresence mode="wait">
                 {/* Stage 0 ONLY: icons with color flash */}
                 {motionStage === 0 && (
@@ -265,7 +264,7 @@ export function HeroFinalV2({ onRequestAccess, onOverlayChange, onBadgeHover }: 
 
                 {/* Stage 1: icons + words — all appear together, no stagger */}
                 {motionStage === 1 && (
-                  <motion.div key="s1" className="flex items-center justify-center gap-10"
+                  <motion.div key="s1" className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-10"
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     transition={{ duration: 0.7, ease: "easeInOut" }}>
                     {PROCESS_ICONS.map((s) => (

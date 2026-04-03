@@ -119,6 +119,8 @@ function getDynamic(signal: Signal, progress: number): string {
 
 function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: () => void; onLeave?: () => void }) {
   const [hovered, setHovered] = useState(false);
+  const [tapped, setTapped] = useState(false);
+  const isOpen = hovered || tapped;
   const [metricDisplay, setMetricDisplay] = useState(signal.metric || "");
   const pillRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef(0);
@@ -129,7 +131,7 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
   const barWidthStr = useTransform(springWidth, (v) => `${v}%`);
 
   function handleMove(e: React.MouseEvent) {
-    if (!pillRef.current || !hovered) return;
+    if (!pillRef.current || !isOpen) return;
     const rect = pillRef.current.getBoundingClientRect();
     const p = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     progressRef.current = p;
@@ -139,7 +141,7 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
   }
 
   useEffect(() => {
-    if (hovered) {
+    if (isOpen) {
       barWidth.set(signal.metricPercent ?? 70);
       setMetricDisplay(signal.metric || "");
     } else {
@@ -147,18 +149,19 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
       progressRef.current = 0;
       setMetricDisplay(signal.metric || "");
     }
-  }, [hovered, barWidth, signal.metricPercent, signal.metric]);
+  }, [isOpen, barWidth, signal.metricPercent, signal.metric]);
 
   return (
     <div ref={pillRef}
-      onMouseEnter={() => { setHovered(true); onHover?.(); }}
+      onMouseEnter={() => { setHovered(true); setTapped(false); onHover?.(); }}
       onMouseLeave={() => { setHovered(false); onLeave?.(); }}
+      onClick={() => setTapped(t => !t)}
       onMouseMove={handleMove}
       className="rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl cursor-default overflow-hidden"
       style={{
-        minWidth: hovered ? 260 : 0,
-        width: hovered ? 260 : "auto",
-        maxWidth: hovered ? 280 : 180,
+        minWidth: isOpen ? 260 : 0,
+        width: isOpen ? 260 : "auto",
+        maxWidth: isOpen ? 280 : 180,
         transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
       }}>
       <div className="flex items-center gap-2.5 px-3 py-2.5">
@@ -166,7 +169,7 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
           <Icon className={`h-3 w-3 ${colors.text}`} />
         </div>
         <span className="text-[11px] font-medium text-white/70 truncate">{signal.title}</span>
-        {signal.badge && !hovered && (
+        {signal.badge && !isOpen && (
           <span className={`ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${colors.badge} shrink-0`}>{signal.badge}</span>
         )}
       </div>
@@ -174,8 +177,8 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
       <div
         className="grid transition-[grid-template-rows,opacity] duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
         style={{
-          gridTemplateRows: hovered ? "1fr" : "0fr",
-          opacity: hovered ? 1 : 0,
+          gridTemplateRows: isOpen ? "1fr" : "0fr",
+          opacity: isOpen ? 1 : 0,
         }}>
         <div className="overflow-hidden min-h-0">
           <div className="px-3 pb-3 pt-0.5">
@@ -317,7 +320,7 @@ export function MobileSignalNotifications() {
   }, []);
 
   return (
-    <div className="lg:hidden flex justify-center px-6 pb-6">
+    <div className="lg:hidden flex justify-center px-6 pb-4 -mt-4">
       <AnimatePresence mode="wait">
         <motion.div key={currentIndex}
           initial={reducedMotion ? {} : { opacity: 0, y: 8 }}
