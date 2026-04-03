@@ -38,6 +38,7 @@ const PROCESS_ICONS = [
 // the lock motion = no flash, no fidget.
 function AnimatedLockBadge() {
   const [hovered, setHovered] = useState(false);
+  const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [phase, setPhase] = useState<"idle" | "opening" | "closing" | "colors" | "green">("idle");
   const [hoverCount, setHoverCount] = useState(0); // forces CSS animation restart
 
@@ -67,6 +68,12 @@ function AnimatedLockBadge() {
       className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 mb-8 backdrop-blur-sm cursor-default pointer-events-auto"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onClick={() => {
+        // Mobile tap: activate then auto-dismiss after 3s
+        setHovered(true);
+        if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+        tapTimerRef.current = setTimeout(() => setHovered(false), 3000);
+      }}
     >
       <div className="relative h-3.5 w-3.5">
         {/* Lock icon — subtle pop-out when transitioning to dot, pop-in when returning */}
@@ -100,6 +107,7 @@ function AnimatedLockBadge() {
 function HowItWorksCard({ item, index, autoFlash }: { item: typeof REVEAL_STEPS[number]; index: number; autoFlash: boolean }) {
   const [hovered, setHovered] = useState(false);
   const [flashActive, setFlashActive] = useState(false);
+  const [tapActive, setTapActive] = useState(false);
   const Icon = item.icon;
 
   useEffect(() => {
@@ -109,13 +117,14 @@ function HowItWorksCard({ item, index, autoFlash }: { item: typeof REVEAL_STEPS[
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [autoFlash, index]);
 
-  const showColor = hovered || flashActive;
+  const showColor = hovered || flashActive || tapActive;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeOut", delay: 0.15 + index * 0.1 }}
       className="relative rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 hover:bg-white/[0.04] transition-colors duration-200 cursor-default"
-      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+      onClick={() => { setTapActive(true); setTimeout(() => setTapActive(false), 600); }}>
       <span className="absolute top-3 right-3 text-[10px] font-mono text-white/10 tracking-wider">{item.num}</span>
       <div className="flex items-center gap-2.5 mb-2.5">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg transition-[transform,background-color] duration-300 ease-out"

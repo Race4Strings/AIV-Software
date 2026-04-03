@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -21,24 +21,8 @@ export default function HomePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalInitialStep, setModalInitialStep] = useState(0);
   const [overlayOpen, setOverlayOpen] = useState(false);
-  const [badgeHovered, setBadgeHovered] = useState(false);
-  const [starsVisible, setStarsVisible] = useState(false);
-  const starTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleBadgeHover = useCallback((hovered: boolean) => {
-    setBadgeHovered(hovered);
-    if (starTimerRef.current) clearTimeout(starTimerRef.current);
-    if (hovered) {
-      // Dots appear gradually toward end of color sequence (~1.5s in)
-      starTimerRef.current = setTimeout(() => setStarsVisible(true), 1500);
-    } else {
-      setStarsVisible(false);
-    }
-  }, []);
-
-  useEffect(() => { return () => { if (starTimerRef.current) clearTimeout(starTimerRef.current); }; }, []);
-
-  const { opacity: auroraOpacity, handleMouseMove } = useShakeDetection();
+  const { opacity: auroraOpacity, handleMouseMove, handleTouchStart, handleTouchEnd } = useShakeDetection();
 
   useEffect(() => {
     try { const user = localStorage.getItem("user"); if (user && JSON.parse(user)?.id) router.replace("/dashboard"); } catch {}
@@ -50,6 +34,8 @@ export default function HomePage() {
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       className="dark relative min-h-[100dvh] bg-[oklch(0.09_0.01_262)]"
     >
       {/* Aurora */}
@@ -61,7 +47,7 @@ export default function HomePage() {
         style={{ background: "radial-gradient(ellipse 50% 40% at 50% 50%, rgba(59,130,246,0.07) 0%, transparent 60%)" }} />
 
       {/* Signals */}
-      {!overlayOpen && <SignalNotifications starMode={starsVisible} />}
+      {!overlayOpen && <SignalNotifications />}
 
       {/* Main — pointer-events-none so signals at z-30 remain interactive */}
       <div className="relative z-10 max-w-[1920px] mx-auto pointer-events-none">
@@ -80,7 +66,6 @@ export default function HomePage() {
           containerRef={containerRef}
           onRequestAccess={handleRequestAccess}
           onOverlayChange={setOverlayOpen}
-          onBadgeHover={handleBadgeHover}
         />
 
         {!overlayOpen && <MobileSignalNotifications />}

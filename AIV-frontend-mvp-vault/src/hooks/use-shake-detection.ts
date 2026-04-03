@@ -1,9 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 
 /**
- * Detects mouse shake gestures and returns an opacity value (0.25–0.85).
+ * Detects mouse shake gestures and touch press to control aurora opacity (0.25–0.85).
+ * Mouse: shake/movement increases opacity. Touch: press-and-hold increases opacity.
  * Uses requestAnimationFrame throttling to avoid jank.
- * Works for all directions (horizontal, vertical, diagonal shaking).
  */
 export function useShakeDetection() {
   const [opacity, setOpacity] = useState(0.25);
@@ -12,6 +12,24 @@ export function useShakeDetection() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rafRef = useRef<number | null>(null);
   const pendingOpacity = useRef(0.25);
+  const touchIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const commitOpacity = useCallback(() => {
+    if (!rafRef.current) {
+      rafRef.current = requestAnimationFrame(() => {
+        setOpacity(pendingOpacity.current);
+        rafRef.current = null;
+      });
+    }
+  }, []);
+
+  const startDecay = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      scoreRef.current = 0;
+      setOpacity(0.25);
+    }, 600);
+  }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const now = Date.now();
@@ -34,28 +52,36 @@ export function useShakeDetection() {
     }
 
     pendingOpacity.current = Math.min(0.85, 0.25 + scoreRef.current * 0.18);
+    commitOpacity();
+    startDecay();
+  }, [commitOpacity, startDecay]);
 
-    // RAF throttle — only commit state once per frame
-    if (!rafRef.current) {
-      rafRef.current = requestAnimationFrame(() => {
-        setOpacity(pendingOpacity.current);
-        rafRef.current = null;
-      });
-    }
-
+  // Touch: press-and-hold gradually increases aurora
+  const handleTouchStart = useCallback(() => {
+    if (touchIntervalRef.current) clearInterval(touchIntervalRef.current);
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      scoreRef.current = 0;
-      setOpacity(0.25);
-    }, 600);
-  }, []);
+    touchIntervalRef.current = setInterval(() => {
+      scoreRef.current = Math.min(5, scoreRef.current + 0.3);
+      pendingOpacity.current = Math.min(0.85, 0.25 + scoreRef.current * 0.18);
+      commitOpacity();
+    }, 100);
+  }, [commitOpacity]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (touchIntervalRef.current) {
+      clearInterval(touchIntervalRef.current);
+      touchIntervalRef.current = null;
+    }
+    startDecay();
+  }, [startDecay]);
 
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (touchIntervalRef.current) clearInterval(touchIntervalRef.current);
     };
   }, []);
 
-  return { opacity, handleMouseMove };
+  return { opacity, handleMouseMove, handleTouchStart, handleTouchEnd };
 }
