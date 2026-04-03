@@ -158,7 +158,7 @@ export function HeroFinalV2({ onRequestAccess, onOverlayChange }: HeroFinalV2Pro
     }
     setOverlayAurora(Math.min(0.85, 0.25 + overlayScoreRef.current * 0.18));
     if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
-    overlayTimerRef.current = setTimeout(() => { overlayScoreRef.current = 0; setOverlayAurora(0.25); }, 300);
+    overlayTimerRef.current = setTimeout(() => { overlayScoreRef.current = 0; setOverlayAurora(0.25); }, 600);
   }, [motionStage]);
 
   useEffect(() => { onOverlayChange?.(showMotion); }, [showMotion, onOverlayChange]);
@@ -229,7 +229,7 @@ export function HeroFinalV2({ onRequestAccess, onOverlayChange }: HeroFinalV2Pro
           >
             {/* Aurora in overlay */}
             <div className="pointer-events-none absolute inset-0 z-0"
-              style={{ opacity: overlayAurora, transition: "opacity 1000ms cubic-bezier(0.4, 0, 0.2, 1)" }}>
+              style={{ opacity: overlayAurora, transition: "opacity 1500ms cubic-bezier(0.4, 0, 0.2, 1)" }}>
               <Aurora colorStops={["#0a1e42", "#2563eb", "#0a1e42"]} amplitude={0.8} blend={0.5} speed={0.3} />
             </div>
 
