@@ -110,7 +110,7 @@ function getDynamic(signal: Signal, progress: number): string {
     const floor = signal.id === "misuse" ? 70 : 50;
     return `${Math.round(floor + (num - floor) * progress)}%`;
   }
-  if (base.startsWith("Step")) return `Step ${Math.max(1, Math.round(1 + progress * 4))}/5`;
+  if (base.startsWith("Step")) return ["Draft", "Review", "Negotiation", "Approval", "Ready"][Math.min(4, Math.round(progress * 4))];
   if (base === "Sealed") return ["Pending", "Hashing", "Anchoring", "Confirming", "Sealed"][Math.min(4, Math.round(progress * 4))];
   const num = parseInt(base);
   if (!isNaN(num)) return `${Math.max(1, Math.round(num * (0.15 + progress * 0.85)))}`;
