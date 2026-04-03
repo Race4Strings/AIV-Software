@@ -225,7 +225,7 @@ export function HeroFinalV2({ onRequestAccess, onOverlayChange }: HeroFinalV2Pro
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5, ease: "easeInOut" }}
             onMouseMove={handleOverlayMouse}
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[oklch(0.06_0.008_262)]"
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[oklch(0.06_0.008_262)] pointer-events-auto"
           >
             {/* Aurora in overlay */}
             <div className="pointer-events-none absolute inset-0 z-0"
