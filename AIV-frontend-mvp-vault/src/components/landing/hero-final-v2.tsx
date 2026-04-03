@@ -91,7 +91,8 @@ function AnimatedLockBadge() {
         @keyframes v2-dot-colors{0%{background:#3b82f6}20%{background:#10b981}40%{background:#ef4444}60%{background:#f59e0b}80%{background:#8b5cf6}100%{background:#10b981}}
         .v2-dot-cycle{animation:v2-dot-colors 1.5s ease-in-out forwards}
         @keyframes v2-green-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
-        .v2-green-pulse{animation:v2-green-breathe 2s ease-in-out infinite}
+        .v2-green-pulse{animation:v2-green-breathe 2s ease-in-out infinite,v2-green-glow-in 0.6s ease-out forwards}
+        @keyframes v2-green-glow-in{0%{box-shadow:0 0 0 rgba(16,185,129,0)}100%{box-shadow:0 0 6px rgba(16,185,129,0.5)}}
       ` }} />
     </motion.div>
   );
@@ -142,6 +143,8 @@ export function HeroFinalV2({ onRequestAccess, onOverlayChange }: HeroFinalV2Pro
   const overlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleOverlayMouse = useCallback((e: React.MouseEvent) => {
+    // Only interactive aurora at final stage (stage 2+)
+    if (motionStage < 2) return;
     const now = Date.now();
     const last = overlayMouseRef.current;
     const dt = now - last.time;
@@ -150,7 +153,7 @@ export function HeroFinalV2({ onRequestAccess, onOverlayChange }: HeroFinalV2Pro
       const dy = e.clientY - last.y;
       const speed = Math.sqrt(dx * dx + dy * dy) / dt;
       const rev = ((dx > 0 && last.dx < 0) || (dx < 0 && last.dx > 0) || (dy > 0 && last.dy < 0) || (dy < 0 && last.dy > 0));
-      overlayScoreRef.current = Math.min(5, overlayScoreRef.current * 0.85 + Math.min(0.4, speed * 0.15) + (rev && speed > 0.3 ? 0.6 : 0));
+      overlayScoreRef.current = Math.min(5, overlayScoreRef.current * 0.85 + Math.min(0.4, speed * 0.15) + (rev && speed > 0.15 ? 0.6 : 0));
       overlayMouseRef.current = { x: e.clientX, y: e.clientY, time: now, dx, dy };
     } else {
       overlayMouseRef.current = { ...last, x: e.clientX, y: e.clientY, time: now };
@@ -158,15 +161,20 @@ export function HeroFinalV2({ onRequestAccess, onOverlayChange }: HeroFinalV2Pro
     setOverlayAurora(Math.min(0.85, 0.25 + overlayScoreRef.current * 0.18));
     if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
     overlayTimerRef.current = setTimeout(() => { overlayScoreRef.current = 0; setOverlayAurora(0.25); }, 300);
-  }, []);
+  }, [motionStage]);
 
   useEffect(() => { onOverlayChange?.(showMotion); }, [showMotion, onOverlayChange]);
 
   useEffect(() => {
-    if (!showMotion) { setCardFlashTriggered(false); return; }
+    if (!showMotion) { setCardFlashTriggered(false); setOverlayAurora(0); return; }
     setMotionStage(0);
+    setOverlayAurora(0); // Start dark (fade to black)
     const t1 = setTimeout(() => setMotionStage(1), 1500);
-    const t2 = setTimeout(() => { setMotionStage(2); setCardFlashTriggered(true); }, 3800);
+    const t2 = setTimeout(() => {
+      setMotionStage(2);
+      setCardFlashTriggered(true);
+      setOverlayAurora(0.25); // Restore interactive aurora at final stage
+    }, 3800);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [showMotion]);
 

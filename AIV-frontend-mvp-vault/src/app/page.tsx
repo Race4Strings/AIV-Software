@@ -38,7 +38,7 @@ export default function HomePage() {
       // Speed always contributes — fast movement = more glow
       // Direction changes amplify it (shaking = extra boost)
       const speedBoost = Math.min(0.4, speed * 0.15);
-      const shakeBoost = hasReversal && speed > 0.3 ? 0.6 : 0;
+      const shakeBoost = hasReversal && speed > 0.15 ? 0.6 : 0;
       shakeScoreRef.current = Math.min(5,
         shakeScoreRef.current * 0.85 + speedBoost + shakeBoost
       );
@@ -97,7 +97,7 @@ export default function HomePage() {
         {/* Header */}
         <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 py-5">
           <Link href="/">
-            <Image src="/aiv-light.svg" alt="AIV" width={44} height={17} priority
+            <Image src="/aiv-light.svg" alt="AIV" width={48} height={19} priority
               className="opacity-80 hover:opacity-100 transition-opacity duration-200" />
           </Link>
           <button onClick={() => { setModalInitialStep(8); setModalOpen(true); }}
