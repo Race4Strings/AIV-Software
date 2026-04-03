@@ -173,7 +173,10 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
         {hovered && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            transition={{
+              type: "spring", damping: 25, stiffness: 300,
+              opacity: { duration: 0.25, ease: "easeIn" },
+            }}
             className="overflow-hidden">
             <div className="px-3 pb-3 pt-0.5">
               <p className="text-[11px] text-white/50 leading-relaxed">{signal.description}</p>
