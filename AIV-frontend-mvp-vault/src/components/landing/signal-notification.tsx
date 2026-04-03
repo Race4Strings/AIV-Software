@@ -149,7 +149,7 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
     }
   }, [hovered, barWidth, signal.metricPercent, signal.metric]);
 
-  const pillSpring = { type: "spring" as const, damping: 22, stiffness: 280 };
+  const pillSpring = { type: "spring" as const, damping: 24, stiffness: 170, mass: 1 };
 
   return (
     <motion.div ref={pillRef}
