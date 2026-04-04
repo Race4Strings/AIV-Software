@@ -320,7 +320,7 @@ export function MobileSignalNotifications() {
   }, []);
 
   return (
-    <div className="lg:hidden fixed bottom-[18vh] left-0 right-0 flex justify-center px-6 z-30">
+    <div className="lg:hidden fixed bottom-6 left-0 right-0 flex items-center justify-center px-6 z-30">
       <AnimatePresence mode="wait">
         <motion.div key={currentIndex}
           initial={reducedMotion ? {} : { opacity: 0 }}
