@@ -108,8 +108,14 @@ function HowItWorksCard({ item, index, autoFlash }: { item: typeof REVEAL_STEPS[
   const [hovered, setHovered] = useState(false);
   const [flashActive, setFlashActive] = useState(false);
   const [tapActive, setTapActive] = useState(false);
-  const touchedRef = useRef(false);
+  // Block synthetic mouseenter on mount — mobile fires it from the touch that opened the overlay
+  const touchedRef = useRef(true);
   const Icon = item.icon;
+
+  useEffect(() => {
+    const t = setTimeout(() => { touchedRef.current = false; }, 800);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     if (!autoFlash) return;
