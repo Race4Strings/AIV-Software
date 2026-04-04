@@ -155,7 +155,7 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
     <div ref={pillRef}
       onMouseEnter={() => { setHovered(true); setTapped(false); onHover?.(); }}
       onMouseLeave={() => { setHovered(false); onLeave?.(); }}
-      onClick={() => setTapped(t => !t)}
+      onTouchEnd={(e) => { e.preventDefault(); setTapped(t => !t); }}
       onMouseMove={handleMove}
       className="rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl cursor-default overflow-hidden"
       style={{
@@ -327,7 +327,7 @@ export function MobileSignalNotifications() {
           animate={{ opacity: 1 }}
           exit={reducedMotion ? {} : { opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="max-w-[280px] w-full">
+          className="flex justify-center">
           <SignalPill signal={SIGNALS[currentIndex]} />
         </motion.div>
       </AnimatePresence>
