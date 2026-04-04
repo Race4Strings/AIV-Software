@@ -130,20 +130,28 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
   const springWidth = useSpring(barWidth, { damping: 28, stiffness: 220 });
   const barWidthStr = useTransform(springWidth, (v) => `${v}%`);
 
-  function handleMove(e: React.MouseEvent) {
+  function updateProgress(clientX: number) {
     if (!pillRef.current || !isOpen) return;
     const rect = pillRef.current.getBoundingClientRect();
-    const p = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const p = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     progressRef.current = p;
     barWidth.set(p * (signal.metricPercent ?? 70));
     const next = getDynamic(signal, p);
     if (next !== metricDisplay) setMetricDisplay(next);
   }
 
+  function handleMove(e: React.MouseEvent) {
+    updateProgress(e.clientX);
+  }
+
+  function handleTouchMove(e: React.TouchEvent) {
+    if (e.touches[0]) updateProgress(e.touches[0].clientX);
+  }
+
   useEffect(() => {
     if (isOpen) {
       barWidth.set(signal.metricPercent ?? 70);
-      setMetricDisplay(signal.metric || "");
+      setMetricDisplay(getDynamic(signal, 1));
     } else {
       barWidth.set(0);
       progressRef.current = 0;
@@ -156,6 +164,7 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
       onMouseEnter={() => { setHovered(true); setTapped(false); onHover?.(); }}
       onMouseLeave={() => { setHovered(false); onLeave?.(); }}
       onTouchEnd={(e) => { e.preventDefault(); setTapped(t => !t); }}
+      onTouchMove={handleTouchMove}
       onMouseMove={handleMove}
       className="rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl cursor-default overflow-hidden"
       style={{
