@@ -320,13 +320,13 @@ export function MobileSignalNotifications() {
   }, []);
 
   return (
-    <div className="lg:hidden fixed bottom-8 left-0 right-0 flex justify-center px-6 z-30">
+    <div className="lg:hidden fixed bottom-[18vh] left-0 right-0 flex justify-center px-6 z-30">
       <AnimatePresence mode="wait">
         <motion.div key={currentIndex}
-          initial={reducedMotion ? {} : { opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={reducedMotion ? {} : { opacity: 0, y: -8 }}
-          transition={{ duration: 0.25 }}
+          initial={reducedMotion ? {} : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={reducedMotion ? {} : { opacity: 0 }}
+          transition={{ duration: 0.3 }}
           className="max-w-[280px] w-full">
           <SignalPill signal={SIGNALS[currentIndex]} />
         </motion.div>

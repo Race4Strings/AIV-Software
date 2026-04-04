@@ -197,7 +197,7 @@ export function HeroFinalV2({ onRequestAccess, onOverlayChange }: HeroFinalV2Pro
 
   return (
     <>
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-[100dvh] px-6 text-center pointer-events-none">
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-[100dvh] px-6 pb-[22vh] sm:pb-0 text-center pointer-events-none">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={stagger(0.3)}>
           <AnimatedLockBadge />
         </motion.div>
