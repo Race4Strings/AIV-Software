@@ -68,8 +68,10 @@ export default function HomePage() {
           onOverlayChange={setOverlayOpen}
         />
 
-        {!overlayOpen && <MobileSignalNotifications />}
       </div>
+
+      {/* Mobile signals — outside the pointer-events-none wrapper, fixed above CTA */}
+      {!overlayOpen && <MobileSignalNotifications />}
 
       {/* Modal — outside pointer-events-none wrapper so backdrop click works */}
       <EarlyAccessModal open={modalOpen} onClose={() => setModalOpen(false)} initialStep={modalInitialStep} />

@@ -124,7 +124,7 @@ function HowItWorksCard({ item, index, autoFlash }: { item: typeof REVEAL_STEPS[
       transition={{ duration: 0.5, ease: "easeOut", delay: 0.15 + index * 0.1 }}
       className="relative rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 hover:bg-white/[0.04] transition-colors duration-200 cursor-default"
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-      onClick={() => { setTapActive(true); setTimeout(() => setTapActive(false), 600); }}>
+      onClick={() => { setTapActive(true); setTimeout(() => setTapActive(false), 3000); }}>
       <span className="absolute top-3 right-3 text-[10px] font-mono text-white/10 tracking-wider">{item.num}</span>
       <div className="flex items-center gap-2.5 mb-2.5">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg transition-[transform,background-color] duration-300 ease-out"
@@ -242,22 +242,23 @@ export function HeroFinalV2({ onRequestAccess, onOverlayChange }: HeroFinalV2Pro
               <Aurora colorStops={["#0a1e42", "#2563eb", "#0a1e42"]} amplitude={0.8} blend={0.5} speed={0.3} />
             </div>
 
-            <div className="absolute top-6 left-6 flex items-center gap-3 pointer-events-auto z-20">
+            <div className="absolute top-0 left-0 right-0 flex items-center gap-3 pointer-events-auto z-30 p-4 sm:p-6"
+              style={{ touchAction: "manipulation" }}>
               <button onClick={() => setShowMotion(false)}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] text-white/40 hover:text-white/70 hover:bg-white/[0.1] transition-colors duration-150 cursor-pointer">
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/[0.08] text-white/50 hover:text-white/70 hover:bg-white/[0.12] transition-colors duration-150 cursor-pointer active:scale-95">
                 <X className="h-4 w-4" />
               </button>
               <button onClick={() => setShowMotion(false)}
-                className="text-xs text-white/25 hover:text-white/50 transition-colors duration-200 cursor-pointer tracking-wider">
+                className="text-xs text-white/30 hover:text-white/50 transition-colors duration-200 cursor-pointer tracking-wider active:text-white/60">
                 Back to home
               </button>
             </div>
 
-            <div className="max-w-4xl w-full px-6 relative z-10 pt-14 sm:pt-0 max-h-[85vh] overflow-y-auto">
+            <div className="max-w-4xl w-full px-6 relative z-10 pt-16 sm:pt-0 max-h-[85vh] overflow-y-auto">
               <AnimatePresence mode="wait">
                 {/* Stage 0 ONLY: icons with color flash */}
                 {motionStage === 0 && (
-                  <motion.div key="s0" className="flex items-center justify-center gap-14"
+                  <motion.div key="s0" className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-14"
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     transition={{ duration: 0.7, ease: "easeInOut" }}>
                     {PROCESS_ICONS.map((s, i) => (
