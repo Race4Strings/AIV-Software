@@ -108,6 +108,7 @@ function HowItWorksCard({ item, index, autoFlash }: { item: typeof REVEAL_STEPS[
   const [hovered, setHovered] = useState(false);
   const [flashActive, setFlashActive] = useState(false);
   const [tapActive, setTapActive] = useState(false);
+  const touchedRef = useRef(false);
   const Icon = item.icon;
 
   useEffect(() => {
@@ -123,8 +124,10 @@ function HowItWorksCard({ item, index, autoFlash }: { item: typeof REVEAL_STEPS[
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeOut", delay: 0.15 + index * 0.1 }}
       className="relative rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 hover:bg-white/[0.04] transition-colors duration-200 cursor-default"
-      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-      onTouchEnd={(e) => { e.preventDefault(); setTapActive(true); setTimeout(() => setTapActive(false), 3000); }}>
+      onMouseEnter={() => { if (!touchedRef.current) setHovered(true); }}
+      onMouseLeave={() => setHovered(false)}
+      onTouchStart={() => { touchedRef.current = true; }}
+      onTouchEnd={(e) => { e.preventDefault(); setTapActive(true); setTimeout(() => setTapActive(false), 3000); setTimeout(() => { touchedRef.current = false; }, 500); }}>
       <span className="absolute top-3 right-3 text-[10px] font-mono text-white/10 tracking-wider">{item.num}</span>
       <div className="flex items-center gap-2.5 mb-2.5">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg transition-[transform,background-color] duration-300 ease-out"
