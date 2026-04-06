@@ -10,6 +10,8 @@ const publicRoutes = [
     '/auth/forgot-password',  // Password reset request
     '/auth/reset-password',   // Password reset
     '/verify',                // Public seal verification
+    '/legal/terms',           // Terms of Service
+    '/legal/privacy',         // Privacy Policy
     '/calibration',           // Precision Tuning (has its own auth check)
     '/onboard',               // Onboarding (has its own auth check)
     '/admin',                 // Admin (has its own auth check)

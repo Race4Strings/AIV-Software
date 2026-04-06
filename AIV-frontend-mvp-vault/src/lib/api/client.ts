@@ -1,22 +1,24 @@
 import axios from "axios";
+import { authStorage } from "../auth-storage";
 
-// Use local rewrite proxy (/api/backend/*) to avoid CORS preflight issues.
-// Next.js rewrites forward the request server-side to the Railway backend.
 const apiClient = axios.create({
     baseURL: "/api/backend",
     withCredentials: true,
-    headers: {
-        "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
 });
 
-// Response interceptor for error handling
+let isRedirecting = false;
+
 apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
-            // Redirect to login if unauthorized
+        if (error.response?.status === 401 && !isRedirecting) {
             if (typeof window !== "undefined") {
+                isRedirecting = true;
+                authStorage.clear();
+                localStorage.removeItem("aiv_user_role");
+                localStorage.removeItem("aiv_dashboard_seen");
+                fetch("/api/backend/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
                 window.location.href = "/auth/signin";
             }
         }

@@ -19,12 +19,12 @@ import { formatDistanceToNow } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // ── Health status config ──────────────────────────────
-const HEALTH_CONFIG: Record<string, { color: string; icon: typeof CheckCircle2; label: string }> = {
-  HEALTHY: { color: "text-emerald-500", icon: CheckCircle2, label: "Healthy" },
-  BUILDING: { color: "text-blue-500", icon: Activity, label: "Building" },
-  ATTENTION_NEEDED: { color: "text-yellow-500", icon: AlertTriangle, label: "Attention Needed" },
-  ACTION_REQUIRED: { color: "text-red-500", icon: AlertCircle, label: "Action Required" },
-  UNKNOWN: { color: "text-muted-foreground", icon: Activity, label: "Unknown" },
+const HEALTH_CONFIG: Record<string, { color: string; icon: typeof CheckCircle2; label: string; description: string }> = {
+  HEALTHY: { color: "text-emerald-500", icon: CheckCircle2, label: "Healthy", description: "Your identity profile is accurate, data coverage is strong, and the personality model is confident. Ready for licensing." },
+  BUILDING: { color: "text-blue-500", icon: Activity, label: "Building", description: "Your identity is being assembled from public data and your training sessions. Continue training to unlock licensing." },
+  ATTENTION_NEEDED: { color: "text-yellow-500", icon: AlertTriangle, label: "Attention Needed", description: "Some identity dimensions have low coverage. Visit the Training Area to strengthen weak areas." },
+  ACTION_REQUIRED: { color: "text-red-500", icon: AlertCircle, label: "Action Required", description: "Critical gaps detected in your identity profile. Training is needed before deals can proceed reliably." },
+  UNKNOWN: { color: "text-muted-foreground", icon: Activity, label: "Unknown", description: "Health status is being calculated." },
 };
 
 // ── Audit log humanization ────────────────────────────
@@ -79,10 +79,10 @@ function getPillarStates(
   const socialProfiles = (twin.social_profiles as unknown[] | undefined) || [];
   const hasSufficientSocials = socialProfiles.length >= 3;
 
-  // Voice Identity — derived from voice_status and voice-specific data
-  const voiceStatus = (twin.voice_status as string) || "";
-  const hasVoiceSample = !!(twin.voice_sample_url);
-  const voiceReady = voiceStatus === "ready" || voiceStatus === "cloned";
+  // Voice Identity — derived from training contributions and ALCM health
+  const voiceStatus = (twin as Record<string, unknown>).voice_status as string | undefined;
+  const voiceReady = voiceStatus === "ready";
+  const hasVoiceSample = fileUploads > 0; // voice samples counted via file uploads
 
   // Visual Identity — derived from file uploads (images/video/photos)
   const visualUploads = fileUploads; // file uploads represent visual assets in the training area
@@ -175,7 +175,9 @@ function getUserRole(): string {
 function getUserName(): string {
   if (typeof window === "undefined") return "";
   try {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const stored = localStorage.getItem("user");
+    if (!stored) return "";
+    const user = JSON.parse(stored);
     return (user.data?.name || user.name || "").split(" ")[0];
   } catch { return ""; }
 }
@@ -566,7 +568,7 @@ export function CommandCenter() {
             <div className="flex-1">
               <h2 className="text-lg font-bold">{twinName}</h2>
               <div className="mt-1 flex items-center gap-3">
-                <span className={`flex items-center gap-1.5 text-sm font-medium ${healthCfg.color}`}>
+                <span className={`flex items-center gap-1.5 text-sm font-medium ${healthCfg.color}`} title={healthCfg.description}>
                   <HealthIcon className="h-4 w-4" />
                   {healthCfg.label}
                 </span>

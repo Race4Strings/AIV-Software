@@ -303,11 +303,11 @@ export default function CertificationPage() {
                   <code className="flex-1 truncate font-mono text-xs text-primary">
                     {verifyUrl}
                   </code>
-                  <Button variant="outline" size="sm" asChild className="h-7 gap-1.5 text-xs shrink-0">
-                    <Link href={`/verify/${latest.hash}`} target="_blank">
+                  <Link href={`/verify/${latest.hash}`} target="_blank">
+                    <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs shrink-0">
                       <ExternalLink className="size-3" /> Open
-                    </Link>
-                  </Button>
+                    </Button>
+                  </Link>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
                   Share this URL to prove ownership of your certified digital identity.
@@ -339,11 +339,11 @@ export default function CertificationPage() {
 
             {/* Actions */}
             <div className="flex justify-center gap-3 pt-2">
-              <Button variant="ghost" size="sm" className="gap-2 active:scale-[0.97] transition-transform duration-150" asChild>
-                <Link href="/twin/documents/templates">
+              <Link href="/twin/documents/templates">
+                <Button variant="ghost" size="sm" className="gap-2 active:scale-[0.97] transition-transform duration-150">
                   <FileText className="size-3.5" /> Generate Legal Document
-                </Link>
-              </Button>
+                </Button>
+              </Link>
               <Button variant="outline" size="sm" className="gap-2 active:scale-[0.97] transition-transform duration-150" onClick={handleDownloadPdf}>
                 <Download className="size-3.5" /> Download Certificate
               </Button>
