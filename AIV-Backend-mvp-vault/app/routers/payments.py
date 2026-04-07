@@ -162,6 +162,40 @@ async def billing_status(
     }
 
 
+# ── Stripe: Customer Portal ──────────────────────────
+
+@router.post("/portal-session")
+async def create_portal_session(
+    request: Request,
+    user: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a Stripe Customer Portal session for self-serve billing management."""
+    import stripe
+    from sqlalchemy import select
+    from ..models.user import User
+
+    body = await request.json()
+    return_url = body.get("return_url", "/settings/billing")
+
+    result = await db.execute(select(User).where(User.id == user["id"]))
+    user_obj = result.scalar_one_or_none()
+    if not user_obj or not user_obj.stripe_customer_id:
+        raise HTTPException(status_code=400, detail="No billing account found. Please add a payment method first.")
+
+    settings = get_settings()
+    stripe.api_key = settings.stripe_secret_key
+
+    try:
+        session = stripe.billing_portal.Session.create(
+            customer=user_obj.stripe_customer_id,
+            return_url=return_url,
+        )
+        return {"url": session.url}
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 # ── Stripe: Webhooks ──────────────────────────────────
 
 @router.post("/webhook/stripe")
@@ -188,7 +222,22 @@ async def stripe_webhook(
         raise HTTPException(status_code=400, detail="Invalid webhook signature")
 
     event_type = event["type"]
+    event_id = event.get("id", "")
     data = event["data"]["object"]
+
+    # Idempotency: skip duplicate webhook events
+    if event_id:
+        import redis.asyncio as redis_client
+        r = redis_client.from_url(settings.redis_url, decode_responses=True)
+        try:
+            already_processed = not await r.set(f"stripe_event:{event_id}", "1", nx=True, ex=86400)
+            if already_processed:
+                await r.close()
+                return {"status": "ok", "duplicate": True}
+        except Exception:
+            pass  # Redis failure shouldn't block webhook processing
+        finally:
+            await r.close()
 
     if event_type == "checkout.session.completed":
         # Card captured successfully
@@ -349,16 +398,25 @@ async def esign_webhook(
         raise HTTPException(status_code=400, detail="Invalid request body")
 
     # Zoho Sign includes org_id in webhook payload — verify it matches
-    if zoho_org_id and "notifications" in body:
+    if "notifications" in body:
         payload_org = body.get("requests", {}).get("owner_id", "")
-        request_org = body.get("requests", {}).get("request_type_id", "")
-        # Zoho Sign org verification: check the webhook came from our configured org
         webhook_token = request.headers.get("X-Zoho-Sign-Webhook-Token", "")
-        if not webhook_token and not payload_org:
-            logger.warning("E-sign webhook received without verification headers — processing anyway (configure zoho_sign_org_id to enforce)")
-        elif zoho_org_id and payload_org and payload_org != zoho_org_id:
-            logger.warning(f"E-sign webhook org mismatch: expected {zoho_org_id}, got {payload_org}")
-            raise HTTPException(status_code=403, detail="Webhook source verification failed")
+
+        if not settings.dev_mode:
+            # Production: require verification
+            if not webhook_token and not payload_org:
+                logger.warning("E-sign webhook rejected — no verification headers in production mode")
+                raise HTTPException(status_code=403, detail="Webhook verification required")
+            if zoho_org_id and payload_org and payload_org != zoho_org_id:
+                logger.warning(f"E-sign webhook org mismatch: expected {zoho_org_id}, got {payload_org}")
+                raise HTTPException(status_code=403, detail="Webhook source verification failed")
+        else:
+            # Dev mode: warn but allow
+            if not webhook_token and not payload_org:
+                logger.warning("E-sign webhook received without verification headers — processing (dev_mode)")
+            elif zoho_org_id and payload_org and payload_org != zoho_org_id:
+                logger.warning(f"E-sign webhook org mismatch: expected {zoho_org_id}, got {payload_org}")
+                raise HTTPException(status_code=403, detail="Webhook source verification failed")
 
     # Parse event — handles both Zoho Sign and legacy Dropbox Sign formats
     # Zoho: {"requests": {"request_id": "..."}, "notifications": {"performed_by_name": "..."}}

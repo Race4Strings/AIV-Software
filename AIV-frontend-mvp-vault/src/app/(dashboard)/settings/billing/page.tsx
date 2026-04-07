@@ -144,6 +144,28 @@ export default function BillingPage() {
               {stripeLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
               {billing?.has_payment_method ? "Update Card" : "Add Card"}
             </Button>
+            {billing?.has_payment_method && (
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={stripeLoading}
+                onClick={async () => {
+                  setStripeLoading(true);
+                  try {
+                    const result = await paymentsApi.createPortalSession(
+                      `${window.location.origin}/settings/billing`,
+                    );
+                    if (result.url) window.location.href = result.url;
+                  } catch {
+                    toast.error("Billing portal unavailable. Please try again.");
+                  } finally {
+                    setStripeLoading(false);
+                  }
+                }}
+              >
+                Manage Billing
+              </Button>
+            )}
           </CardContent>
         </Card>
       </section>

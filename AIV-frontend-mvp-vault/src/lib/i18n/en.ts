@@ -1,0 +1,119 @@
+/**
+ * English translations — organized by namespace.
+ * Add new namespaces/keys as pages are migrated.
+ */
+export const en = {
+  common: {
+    loading: "Loading...",
+    save: "Save",
+    cancel: "Cancel",
+    confirm: "Confirm",
+    delete: "Delete",
+    back: "Back",
+    next: "Next",
+    submit: "Submit",
+    search: "Search",
+    filter: "Filter",
+    comingSoon: "Coming Soon",
+    noResults: "No results found",
+    error: "Something went wrong",
+    retry: "Try again",
+  },
+  nav: {
+    home: "Home",
+    identity: "Identity",
+    training: "Training",
+    deals: "Deals",
+    protection: "Protection",
+    settings: "Settings",
+    notifications: "Notifications",
+    signOut: "Log out",
+  },
+  auth: {
+    signin: {
+      title: "Sign In",
+      subtitle: "Enter your credentials to continue",
+      identifier: "Email or Username",
+      password: "Password",
+      submit: "Sign In",
+      forgotPassword: "Forgot password?",
+      noAccount: "Don't have an account?",
+      signUp: "Sign up",
+    },
+    signup: {
+      title: "Create Account",
+      accessCode: "Access Code",
+      name: "Name",
+      username: "Username",
+      email: "Email",
+      password: "Password",
+      confirmPassword: "Confirm Password",
+      terms: "I agree to the Terms of Service and Privacy Policy",
+      submit: "Create Account",
+      hasAccount: "Already have an account?",
+      signIn: "Sign in",
+    },
+    verify: {
+      title: "Verify Your Email",
+      subtitle: "Enter the 6-digit code sent to your email",
+      submit: "Verify",
+      resend: "Resend code",
+      resendIn: "Resend in",
+    },
+    forgotPassword: {
+      title: "Reset Password",
+      subtitle: "Enter your email to receive a reset link",
+      submit: "Send Reset Link",
+    },
+  },
+  dashboard: {
+    greeting: {
+      morning: "Good morning",
+      afternoon: "Good afternoon",
+      evening: "Good evening",
+    },
+    kpi: {
+      netRevenue: "Net Revenue",
+      activeDeals: "Active Deals",
+      identityHealth: "Identity Health",
+    },
+    gettingStarted: {
+      title: "Getting Started",
+      completeProfile: "Complete your identity profile",
+      trainTwin: "Train your digital twin",
+      calibrate: "Complete Precision Tuning",
+      certify: "Certify your identity",
+      firstDeal: "Create your first deal",
+    },
+  },
+  deals: {
+    title: "Deals",
+    create: "New Inquiry",
+    pipeline: "Pipeline",
+    filter: "Filter by status",
+    emptyTitle: "No deals yet",
+    emptyDescription: "Create your first deal to start licensing your digital identity.",
+  },
+  twin: {
+    title: "Identity",
+    hearYourTwin: "Hear Your Twin",
+    lockIdentity: "Lock Identity",
+    unlockIdentity: "Unlock Identity",
+    locked: "Identity Locked",
+  },
+  settings: {
+    title: "Settings",
+    billing: {
+      title: "Billing",
+      manageBilling: "Manage Billing",
+      feeFreeWindow: "Fee-Free Period",
+      platformFee: "Platform Partnership Fee",
+    },
+    team: {
+      title: "Team",
+      invite: "Invite Member",
+    },
+  },
+} as const;
+
+export type TranslationKey = string;

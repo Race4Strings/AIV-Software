@@ -71,6 +71,13 @@ export const paymentsApi = {
     });
     return data;
   },
+
+  async createPortalSession(returnUrl: string): Promise<{ url: string }> {
+    const { data } = await apiClient.post("/payments/portal-session", {
+      return_url: returnUrl,
+    });
+    return data;
+  },
 };
 
 export default paymentsApi;

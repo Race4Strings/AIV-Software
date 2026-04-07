@@ -34,13 +34,14 @@ import {
 import { notificationsApi, type Notification } from "@/lib/api/notifications";
 import { useStoredUser } from "@/hooks/use-stored-user";
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/i18n";
 
 const NAV_ITEMS = [
-  { title: "Home", href: "/dashboard", icon: Home },
-  { title: "Identity", href: "/twin", icon: Fingerprint },
-  { title: "Training", href: "/twin/training-area", icon: Brain },
-  { title: "Deals", href: "/deals", icon: Briefcase },
-  { title: "Protection", href: "/protection", icon: ShieldCheck },
+  { title: t("nav.home"), href: "/dashboard", icon: Home },
+  { title: t("nav.identity"), href: "/twin", icon: Fingerprint },
+  { title: t("nav.training"), href: "/twin/training-area", icon: Brain },
+  { title: t("nav.deals"), href: "/deals", icon: Briefcase },
+  { title: t("nav.protection"), href: "/protection", icon: ShieldCheck },
 ];
 
 function isActive(pathname: string, href: string): boolean {
