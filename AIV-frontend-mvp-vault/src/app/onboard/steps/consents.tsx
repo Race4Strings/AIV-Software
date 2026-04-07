@@ -56,7 +56,7 @@ export function ConsentsStep({
       });
       // Auto-approve Gate 1 (self-manager)
       await onboardingApi.approveGate1(sessionId);
-      setStep(4);
+      setStep(2);
     } catch (err: unknown) {
       toast.error(getErrorMsg(err, "Failed to save consents."));
     } finally {
@@ -114,7 +114,7 @@ export function ConsentsStep({
               ))}
             </select>
             {(discoveryResults?.detected_categories as string[] | undefined)?.length ? (
-              <p className="text-[10px] text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Suggested: {(discoveryResults?.detected_categories as string[])?.slice(0, 3).map(c => c.replace("_", " ")).join(", ")}
               </p>
             ) : null}
@@ -153,7 +153,7 @@ export function ConsentsStep({
                   <div className="flex-1">
                     <div className="text-sm font-medium">
                       {c.label}
-                      {"required" in c && c.required && <Badge variant="outline" className="ml-2 text-[9px] py-0">Required</Badge>}
+                      {"required" in c && c.required && <Badge variant="outline" className="ml-2 text-xs py-0">Required</Badge>}
                     </div>
                     <div className="text-xs text-muted-foreground">{c.desc}</div>
                   </div>
@@ -209,13 +209,13 @@ export function ConsentsStep({
                   </div>
                 </div>
               </div>
-              <p className="text-[10px] text-muted-foreground mt-2 pl-7">
+              <p className="text-xs text-muted-foreground mt-2 pl-7">
                 Start with one client. You can add more from your dashboard.
               </p>
             </>
           ) : (
             <>
-              <div className="flex items-center gap-2 text-emerald-500">
+              <div className="flex items-center gap-2 text-success">
                 <CheckCircle2 className="h-5 w-5" />
                 <span className="text-sm font-medium">Identity confirmation</span>
               </div>
@@ -228,7 +228,7 @@ export function ConsentsStep({
       </Card>
 
       <div className="flex gap-3">
-        <Button variant="outline" onClick={() => setStep(2)} disabled={loading}>
+        <Button variant="outline" onClick={() => setStep(0)} disabled={loading}>
           <ArrowLeft className="h-4 w-4 mr-1" /> Back
         </Button>
         <Button onClick={submitConsentsAndGate1} disabled={loading} className="flex-1">

@@ -1,5 +1,5 @@
 import {
-  Search, Upload, Shield, UserCheck, Sparkles,
+  Search, Shield, UserCheck,
   Globe, Mic, Eye, Brain, Database,
 } from "lucide-react";
 
@@ -9,9 +9,7 @@ import {
 
 export const STEPS = [
   { label: "Discovery", icon: Search },
-  { label: "Review", icon: Sparkles },
-  { label: "Media", icon: Upload },
-  { label: "Consents", icon: Shield },
+  { label: "Review & Consent", icon: Shield },
   { label: "Authorize", icon: UserCheck },
 ];
 

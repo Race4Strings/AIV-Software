@@ -68,7 +68,7 @@ export function TwinTabLicensing({
     setSaving(true);
     try {
       const result = await guardrailsApi.updateLicensingRules(twinId, draft);
-      onLicensingChange(result.config || result);
+      onLicensingChange((result as any).config || result);
       setEditing(false);
       toast.success("Licensing rules updated (new version created)");
     } catch {
@@ -146,7 +146,7 @@ export function TwinTabLicensing({
                   value={draft.pricing_floor as number}
                   onChange={(e) => setDraft({ ...draft, pricing_floor: parseFloat(e.target.value) || 0 })}
                 />
-                <p className="text-[10px] text-muted-foreground/60 mt-1">Typical range for {category}: {categoryHints[category] || "$10K-$100K"}</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">Typical range for {category}: {categoryHints[category] || "$10K-$100K"}</p>
               </>
             ) : (
               <div className="text-2xl font-bold font-mono tabular-nums mt-2">${((rules.pricing_floor as number) || 0).toLocaleString()}</div>
@@ -257,7 +257,7 @@ export function TwinTabLicensing({
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {((rules.permitted_use_cases as string[]) || []).length > 0
-                ? ((rules.permitted_use_cases as string[]) || []).map((t) => <Badge key={t} className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">{t}</Badge>)
+                ? ((rules.permitted_use_cases as string[]) || []).map((t) => <Badge key={t} className="bg-success/10 text-success border-success/20">{t}</Badge>)
                 : <span className="text-sm text-muted-foreground italic">All use cases permitted (except blacklisted)</span>}
             </div>
           )}
@@ -280,7 +280,7 @@ export function TwinTabLicensing({
             <div className="flex flex-wrap gap-1.5">
               {((rules.territory_restrictions as string[]) || []).length > 0
                 ? ((rules.territory_restrictions as string[]) || []).map((t) => <Badge key={t} variant="outline">{t}</Badge>)
-                : <Badge className="bg-emerald-500/10 text-emerald-500">Global -- No restrictions</Badge>}
+                : <Badge className="bg-success/10 text-success">Global -- No restrictions</Badge>}
             </div>
           )}
         </CardContent>

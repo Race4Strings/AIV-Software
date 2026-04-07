@@ -117,15 +117,13 @@ class AuthService:
         if not otp:
             raise ValueError("Invalid or expired OTP")
         
-        # Mark user as verified
+        # Mark user as verified and delete OTP
+        # Note: we flush but DON'T commit here — the router commits after
+        # session creation succeeds, so OTP is preserved if Redis fails.
         user.is_verified = True
-        
-        # Delete used OTP
         await self.db.delete(otp)
-        
-        await self.db.commit()
-        await self.db.refresh(user)
-        
+        await self.db.flush()
+
         return user
     
     async def resend_otp(self, email: str) -> str:
@@ -178,13 +176,17 @@ class AuthService:
     async def signin(self, data: SigninRequest) -> User:
         """
         Authenticate user and return user data.
-        
+
         Raises ValueError if credentials are invalid or user is not verified.
+        Raises HTTPException 423 if account is temporarily locked.
         """
+        from fastapi import HTTPException
+        import math
+
         # Check if identifier is email or username
         identifier = data.identifier
         is_email = "@" in identifier
-        
+
         if is_email:
             result = await self.db.execute(
                 select(User).where(User.email == identifier)
@@ -193,20 +195,38 @@ class AuthService:
             result = await self.db.execute(
                 select(User).where(User.user_name == identifier)
             )
-        
+
         user = result.scalar_one_or_none()
-        
+
         if not user:
             raise ValueError("Invalid email/username or password")
-        
+
+        # Check if account is locked
+        if user.locked_until and user.locked_until > datetime.now(timezone.utc):
+            remaining = (user.locked_until - datetime.now(timezone.utc)).total_seconds()
+            minutes_left = math.ceil(remaining / 60)
+            raise HTTPException(
+                status_code=423,
+                detail=f"Account temporarily locked. Try again in {minutes_left} minute{'s' if minutes_left != 1 else ''}.",
+            )
+
         # Verify password
         if not verify_password(data.password, user.password):
+            user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+            if user.failed_login_attempts >= 5:
+                user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=15)
+            await self.db.flush()
             raise ValueError("Invalid email/username or password")
-        
+
         # Check if verified
         if not user.is_verified:
             raise ValueError("Please verify your email before signing in")
-        
+
+        # Successful login — reset lockout counters
+        user.failed_login_attempts = 0
+        user.locked_until = None
+        await self.db.flush()
+
         return user
     
     async def forgot_password(self, email: str) -> bool:

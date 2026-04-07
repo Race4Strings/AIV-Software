@@ -39,13 +39,13 @@ export function CompleteStep({
       </p>
       <p className="mt-2 text-sm text-muted-foreground max-w-md">
         {isManager
-          ? "One more step: have the talent complete Precision Tuning to calibrate their digital twin with maximum accuracy."
-          : "One more step: a quick session to help your twin understand the real you — not just the public you."}
+          ? `Train ${profileDraft.display_name || "the talent"}'s twin to capture their voice, style, and personality with maximum accuracy.`
+          : "Meet your digital self. A quick conversation to help your twin understand the real you — not just the public you."}
       </p>
       {showButtons && (
         <div className="flex flex-col gap-3 mt-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-          <Button size="lg" onClick={() => router.push("/calibration")}>
-            <Brain className="h-4 w-4 mr-2" /> Start Precision Tuning
+          <Button size="lg" onClick={() => router.push("/twin/training-area")}>
+            <Brain className="h-4 w-4 mr-2" /> Start Training
           </Button>
           <button
             onClick={() => router.push("/dashboard")}

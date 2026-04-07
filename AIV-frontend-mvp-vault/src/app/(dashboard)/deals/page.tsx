@@ -17,6 +17,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { licensingApi, type Deal, type RevenueSummary } from "@/lib/api/licensing";
+import { fetchTwins } from "@/lib/api/twins";
+import { humanizeEnum } from "@/lib/humanize";
 
 const STATUS_GROUPS: Record<string, string[]> = {
   "Inquiries": ["SUBMITTED", "UNDER_REVIEW"],
@@ -26,16 +28,21 @@ const STATUS_GROUPS: Record<string, string[]> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  SUBMITTED: "bg-blue-500/10 text-blue-500",
-  UNDER_REVIEW: "bg-yellow-500/10 text-yellow-500",
-  APPROVED: "bg-emerald-500/10 text-emerald-500",
-  CONTRACT_SENT: "bg-purple-500/10 text-purple-500",
-  EXECUTED: "bg-teal-500/10 text-teal-500",
-  ACTIVE: "bg-green-600/10 text-green-600",
-  COMPLETED: "bg-gray-500/10 text-gray-500",
-  EXPIRED: "bg-orange-500/10 text-orange-500",
-  TERMINATED: "bg-red-500/10 text-red-500",
+  SUBMITTED: "bg-primary/10 text-primary",
+  UNDER_REVIEW: "bg-warning/10 text-warning",
+  APPROVED: "bg-success/10 text-success",
+  CONTRACT_SENT: "bg-accent text-accent-foreground",
+  EXECUTED: "bg-success/10 text-success",
+  ACTIVE: "bg-success/10 text-success",
+  COMPLETED: "bg-muted text-muted-foreground",
+  EXPIRED: "bg-warning/10 text-warning",
+  TERMINATED: "bg-destructive/10 text-destructive",
 };
+
+const ALL_STATUSES = [
+  "ALL", "SUBMITTED", "UNDER_REVIEW", "APPROVED", "CONTRACT_SENT",
+  "EXECUTED", "ACTIVE", "COMPLETED", "EXPIRED", "TERMINATED",
+] as const;
 
 const STATUS_ICONS: Record<string, LucideIcon> = {
   SUBMITTED: Send,
@@ -88,19 +95,8 @@ export default function DealsPage() {
           <Skeleton className="h-8 w-32" />
           <Skeleton className="h-9 w-28 rounded-md" />
         </div>
-        {/* Revenue cards skeleton */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-          <Skeleton className="h-24 rounded-xl" />
-          <Skeleton className="h-24 rounded-xl" />
-          <Skeleton className="h-24 rounded-xl" />
-          <Skeleton className="h-24 rounded-xl" />
-        </div>
-        {/* Pipeline analytics skeleton */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Skeleton className="h-20 rounded-xl" />
-          <Skeleton className="h-20 rounded-xl" />
-          <Skeleton className="h-20 rounded-xl" />
-        </div>
+        {/* Summary row skeleton */}
+        <Skeleton className="h-12 rounded-lg" />
         {/* Pipeline section skeleton */}
         <Skeleton className="h-5 w-24" />
         <div className="space-y-2">
@@ -117,8 +113,8 @@ export default function DealsPage() {
     if (parseFloat(newDeal.value) < 100) { toast.error("Minimum deal value is $100"); return; }
     setCreating(true);
     try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      const twinId = user.twin_id;
+      const twins = await fetchTwins();
+      const twinId = twins?.[0]?.id;
       if (!twinId) { toast.error("No twin linked to your account"); setCreating(false); return; }
 
       const deal = await licensingApi.createDeal({
@@ -170,7 +166,7 @@ export default function DealsPage() {
                   onChange={(e) => setNewDeal(prev => ({ ...prev, deal_type: e.target.value }))}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                 >
-                  {DEAL_TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g, " ")}</option>)}
+                  {DEAL_TYPES.map(t => <option key={t} value={t}>{humanizeEnum(t)}</option>)}
                 </select>
               </div>
               <div>
@@ -183,7 +179,7 @@ export default function DealsPage() {
                   value={newDeal.value}
                   onChange={(e) => setNewDeal(prev => ({ ...prev, value: e.target.value }))}
                 />
-                <p className="text-[10px] text-muted-foreground mt-1">Minimum $100. Commission: 30% first deal, 25% second, 20% third+</p>
+                <p className="text-xs text-muted-foreground mt-1">Minimum $100. Commission: 30% first deal, 25% second, 20% third+</p>
               </div>
               <div>
                 <Label htmlFor="deal-territory" className="text-xs text-muted-foreground mb-1.5 block">Territory (comma-separated)</Label>
@@ -228,7 +224,7 @@ export default function DealsPage() {
                     />
                     <div>
                       <span className="font-medium">{scope.label}</span>
-                      <span className="block text-[10px] text-muted-foreground mt-0.5">{scope.hint}</span>
+                      <span className="block text-xs text-muted-foreground mt-0.5">{scope.hint}</span>
                     </div>
                   </label>
                 ))}
@@ -242,76 +238,38 @@ export default function DealsPage() {
         </Card>
       )}
 
-      {/* Revenue Summary */}
+      {/* Summary Row */}
       {revenue && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-sm text-muted-foreground">Active Deals</div>
-              <div className="text-2xl font-bold">{revenue.total_deals}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-sm text-muted-foreground">Gross Revenue</div>
-              <div className="text-2xl font-bold font-mono tabular-nums">${revenue.gross_revenue.toLocaleString()}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-sm text-muted-foreground">Commission</div>
-              <div className="text-2xl font-bold font-mono tabular-nums">${revenue.total_commission.toLocaleString()}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-sm text-muted-foreground">Net Revenue</div>
-              <div className="text-2xl font-bold text-emerald-500 font-mono tabular-nums">
-                ${revenue.net_revenue.toLocaleString()}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Pipeline Analytics */}
-      {deals.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Card className="border-border/50">
-            <CardContent className="pt-5 pb-4">
-              <div className="text-xs text-muted-foreground">Pipeline Value</div>
-              <div className="text-lg font-bold mt-1 font-mono tabular-nums">
-                ${deals.reduce((sum, d) => sum + (d.value || 0), 0).toLocaleString()}
-              </div>
-              <div className="text-[10px] text-muted-foreground mt-0.5">Across {deals.length} deal{deals.length !== 1 ? "s" : ""}</div>
-            </CardContent>
-          </Card>
-          <Card className="border-border/50">
-            <CardContent className="pt-5 pb-4">
-              <div className="text-xs text-muted-foreground">Average Deal Size</div>
-              <div className="text-lg font-bold mt-1 font-mono tabular-nums">
-                ${deals.length > 0 ? Math.round(deals.reduce((sum, d) => sum + (d.value || 0), 0) / deals.length).toLocaleString() : "0"}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-border/50">
-            <CardContent className="pt-5 pb-4">
-              <div className="text-xs text-muted-foreground">Conversion</div>
-              <div className="text-lg font-bold mt-1 font-mono tabular-nums">
-                {deals.length > 0
-                  ? `${Math.round((deals.filter(d => ["EXECUTED", "ACTIVE", "COMPLETED"].includes(d.status)).length / deals.length) * 100)}%`
-                  : "—"}
-              </div>
-              <div className="text-[10px] text-muted-foreground mt-0.5">Inquiries to active deals</div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
+          <div>
+            <span className="text-sm text-muted-foreground block">Total Value</span>
+            <span className="text-lg font-bold font-mono tabular-nums">
+              ${deals.reduce((sum, d) => sum + (d.value || 0), 0).toLocaleString()}
+            </span>
+          </div>
+          <div>
+            <span className="text-sm text-muted-foreground block">Active</span>
+            <span className="text-lg font-bold font-mono tabular-nums">{revenue.total_deals}</span>
+          </div>
+          <div>
+            <span className="text-sm text-muted-foreground block">Pipeline</span>
+            <span className="text-lg font-bold font-mono tabular-nums">{deals.length}</span>
+          </div>
+          <div>
+            <span className="text-sm text-muted-foreground block">Conversion</span>
+            <span className="text-lg font-bold font-mono tabular-nums">
+              {deals.length > 0
+                ? `${Math.round((deals.filter(d => ["EXECUTED", "ACTIVE", "COMPLETED"].includes(d.status)).length / deals.length) * 100)}%`
+                : "—"}
+            </span>
+          </div>
         </div>
       )}
 
       {/* Search & Filter */}
       {deals.length > 0 && (
-        <div className="flex gap-3 items-center">
-          <div className="relative flex-1 max-w-sm">
+        <div className="space-y-3">
+          <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by type, territory, value..."
@@ -320,22 +278,21 @@ export default function DealsPage() {
               className="pl-9"
             />
           </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm"
-          >
-            <option value="ALL">All statuses</option>
-            <option value="SUBMITTED">Submitted</option>
-            <option value="UNDER_REVIEW">Under Review</option>
-            <option value="APPROVED">Approved</option>
-            <option value="CONTRACT_SENT">Contract Sent</option>
-            <option value="EXECUTED">Executed</option>
-            <option value="ACTIVE">Active</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="EXPIRED">Expired</option>
-            <option value="TERMINATED">Terminated</option>
-          </select>
+          <div className="flex flex-wrap gap-1.5">
+            {ALL_STATUSES.map((status) => (
+              <button
+                key={status}
+                onClick={() => setStatusFilter(status)}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  statusFilter === status
+                    ? "bg-primary/10 text-primary"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {status === "ALL" ? "All" : humanizeEnum(status)}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -409,24 +366,24 @@ export default function DealsPage() {
                     className="cursor-pointer transition-colors hover:bg-muted/50"
                     onClick={() => router.push(`/deals/${deal.id}`)}
                   >
-                    <CardContent className="flex items-center gap-4 py-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+                    <CardContent className="flex items-center gap-3 sm:gap-4 py-4">
+                      <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-lg bg-muted shrink-0">
                         <Briefcase className="h-5 w-5" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium truncate">
-                            {deal.deal_type.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
+                            {humanizeEnum(deal.deal_type)}
                           </span>
                           <Badge variant="outline" className={STATUS_COLORS[deal.status] || ""}>
                             {(() => { const StatusIcon = STATUS_ICONS[deal.status]; return StatusIcon ? <StatusIcon className="h-3 w-3 mr-1" /> : null; })()}
-                            {deal.status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
+                            {humanizeEnum(deal.status)}
                           </Badge>
                           {allOk === true && (
-                            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                            <CheckCircle2 className="h-4 w-4 text-success" />
                           )}
                           {allOk === false && (
-                            <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                            <AlertTriangle className="h-4 w-4 text-warning" />
                           )}
                         </div>
                         <div className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
@@ -440,13 +397,13 @@ export default function DealsPage() {
                             {new Date(deal.created_at).toLocaleDateString()}
                           </span>
                           {deal.data_scope?.length > 0 && (
-                            <span className="text-xs">
-                              {deal.data_scope.map((s) => s.replace(/_/g, " ")).join(", ")}
+                            <span className="text-xs hidden sm:inline">
+                              {deal.data_scope.map((s) => humanizeEnum(s)).join(", ")}
                             </span>
                           )}
                         </div>
                       </div>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                      <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
                     </CardContent>
                   </Card>
                 );

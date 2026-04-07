@@ -21,6 +21,12 @@ from ..schemas.twin import (
     TwinListResponse,
 )
 from ..services.alcm_client import get_alcm_client
+from ..models.user import User
+from ..utils import verify_password
+
+
+class TwinPasswordRequest(BaseModel):
+    password: str
 
 
 class TTSRequest(BaseModel):
@@ -121,6 +127,8 @@ async def update_twin(
     twin = result.scalar_one_or_none()
     if not twin:
         raise HTTPException(status_code=404, detail="Twin not found")
+    if twin.status == "LOCKED":
+        raise HTTPException(status_code=403, detail="Twin is locked. Contact support to unlock.")
 
     update_data = data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
@@ -167,10 +175,16 @@ async def post_update_twin(
 @router.post("/{twin_id}/lock")
 async def lock_twin(
     twin_id: UUID,
+    body: TwinPasswordRequest,
     user: dict = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
-    """Emergency lock a twin — blocks all licensing and generation."""
+    """Emergency lock a twin — blocks all licensing and generation. Requires password."""
+    # Verify user password
+    db_user = (await db.execute(select(User).where(User.id == UUID(user["id"])))).scalar_one_or_none()
+    if not db_user or not verify_password(body.password, db_user.password):
+        raise HTTPException(status_code=403, detail="Invalid password")
+
     result = await db.execute(select(Twin).where(Twin.id == twin_id))
     twin = result.scalar_one_or_none()
     if not twin:
@@ -192,10 +206,16 @@ async def lock_twin(
 @router.post("/{twin_id}/unlock")
 async def unlock_twin(
     twin_id: UUID,
+    body: TwinPasswordRequest,
     user: dict = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
-    """Unlock a previously locked twin — restores to ACTIVE status."""
+    """Unlock a previously locked twin — restores to ACTIVE status. Requires password."""
+    # Verify user password
+    db_user = (await db.execute(select(User).where(User.id == UUID(user["id"])))).scalar_one_or_none()
+    if not db_user or not verify_password(body.password, db_user.password):
+        raise HTTPException(status_code=403, detail="Invalid password")
+
     result = await db.execute(select(Twin).where(Twin.id == twin_id))
     twin = result.scalar_one_or_none()
     if not twin:
@@ -275,6 +295,20 @@ async def _delete_twin(twin_id: UUID, user: dict, db: AsyncSession):
     twin = result.scalar_one_or_none()
     if not twin:
         raise HTTPException(status_code=404, detail="Twin not found")
+
+    # Block deletion if twin has active or executed deals
+    from ..models.deal import Deal
+    active_deals = await db.execute(
+        select(Deal).where(
+            Deal.twin_id == twin_id,
+            Deal.status.in_(["ACTIVE", "EXECUTED", "CONTRACT_SENT"]),
+        ).limit(1)
+    )
+    if active_deals.scalar_one_or_none():
+        raise HTTPException(
+            status_code=403,
+            detail="Cannot delete twin with active deals. Complete or terminate all deals first."
+        )
 
     from sqlalchemy import text
 

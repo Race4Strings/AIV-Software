@@ -26,13 +26,13 @@ export function ProgressBar({ currentStep, steps, totalSteps, authorized = false
           return (
             <div key={s.label} className="flex flex-col items-center gap-1">
               <div className={`flex h-9 w-9 items-center justify-center rounded-full border-2 transition-[background-color,border-color,color] duration-300 ${
-                isDone ? "bg-emerald-500 border-emerald-500 text-white" :
+                isDone ? "bg-success border-success text-white" :
                 isActive ? "border-primary bg-primary/10 text-primary" :
                 "border-border text-muted-foreground"
               }`}>
                 {isDone && !isActive ? <CheckCircle2 className="h-5 w-5" /> : <Icon className="h-4 w-4" />}
               </div>
-              <span className={`text-[10px] font-medium ${isActive ? "text-primary" : isDone ? "text-emerald-500" : "text-muted-foreground"}`}>
+              <span className={`text-xs font-medium ${isActive ? "text-primary" : isDone ? "text-success" : "text-muted-foreground"}`}>
                 {s.label}
               </span>
             </div>

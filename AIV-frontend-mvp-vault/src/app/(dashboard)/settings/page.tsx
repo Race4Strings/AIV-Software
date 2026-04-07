@@ -24,7 +24,9 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { authApi } from "@/lib/api";
+import { authStorage } from "@/lib/auth-storage";
 import { notificationsApi } from "@/lib/api/notifications";
+import { PasswordStrength } from "@/components/shared/password-strength";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -47,11 +49,8 @@ export default function SettingsPage() {
   useEffect(() => {
     setMounted(true);
     try {
-      const stored = localStorage.getItem("user");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setUser(parsed.data || parsed);
-      }
+      const stored = authStorage.getUser();
+      if (stored) setUser(stored);
       // Load notification prefs from localStorage
       const prefs = localStorage.getItem("notification_prefs");
       if (prefs) setNotifPrefs(JSON.parse(prefs));
@@ -60,7 +59,7 @@ export default function SettingsPage() {
 
   const handleLogout = async () => {
     try { await authApi.signout(); } catch {}
-    localStorage.removeItem("user");
+    authStorage.clear();
     router.replace("/auth/signin");
   };
 
@@ -77,9 +76,9 @@ export default function SettingsPage() {
   };
 
   const themeOptions = [
-    { value: "light", label: "Light", icon: Sun },
-    { value: "dark", label: "Dark", icon: Moon },
-    { value: "system", label: "System", icon: Monitor },
+    { value: "dark", label: "Dark", icon: Moon, available: true },
+    { value: "light", label: "Light", icon: Sun, available: false },
+    { value: "system", label: "System", icon: Monitor, available: false },
   ] as const;
 
   return (
@@ -147,15 +146,18 @@ export default function SettingsPage() {
           {mounted && themeOptions.map((opt) => (
             <button
               key={opt.value}
-              onClick={() => setTheme(opt.value)}
-              className={`flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-colors ${
-                theme === opt.value
+              onClick={() => opt.available ? setTheme(opt.value) : toast.info(`${opt.label} mode coming soon`)}
+              className={`relative flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-colors ${
+                theme === opt.value && opt.available
                   ? "border-primary bg-primary/10 text-primary"
-                  : "border-border bg-card text-muted-foreground hover:border-primary/30"
+                  : opt.available
+                    ? "border-border bg-card text-muted-foreground hover:border-primary/30"
+                    : "border-border bg-card text-muted-foreground/50 cursor-not-allowed"
               }`}
             >
               <opt.icon className="h-4 w-4" />
               {opt.label}
+              {!opt.available && <Badge variant="secondary" className="ml-1 text-xs py-0 px-1.5">Soon</Badge>}
             </button>
           ))}
         </div>
@@ -290,20 +292,7 @@ export default function SettingsPage() {
                     {showNewPw ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                   </button>
                 </div>
-                {passwordForm.new.length > 0 && (() => {
-                  const s = (passwordForm.new.length >= 8 ? 1 : 0) + (/[A-Z]/.test(passwordForm.new) ? 1 : 0) + (/[0-9]/.test(passwordForm.new) ? 1 : 0) + (/[^A-Za-z0-9]/.test(passwordForm.new) ? 1 : 0);
-                  const colors = ["bg-red-500", "bg-orange-500", "bg-yellow-500", "bg-emerald-500"];
-                  const textColors = ["text-red-500", "text-orange-500", "text-yellow-500", "text-emerald-500"];
-                  const labels = ["", "Weak", "Fair", "Good", "Strong"];
-                  return (
-                    <div className="space-y-1">
-                      <div className="flex gap-1">
-                        {[1,2,3,4].map(l => <div key={l} className={`h-1 flex-1 rounded-full transition-colors ${l <= s ? colors[s-1] : "bg-muted"}`} />)}
-                      </div>
-                      <p className={`text-[10px] ${passwordForm.new.length < 8 ? "text-muted-foreground" : textColors[s-1]}`}>{passwordForm.new.length < 8 ? "At least 8 characters" : labels[s]}</p>
-                    </div>
-                  );
-                })()}
+                <PasswordStrength password={passwordForm.new} />
                 <Input
                   type="password"
                   placeholder="Confirm new password"

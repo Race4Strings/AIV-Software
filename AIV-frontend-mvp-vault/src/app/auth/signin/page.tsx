@@ -3,6 +3,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
+import { authStorage } from '@/lib/auth-storage'
 import { useRouter } from 'next/navigation'
 import React, { useState } from 'react'
 import { toast } from 'sonner'
@@ -19,7 +20,7 @@ export default function SigninPage() {
     onSuccess: (data) => {
       toast.success('Signed in successfully')
       if (data) {
-        localStorage.setItem('user', JSON.stringify(data.data || data))
+        authStorage.saveUser(data.data || data)
       }
       router.push('/dashboard')
     },
@@ -108,7 +109,7 @@ export default function SigninPage() {
 
         <button
           type="submit"
-          className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer flex items-center justify-center gap-2 mt-1 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+          className="w-full py-3 rounded-xl bg-primary text-white text-sm font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer flex items-center justify-center gap-2 mt-1 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
           disabled={signinMutation.isPending || !identifier.trim() || !password.trim()}
         >
           {signinMutation.isPending ? (

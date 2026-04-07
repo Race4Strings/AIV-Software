@@ -132,7 +132,7 @@ export function TwinTabIdentity({ twin, displayName, categories, onTwinUpdate }:
           <CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-wider text-muted-foreground font-medium">ALCM Engine</CardTitle></CardHeader>
           <CardContent>
             {twin.alcm_twin_id ? (
-              <Badge className="bg-emerald-500/10 text-emerald-500">Connected</Badge>
+              <Badge className="bg-success/10 text-success">Connected</Badge>
             ) : (
               <Badge variant="outline">Not linked</Badge>
             )}

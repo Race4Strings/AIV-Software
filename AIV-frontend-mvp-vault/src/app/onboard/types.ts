@@ -20,6 +20,7 @@ export interface ReviewStepProps {
   setLoading: (v: boolean) => void;
   setProfileDraft: (v: { display_name: string; bio: string }) => void;
   setDiscoveryResults: (v: Record<string, unknown> | null) => void;
+  onSkipDiscovery?: () => void;
 }
 
 export interface AssetsStepProps {

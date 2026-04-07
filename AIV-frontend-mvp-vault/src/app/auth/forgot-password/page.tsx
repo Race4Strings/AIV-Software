@@ -56,7 +56,7 @@ export default function ForgotPasswordPage() {
               required
             />
           </div>
-          <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-[transform,background-color] duration-150 active:scale-[0.97] cursor-pointer" disabled={sending || !email.trim()}>
+          <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white transition-[transform,background-color] duration-150 active:scale-[0.97] cursor-pointer" disabled={sending || !email.trim()}>
             {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
             Send Reset Link
           </Button>

@@ -178,8 +178,8 @@ export default function VerifyPage({ params }: VerifyPageProps) {
           main { padding: 0 !important; min-height: auto !important; }
           * { color: black !important; border-color: #ddd !important; background-color: transparent !important; }
           code { background-color: #f3f4f6 !important; color: #065f46 !important; }
-          .text-emerald-400 { color: #065f46 !important; }
-          .text-purple-400 { color: #6b21a8 !important; }
+          .text-success { color: #065f46 !important; }
+          .text-accent-foreground { color: #6b21a8 !important; }
           .bg-emerald-500\\/15, .bg-purple-500\\/10 { background-color: #f0fdf4 !important; }
           .animate-pulse { animation: none !important; }
         }
@@ -203,7 +203,7 @@ export default function VerifyPage({ params }: VerifyPageProps) {
           <Image src="/aiv.svg" alt="" width={280} height={280} className="opacity-[0.03] rotate-[-12deg] brightness-0 invert select-none" aria-hidden="true" />
         </div>
         <CardHeader className="relative items-center gap-4 pb-2">
-          <Badge className="gap-1.5 border-emerald-500/30 bg-emerald-500/15 px-3 py-1 text-sm text-emerald-400 hover:bg-emerald-500/15 shadow-lg shadow-emerald-500/20">
+          <Badge className="gap-1.5 border-success/30 bg-success/10 px-3 py-1 text-sm text-success hover:bg-success/10 shadow-lg shadow-success/20">
             <ShieldCheck className="h-4 w-4" />
             Verified
           </Badge>
@@ -269,13 +269,13 @@ export default function VerifyPage({ params }: VerifyPageProps) {
                   SHA-256 Hash
                 </p>
                 <div className="mt-1 flex items-center gap-2 bg-background rounded-lg p-3">
-                  <code className="min-w-0 truncate font-mono text-xs text-emerald-400">
+                  <code className="min-w-0 truncate font-mono text-xs text-success">
                     {truncatedHash}
                   </code>
                   <Button variant="ghost" size="icon"
                     className="h-7 w-7 shrink-0 text-muted-foreground hover:text-white print:hidden"
                     onClick={handleCopy}>
-                    {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
                   </Button>
                 </div>
               </div>
@@ -283,20 +283,20 @@ export default function VerifyPage({ params }: VerifyPageProps) {
 
             {/* Blockchain Anchor */}
             <div className="flex items-start gap-3 pt-3 pb-3 mt-1 rounded-lg bg-muted/50 px-3">
-              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-purple-500" />
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     Blockchain Seal
                   </p>
                   {cert.tx_hash ? (
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-[10px] text-purple-400">
-                      <div className="size-1 rounded-full bg-purple-500 animate-pulse" />
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20 text-xs text-accent-foreground">
+                      <div className="size-1 rounded-full bg-accent animate-pulse" />
                       {cert.network === "polygon-amoy" ? "Polygon Amoy Testnet" : "Polygon Network"}
                     </div>
                   ) : (
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-400">
-                      <div className="size-1 rounded-full bg-amber-500 animate-pulse" />
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-warning/10 border border-warning/20 text-xs text-warning">
+                      <div className="size-1 rounded-full bg-warning animate-pulse" />
                       Pending
                     </div>
                   )}
@@ -307,7 +307,7 @@ export default function VerifyPage({ params }: VerifyPageProps) {
                       <span className="text-primary">Transaction Hash</span>
                       <a href={cert.network === "polygon-amoy"
                         ? `https://amoy.polygonscan.com/tx/${cert.tx_hash}`
-                        : `https://polygonscan.com/tx/${cert.tx_hash}`} target="_blank" rel="noopener noreferrer" className="font-mono text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
+                        : `https://polygonscan.com/tx/${cert.tx_hash}`} target="_blank" rel="noopener noreferrer" className="font-mono text-success hover:text-success/90 flex items-center gap-1">
                         {cert.tx_hash.slice(0, 8)}...{cert.tx_hash.slice(-6)}
                         <ExternalLink className="h-3 w-3" />
                       </a>
@@ -364,7 +364,7 @@ export default function VerifyPage({ params }: VerifyPageProps) {
       <p className="mt-8 text-center text-xs text-muted-foreground/50">
         © {new Date().getFullYear()} AIV — Digital Identity Protection
       </p>
-      <div className="text-center text-[10px] uppercase tracking-widest text-muted-foreground/40 mt-6">
+      <div className="text-center text-xs uppercase tracking-widest text-muted-foreground/40 mt-6">
         Issued by AIV — Digital Identity Infrastructure
       </div>
     </main>
@@ -384,7 +384,7 @@ function InvalidCertification({ certId }: { certId: string }) {
       <Card className="w-full max-w-lg border-border bg-card">
         <CardHeader className="items-center gap-4">
           <Badge variant="destructive"
-            className="gap-1.5 border-red-500/30 bg-red-500/15 px-3 py-1 text-sm text-red-400 hover:bg-red-500/15">
+            className="gap-1.5 border-destructive/30 bg-destructive/10 px-3 py-1 text-sm text-destructive hover:bg-destructive/10">
             <AlertCircle className="h-4 w-4" />
             Invalid
           </Badge>
@@ -392,7 +392,7 @@ function InvalidCertification({ certId }: { certId: string }) {
             <h2 className="text-lg font-semibold text-white">Certification Not Found</h2>
             <p className="max-w-sm text-sm text-muted-foreground">
               The certification ID{" "}
-              <code className="rounded bg-background px-1.5 py-0.5 font-mono text-xs text-red-400">
+              <code className="rounded bg-background px-1.5 py-0.5 font-mono text-xs text-destructive">
                 {certId.length > 20 ? `${certId.slice(0, 10)}...${certId.slice(-10)}` : certId}
               </code>{" "}
               could not be verified. It may be invalid, expired, or the URL may be incorrect.

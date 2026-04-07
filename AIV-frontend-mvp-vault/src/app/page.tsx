@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 import { SignalNotifications, MobileSignalNotifications } from "@/components/landing/signal-notification";
-import Aurora from "@/components/ui/Aurora";
+const Aurora = dynamic(() => import("@/components/ui/Aurora").then(m => ({ default: m.default })), { ssr: false });
 import { HeroFinalV2 } from "@/components/landing/hero-final-v2";
 import { useShakeDetection } from "@/hooks/use-shake-detection";
 
@@ -25,7 +25,7 @@ export default function HomePage() {
   const { opacity: auroraOpacity, handleMouseMove, handleTouchStart, handleTouchEnd } = useShakeDetection();
 
   useEffect(() => {
-    try { const user = localStorage.getItem("user"); if (user && JSON.parse(user)?.id) router.replace("/dashboard"); } catch {}
+    try { const user = localStorage.getItem("user"); if (user && JSON.parse(user)?.name) router.replace("/dashboard"); } catch {}
   }, [router]);
 
   function handleRequestAccess() { setModalInitialStep(0); setModalOpen(true); }
@@ -57,7 +57,7 @@ export default function HomePage() {
               className="opacity-80 hover:opacity-100 transition-opacity duration-200" />
           </Link>
           <button onClick={() => { setModalInitialStep(8); setModalOpen(true); }}
-            className="text-xs font-medium text-white/40 hover:text-white/70 transition-colors duration-200 cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none tracking-wider uppercase pointer-events-auto">
+            className="text-sm font-medium text-white/60 hover:text-white transition-colors duration-200 cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none tracking-wide pointer-events-auto px-3 py-1.5 rounded-md border border-white/10 hover:border-white/20 hover:bg-white/5">
             Sign In
           </button>
         </header>

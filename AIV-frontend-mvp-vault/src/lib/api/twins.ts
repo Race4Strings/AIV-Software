@@ -2,22 +2,27 @@ import apiClient from "./client";
 
 export interface Twin {
   id: string;
-  user_id: string;
-  name: string;
+  organization_id?: string;
+  talent_user_id?: string;
+  alcm_twin_id?: string;
+  display_name?: string;
   public_name?: string;
-  category?: string;
   bio?: string;
-  alcm_data?: Record<string, unknown>;
-  voice_status: string;
-  voice_sample_url?: string;
-  commercial_terms?: Record<string, unknown>;
-  governance?: Record<string, unknown>;
+  identity_category?: string[];
+  clone_type?: string;
   status: string;
-  completeness_score: number;
-  version: string;
+  health_status?: string;
+  talent_authorization_at?: string;
+  stage_1_completed_at?: string;
+  fee_free_window_expires?: string;
+  platform_fee_active?: boolean;
   certified_at?: string;
   created_at: string;
   updated_at: string;
+  // Legacy fields — kept for backward compat, may be undefined
+  name?: string;
+  category?: string;
+  [key: string]: unknown;
 }
 
 export async function fetchTwins(): Promise<Twin[]> {
@@ -63,7 +68,7 @@ export async function fetchTwinHealth(id: string): Promise<TwinHealth | null> {
 
 export async function updateTwin(
   id: string,
-  data: Partial<Pick<Twin, "name" | "public_name" | "category" | "bio" | "alcm_data" | "commercial_terms" | "governance">>
+  data: Partial<Pick<Twin, "name" | "display_name" | "public_name" | "category" | "bio" | "identity_category" | "clone_type">>
 ): Promise<Twin | null> {
   try {
     const res = await apiClient.post(`/twins/${id}/update`, data);
@@ -73,18 +78,18 @@ export async function updateTwin(
   }
 }
 
-export async function lockTwin(id: string): Promise<boolean> {
+export async function lockTwin(id: string, password: string): Promise<boolean> {
   try {
-    await apiClient.post(`/twins/${id}/lock`);
+    await apiClient.post(`/twins/${id}/lock`, { password });
     return true;
   } catch {
     return false;
   }
 }
 
-export async function unlockTwin(id: string): Promise<boolean> {
+export async function unlockTwin(id: string, password: string): Promise<boolean> {
   try {
-    await apiClient.post(`/twins/${id}/unlock`);
+    await apiClient.post(`/twins/${id}/unlock`, { password });
     return true;
   } catch {
     return false;

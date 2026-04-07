@@ -1,26 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { onboardingApi } from "@/lib/api/onboarding";
 import { STEPS, TOTAL_STEPS, ALL_CONSENTS, DISCOVERY_STAGES, getErrorMsg } from "./constants";
 import { DiscoveryStep } from "./steps/discovery";
 import { ReviewStep } from "./steps/review";
-import { AssetsStep } from "./steps/assets";
 import { ConsentsStep } from "./steps/consents";
 import { AuthorizeStep } from "./steps/authorize";
 import { CompleteStep } from "./steps/complete";
 import { ProgressBar } from "./progress-bar";
 
 // ──────────────────────────────────────────────────────
-// Main Page — 5-step onboarding flow
+// Main Page — 3-step onboarding flow
 //
 // Step 0: Discovery (enter name/handle)
-// Step 1: Review (read-only foundation profile)
-// Step 2: Assets (upload identity media)
-// Step 3: Consents & Confirmation (grouped consents + self-manager Gate 1)
-// Step 4: Authorize (full summary + Gate 2)
+// Step 1: Review & Consent (profile review + identity classification + consents)
+// Step 2: Authorize (full summary + Gate 2)
 // ──────────────────────────────────────────────────────
 
 export default function OnboardingPage() {
@@ -39,17 +36,12 @@ export default function OnboardingPage() {
   // Step 0: Discovery
   const [discoveryInput, setDiscoveryInput] = useState("");
 
-  // Step 1: Review
+  // Step 1: Review & Consent
   const [discoveryResults, setDiscoveryResults] = useState<Record<string, unknown> | null>(null);
   const [discoveryPolling, setDiscoveryPolling] = useState(false);
   const [discoveryStage, setDiscoveryStage] = useState(0);
   const [isMockData, setIsMockData] = useState(false);
   const [profileDraft, setProfileDraft] = useState({ display_name: "", bio: "" });
-
-  // Step 2: Upload
-  const [files, setFiles] = useState<File[]>([]);
-
-  // Step 3: Identity Classification + Consents (multi-select, max 3)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [cloneType, setCloneType] = useState("PERSONAL_IDENTITY");
   const [consents, setConsents] = useState<Record<string, boolean>>(() => {
@@ -58,15 +50,24 @@ export default function OnboardingPage() {
     return initial;
   });
 
-  // Step 4: Authorize
+  // Step 2: Authorize
   const [authorized, setAuthorized] = useState(false);
   const [showButtons, setShowButtons] = useState(false);
+
+  // Skip discovery ref (replaces window.__skipDiscovery)
+  const skipDiscoveryRef = useRef<(() => void) | null>(null);
 
   // ──────────────────────────────────────────────────────
   // Session Resume
   // ──────────────────────────────────────────────────────
   useEffect(() => {
-    // Load user role for adaptive language
+    // Load user role for adaptive language (prefer API, fallback to localStorage)
+    import("@/lib/api").then(({ authApi }) => {
+      authApi.getMe().then((res) => {
+        const role = res?.data?.role || res?.role;
+        if (role) setUserRole(role);
+      }).catch(() => {});
+    });
     const savedRole = localStorage.getItem("aiv_user_role");
     if (savedRole) setUserRole(savedRole);
 
@@ -78,17 +79,17 @@ export default function OnboardingPage() {
         setSessionId(session.id);
         setTwinId(session.twin_id || "");
         if (session.discovery_input) setDiscoveryInput(session.discovery_input);
-        if (session.twin?.display_name) setProfileDraft((d) => ({ ...d, display_name: session.twin.display_name }));
-        if (session.twin?.bio) setProfileDraft((d) => ({ ...d, bio: session.twin.bio }));
+        if (session.twin?.display_name) setProfileDraft((d) => ({ ...d, display_name: String(session.twin!.display_name) }));
+        if (session.twin?.bio) setProfileDraft((d) => ({ ...d, bio: String(session.twin!.bio) }));
 
-        // Map session status to step (5-step flow)
+        // Map session status to step (3-step flow)
         const statusMap: Record<string, number> = {
           DISCOVERY: 1,
           PROFILE_REVIEW: 1,
-          CONTENT_INGESTION: 2,
-          FILE_UPLOAD: 3,
-          RIGHTS_AGREEMENT: 3,
-          GATE_APPROVAL: 4,
+          CONTENT_INGESTION: 1,
+          FILE_UPLOAD: 1,
+          RIGHTS_AGREEMENT: 1,
+          GATE_APPROVAL: 2,
         };
         const resumeStep = statusMap[session.status] ?? 0;
         if (resumeStep > 0) {
@@ -164,14 +165,22 @@ export default function OnboardingPage() {
     };
     poll();
     const interval = setInterval(poll, 3000);
-    // Timeout after 90 seconds — stop polling and show what we have
+    // Expose skip function for the "Continue with what we have" button
+    skipDiscoveryRef.current = () => {
+      if (!cancelled) {
+        setDiscoveryPolling(false);
+        setIsMockData(true);
+        toast.success("Profile created. You can enrich it further in the Training Area.");
+      }
+    };
+    // Timeout after 45 seconds — stop polling, show what we have
     const timeout = setTimeout(() => {
       if (!cancelled) {
         setDiscoveryPolling(false);
         setIsMockData(true);
-        toast.error("Discovery is taking longer than expected. You can continue with what we have and enrich your profile later in the Training Area.");
+        toast("Discovery complete. You can enrich your profile in the Training Area.", { icon: "✓" });
       }
-    }, 90000);
+    }, 45000);
     return () => { cancelled = true; clearInterval(interval); clearTimeout(timeout); };
   }, [discoveryPolling, sessionId, discoveryInput]);
 
@@ -220,57 +229,51 @@ export default function OnboardingPage() {
       )}
 
       {step === 1 && (
-        <ReviewStep
-          sessionId={sessionId}
-          twinId={twinId}
-          discoveryInput={discoveryInput}
-          discoveryResults={discoveryResults}
-          discoveryPolling={discoveryPolling}
-          discoveryStage={discoveryStage}
-          isMockData={isMockData}
-          profileDraft={profileDraft}
-          loading={loading}
-          setStep={setStep}
-          setLoading={setLoading}
-          setProfileDraft={setProfileDraft}
-          setDiscoveryResults={setDiscoveryResults}
-        />
+        <>
+          <ReviewStep
+            sessionId={sessionId}
+            twinId={twinId}
+            discoveryInput={discoveryInput}
+            discoveryResults={discoveryResults}
+            discoveryPolling={discoveryPolling}
+            discoveryStage={discoveryStage}
+            isMockData={isMockData}
+            profileDraft={profileDraft}
+            loading={loading}
+            setStep={() => {}} // Review no longer advances step on its own
+            setLoading={setLoading}
+            setProfileDraft={setProfileDraft}
+            setDiscoveryResults={setDiscoveryResults}
+            onSkipDiscovery={() => skipDiscoveryRef.current?.()}
+          />
+          {/* Consent section appears after discovery completes */}
+          {!discoveryPolling && (
+            <ConsentsStep
+              sessionId={sessionId}
+              discoveryResults={discoveryResults}
+              selectedCategories={selectedCategories}
+              setSelectedCategories={setSelectedCategories}
+              cloneType={cloneType}
+              setCloneType={setCloneType}
+              consents={consents}
+              setConsents={setConsents}
+              profileDraft={profileDraft}
+              isManager={isManager}
+              loading={loading}
+              setLoading={setLoading}
+              setStep={setStep}
+            />
+          )}
+        </>
       )}
 
       {step === 2 && (
-        <AssetsStep
-          sessionId={sessionId}
-          files={files}
-          setFiles={setFiles}
-          setStep={setStep}
-        />
-      )}
-
-      {step === 3 && (
-        <ConsentsStep
-          sessionId={sessionId}
-          discoveryResults={discoveryResults}
-          selectedCategories={selectedCategories}
-          setSelectedCategories={setSelectedCategories}
-          cloneType={cloneType}
-          setCloneType={setCloneType}
-          consents={consents}
-          setConsents={setConsents}
-          profileDraft={profileDraft}
-          isManager={isManager}
-          loading={loading}
-          setLoading={setLoading}
-          setStep={setStep}
-        />
-      )}
-
-      {step === 4 && (
         <AuthorizeStep
           sessionId={sessionId}
           profileDraft={profileDraft}
           cloneType={cloneType}
           consents={consents}
-          files={files}
+          files={[]}
           discoveryResults={discoveryResults}
           isMockData={isMockData}
           isManager={isManager}

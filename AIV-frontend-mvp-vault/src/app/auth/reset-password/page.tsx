@@ -97,18 +97,18 @@ function ResetPasswordForm() {
               minLength={8}
             />
           </div>
-          <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-[transform,background-color] duration-150 active:scale-[0.97] cursor-pointer" disabled={submitting || !password || !confirmPassword}>
+          <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white transition-[transform,background-color] duration-150 active:scale-[0.97] cursor-pointer" disabled={submitting || !password || !confirmPassword}>
             {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
             Reset Password
           </Button>
         </form>
       ) : (
         <div className="rounded-lg border border-border/50 bg-muted/30 p-6 text-center">
-          <CheckCircle2 className="mx-auto mb-3 h-8 w-8 text-emerald-500" />
+          <CheckCircle2 className="mx-auto mb-3 h-8 w-8 text-success" />
           <p className="text-sm text-muted-foreground mb-4">
             Your password has been updated. You can now sign in with your new password.
           </p>
-          <Button onClick={() => router.push("/auth/signin")} className="bg-blue-600 hover:bg-blue-700 text-white transition-[transform,background-color] duration-150 active:scale-[0.97] cursor-pointer">
+          <Button onClick={() => router.push("/auth/signin")} className="bg-primary hover:bg-primary/90 text-white transition-[transform,background-color] duration-150 active:scale-[0.97] cursor-pointer">
             Sign In
           </Button>
         </div>

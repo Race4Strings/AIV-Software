@@ -1,27 +1,34 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bot, Activity, Fingerprint } from "lucide-react";
+import { Bot, Activity, Fingerprint, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { AssistantInterface } from "@/components/assistant/assistant-interface";
-import { fetchTwins } from "@/lib/api/twins";
+import { fetchTwins, fetchTwinHealth } from "@/lib/api/twins";
+import { humanizeEnum } from "@/lib/humanize";
 
 export default function TrainingAreaPage() {
   const [twinId, setTwinId] = useState<string | undefined>();
   const [twinName, setTwinName] = useState("");
   const [twinStatus, setTwinStatus] = useState("");
+  const [alcmAvailable, setAlcmAvailable] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchTwins()
-      .then((twins) => {
+      .then(async (twins) => {
         if (twins.length > 0) {
           const t = twins[0] as unknown as Record<string, unknown>;
           setTwinId(t.id as string);
           setTwinName((t.display_name as string) || (t.name as string) || "Your Twin");
           setTwinStatus((t.health_status as string) || "BUILDING");
+          // Check ALCM availability via health endpoint
+          const health = await fetchTwinHealth(t.id as string);
+          if (!health || (health as Record<string, unknown>)._alcm_unavailable) {
+            setAlcmAvailable(false);
+          }
         }
       })
       .catch(() => {})
@@ -51,6 +58,16 @@ export default function TrainingAreaPage() {
 
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col">
+      {/* ALCM unavailability banner */}
+      {!alcmAvailable && (
+        <div className="flex items-center gap-2.5 bg-warning/10 border-b border-warning/20 px-6 py-2.5 shrink-0">
+          <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+          <p className="text-sm text-warning">
+            The identity engine is temporarily unavailable. Assistant mode works normally. Digital Self, Training, and Refinement modes may be limited.
+          </p>
+        </div>
+      )}
+
       {/* Page header */}
       <div className="flex items-center gap-3 border-b px-6 py-3 shrink-0">
         <Bot className="h-5 w-5 text-primary" />
@@ -63,7 +80,7 @@ export default function TrainingAreaPage() {
         </Link>
         <Badge variant="outline" className="text-xs">
           <Activity className="h-3 w-3 mr-1" />
-          {twinStatus.toLowerCase().replace(/_/g, " ")}
+          {humanizeEnum(twinStatus)}
         </Badge>
       </div>
 

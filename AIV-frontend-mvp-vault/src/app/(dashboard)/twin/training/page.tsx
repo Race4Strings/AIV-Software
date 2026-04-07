@@ -6,10 +6,12 @@ import { trainingApi, TrainingSubmission } from "@/lib/api/training";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2, Fingerprint, CheckCircle, XCircle, Clock, MessageSquare, Inbox } from "lucide-react";
 import Link from "next/link";
 import { EmptyState } from "@/components/shared/empty-state";
 import { toast } from "sonner";
+import { humanizeEnum } from "@/lib/humanize";
 import { formatDistanceToNow } from "date-fns";
 import {
   Dialog,
@@ -113,13 +115,12 @@ export default function TrainingPage() {
 
   const handleApprove = async (subId: string) => {
     if (!twin) return;
-    setConfirmAction(null);
     setProcessingId(subId);
     try {
       await trainingApi.approveSubmission(twin.id, subId);
       toast.success("Training data approved and applied to ALCM");
       await loadData();
-    } catch (err) {
+    } catch {
       toast.error("Failed to approve submission");
     } finally {
       setProcessingId(null);
@@ -143,8 +144,35 @@ export default function TrainingPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-muted-foreground" />
+      <div className="mx-auto max-w-4xl space-y-8 animate-pulse">
+        {/* Header skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-72" />
+            <Skeleton className="h-4 w-36" />
+          </div>
+          <Skeleton className="h-9 w-32 rounded-md" />
+        </div>
+        {/* Submission cards skeleton */}
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="rounded-xl border border-border/50 overflow-hidden">
+              <div className="bg-muted/30 p-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-16 rounded-full" />
+                </div>
+                <Skeleton className="h-3 w-40" />
+              </div>
+              <div className="p-4 space-y-3">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-20 w-full rounded-md" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -187,8 +215,8 @@ export default function TrainingPage() {
             </DialogHeader>
             {showSuccess ? (
               <div className="flex flex-col items-center justify-center py-8 space-y-4 animate-in fade-in zoom-in duration-300">
-                <div className="h-16 w-16 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                  <CheckCircle className="h-8 w-8 text-emerald-500" />
+                <div className="h-16 w-16 rounded-full bg-success/10 flex items-center justify-center">
+                  <CheckCircle className="h-8 w-8 text-success" />
                 </div>
                 <div className="text-center">
                   <h3 className="text-lg font-semibold text-foreground">Submission Received</h3>
@@ -215,7 +243,7 @@ export default function TrainingPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Change Description <span className="text-red-500">*</span></Label>
+                <Label>Change Description <span className="text-destructive">*</span></Label>
                 <Input
                   value={formData.change_description}
                   onChange={(e) => setFormData({ ...formData, change_description: e.target.value })}
@@ -232,7 +260,7 @@ export default function TrainingPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Content (JSON or Text) <span className="text-red-500">*</span></Label>
+                <Label>Content (JSON or Text) <span className="text-destructive">*</span></Label>
                 <Textarea
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
@@ -254,31 +282,25 @@ export default function TrainingPage() {
       </div>
 
       {submissions.length === 0 ? (
-        <Card className="border-dashed bg-muted/30">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-primary/10">
-              <Inbox className="size-6 text-primary" />
-            </div>
-            <h3 className="text-lg font-semibold">Your ALCM is up to date</h3>
-            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-              There are no pending training submissions. When AIV suggests refinements or new data is captured, they will appear here for your review.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Inbox}
+          title="Your ALCM is up to date"
+          description="There are no pending training submissions. When AIV suggests refinements or new data is captured, they will appear here for your review."
+        />
       ) : (
         <div className="grid gap-4">
           {submissions.map((sub) => (
-            <Card key={sub.id} className={`overflow-hidden transition-[border-color,opacity] ${sub.status === "approved" ? "border-emerald-500/20" : sub.status === "rejected" ? "border-destructive/20 opacity-75" : "border-border/50"}`}>
-              <CardHeader className={`${sub.status === "approved" ? "bg-emerald-500/5" : sub.status === "rejected" ? "bg-destructive/5" : "bg-muted/30"} pb-4`}>
+            <Card key={sub.id} className={`overflow-hidden transition-[border-color,opacity] ${sub.status === "approved" ? "border-success/20" : sub.status === "rejected" ? "border-destructive/20 opacity-75" : "border-border/50"}`}>
+              <CardHeader className={`${sub.status === "approved" ? "bg-success/5" : sub.status === "rejected" ? "bg-destructive/5" : "bg-muted/30"} pb-4`}>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <CardTitle className="flex items-center gap-2 text-base">
-                      {sub.category.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())} Update
+                      {humanizeEnum(sub.category)} Update
                       <StatusBadge
                         status={sub.status}
                         className={
                           sub.status === "pending"
-                            ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                            ? "bg-warning/10 text-warning border-warning/20"
                             : ""
                         }
                       />
@@ -291,17 +313,17 @@ export default function TrainingPage() {
 
                   {sub.status === "pending" && (
                     <div className="flex items-center gap-2">
-                      {confirmAction?.id === sub.id ? (
+                      {confirmAction?.id === sub.id && confirmAction.type === "reject" ? (
                         <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-1.5">
                           <span className="text-xs text-muted-foreground">
-                            {confirmAction.type === "approve" ? "Apply this data to your twin?" : "Reject this submission?"}
+                            Reject this submission?
                           </span>
                           <Button
                             size="sm"
-                            variant={confirmAction.type === "approve" ? "default" : "destructive"}
+                            variant="destructive"
                             className="h-7 text-xs"
                             disabled={processingId === sub.id}
-                            onClick={() => confirmAction.type === "approve" ? handleApprove(sub.id) : handleReject(sub.id)}
+                            onClick={() => handleReject(sub.id)}
                           >
                             {processingId === sub.id ? <Loader2 className="size-3 animate-spin mr-1" /> : null}
                             Confirm
@@ -325,10 +347,10 @@ export default function TrainingPage() {
                           <Button
                             size="sm"
                             disabled={processingId === sub.id}
-                            onClick={() => setConfirmAction({ id: sub.id, type: "approve" })}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                            onClick={() => handleApprove(sub.id)}
+                            className="bg-success hover:bg-success/90 text-white"
                           >
-                            <CheckCircle className="mr-2 size-4" />
+                            {processingId === sub.id ? <Loader2 className="mr-2 size-4 animate-spin" /> : <CheckCircle className="mr-2 size-4" />}
                             Approve Data
                           </Button>
                         </>

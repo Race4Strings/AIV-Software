@@ -5,7 +5,7 @@ import {
   Key, Users, UserPlus, CheckCircle2, Clock,
   Loader2, Copy, RefreshCw, Trash2,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,9 @@ import {
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { adminApi, type AccessCode, type WaitlistEntry } from "@/lib/api/admin";
+import { fetchAllAuditLogs } from "@/lib/api/audit";
+import { humanizeEnum } from "@/lib/humanize";
+import { formatDistanceToNow } from "date-fns";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -33,18 +36,13 @@ export default function AdminDashboard() {
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
   const [batchGranting, setBatchGranting] = useState(false);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
   useEffect(() => {
-    try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if (user.role !== "OWNER") {
-        router.replace("/dashboard");
-        return;
-      }
-      setAuthorized(true);
-    } catch {
-      router.replace("/dashboard");
-    }
+    // Verify admin access via backend — don't trust localStorage
+    adminApi.getAccessCodes()
+      .then(() => setAuthorized(true))
+      .catch(() => router.replace("/dashboard"));
   }, [router]);
 
   async function loadData() {
@@ -60,7 +58,12 @@ export default function AdminDashboard() {
     setLoading(false);
   }
 
-  useEffect(() => { if (authorized) loadData(); }, [authorized]);
+  useEffect(() => {
+    if (authorized) {
+      loadData();
+      fetchAllAuditLogs().then(setAuditLogs).catch(() => {});
+    }
+  }, [authorized]);
 
   async function generateCodes() {
     setGenerating(true);
@@ -173,13 +176,13 @@ export default function AdminDashboard() {
         </Card>
         <Card>
           <CardContent className="pt-5 pb-4 text-center">
-            <div className="text-2xl font-bold text-yellow-500 font-mono tabular-nums">{pendingWaitlist.length}</div>
+            <div className="text-2xl font-bold text-warning font-mono tabular-nums">{pendingWaitlist.length}</div>
             <div className="text-xs text-muted-foreground mt-1">Pending Applications</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-5 pb-4 text-center">
-            <div className="text-2xl font-bold text-emerald-500 font-mono tabular-nums">{grantedWaitlist.length}</div>
+            <div className="text-2xl font-bold text-success font-mono tabular-nums">{grantedWaitlist.length}</div>
             <div className="text-xs text-muted-foreground mt-1">Access Granted</div>
           </CardContent>
         </Card>
@@ -226,7 +229,7 @@ export default function AdminDashboard() {
                 <CardContent className="flex items-center gap-3 py-3">
                   <Key className="h-4 w-4 text-primary shrink-0" />
                   <code className="font-mono text-sm flex-1">{c.code}</code>
-                  <Badge variant="outline" className="text-[10px]">{c.label}</Badge>
+                  <Badge variant="outline" className="text-xs">{c.label}</Badge>
                   <Button variant="ghost" size="sm" onClick={() => copyCode(c.code)} className="h-7 w-7 p-0">
                     <Copy className="h-3.5 w-3.5" />
                   </Button>
@@ -250,7 +253,7 @@ export default function AdminDashboard() {
         {pendingWaitlist.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-yellow-500 flex items-center gap-1.5">
+              <h3 className="text-sm font-medium text-warning flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5" /> Pending ({pendingWaitlist.length})
               </h3>
               <div className="flex items-center gap-3">
@@ -262,7 +265,7 @@ export default function AdminDashboard() {
                   Select all
                 </label>
                 {selectedEntries.size > 0 && (
-                  <Button size="sm" onClick={batchGrant} disabled={batchGranting} className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-xs">
+                  <Button size="sm" onClick={batchGrant} disabled={batchGranting} className="bg-success hover:bg-success/90 text-white h-7 text-xs">
                     {batchGranting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <UserPlus className="h-3 w-3 mr-1" />}
                     Grant {selectedEntries.size} selected
                   </Button>
@@ -280,7 +283,7 @@ export default function AdminDashboard() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-sm truncate">{w.name || w.email}</span>
-                      {w.role && <Badge variant="outline" className="text-[10px]">{w.role}</Badge>}
+                      {w.role && <Badge variant="outline" className="text-xs">{w.role}</Badge>}
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5">
                       {w.email} · Applied {new Date(w.created_at).toLocaleDateString()}
@@ -294,7 +297,7 @@ export default function AdminDashboard() {
                       size="sm"
                       onClick={() => grantAccess(w.id)}
                       disabled={granting === w.id}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      className="bg-success hover:bg-success/90 text-white"
                     >
                       {granting === w.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserPlus className="h-3.5 w-3.5 mr-1" />}
                       Grant Access
@@ -311,13 +314,13 @@ export default function AdminDashboard() {
 
         {grantedWaitlist.length > 0 && (
           <div className="space-y-2">
-            <h3 className="text-sm font-medium text-emerald-500 flex items-center gap-1.5">
+            <h3 className="text-sm font-medium text-success flex items-center gap-1.5">
               <CheckCircle2 className="h-3.5 w-3.5" /> Granted ({grantedWaitlist.length})
             </h3>
             {grantedWaitlist.map((w) => (
               <Card key={w.id} className="border-border/30">
                 <CardContent className="flex items-center gap-4 py-3">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
                   <div className="flex-1 min-w-0">
                     <span className="text-sm truncate">{w.name || w.email}</span>
                     {w.access_code && <code className="text-xs font-mono text-muted-foreground ml-2">{w.access_code}</code>}
@@ -337,6 +340,37 @@ export default function AdminDashboard() {
           />
         )}
       </section>
+
+      {/* Activity Log */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Platform Activity Log</CardTitle>
+          <CardDescription>Recent actions across the platform</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {auditLogs.slice(0, 20).map((log) => (
+              <div key={log.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
+                <div className="flex items-center gap-3">
+                  <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">{humanizeEnum(log.action)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {log.entity_type && humanizeEnum(log.entity_type)}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs text-muted-foreground shrink-0">
+                  {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
+                </span>
+              </div>
+            ))}
+            {auditLogs.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">No activity recorded yet</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Remove from waitlist confirmation */}
       <AlertDialog open={!!confirmRemoveId} onOpenChange={(open) => { if (!open) setConfirmRemoveId(null); }}>

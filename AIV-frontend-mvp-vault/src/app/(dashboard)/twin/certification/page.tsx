@@ -10,7 +10,6 @@ import {
   Copy,
   Check,
   ExternalLink,
-  FileText,
   Download,
   RefreshCw,
 } from "lucide-react";
@@ -25,6 +24,7 @@ import {
 } from "@/lib/api/certifications";
 import { fetchAuditLogs } from "@/lib/api/audit";
 import { toast } from "sonner";
+import { humanizeEnum } from "@/lib/humanize";
 import type { Twin } from "@/lib/api/twins";
 import type { Certification } from "@/lib/api/certifications";
 import type { AuditLog } from "@/lib/api/audit";
@@ -177,8 +177,8 @@ export default function CertificationPage() {
           {/* Certificate Header Bar */}
           <div className="bg-primary/10 px-6 py-3 flex items-center justify-between border-b border-border/50">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="size-5 text-emerald-500" />
-              <span className="text-sm font-medium text-emerald-500">Verified Certificate</span>
+              <ShieldCheck className="size-5 text-success" />
+              <span className="text-sm font-medium text-success">Verified Certificate</span>
             </div>
             <span className="text-xs text-muted-foreground">Version {latest.version}</span>
           </div>
@@ -219,28 +219,28 @@ export default function CertificationPage() {
             <div className="rounded-lg border-t border border-border/50 bg-muted/30 p-5 mt-2">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                  <ShieldCheck className="size-4 text-emerald-500" />
+                  <ShieldCheck className="size-4 text-success" />
                   Blockchain-Anchored Cryptographic Seal
                 </p>
                 <div className="flex items-center gap-2">
                   {latest.tx_hash ? (
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-xs text-purple-600 dark:text-purple-400">
-                      <div className="size-1.5 rounded-full bg-purple-500 animate-pulse" />
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20 text-xs text-accent-foreground">
+                      <div className="size-1.5 rounded-full bg-accent animate-pulse" />
                       {getNetworkLabel(latest.network)}
                     </div>
                   ) : (
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs text-amber-600 dark:text-amber-400">
-                      <div className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-warning/10 border border-warning/20 text-xs text-warning">
+                      <div className="size-1.5 rounded-full bg-warning animate-pulse" />
                       Blockchain Pending
                     </div>
                   )}
                   <Button variant="ghost" size="sm" onClick={handleCopyHash} className="h-7 gap-1.5 text-xs">
-                    {copied ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
+                    {copied ? <Check className="size-3 text-success" /> : <Copy className="size-3" />}
                     {copied ? "Copied" : "Copy"}
                   </Button>
                 </div>
               </div>
-              <code className="block break-all font-mono text-xs text-emerald-500 leading-relaxed mb-3">
+              <code className="block break-all font-mono text-xs text-success leading-relaxed mb-3">
                 {latest.hash}
               </code>
               
@@ -268,7 +268,7 @@ export default function CertificationPage() {
                 </div>
               ) : (
                 <div className="mt-3 pt-3 border-t border-border/50">
-                  <span className="inline-block px-2 py-1 bg-muted rounded text-[10px] uppercase text-muted-foreground font-medium tracking-wider">
+                  <span className="inline-block px-2 py-1 bg-muted rounded text-xs uppercase text-muted-foreground font-medium tracking-wider">
                     Blockchain Anchoring Incoming
                   </span>
                 </div>
@@ -286,7 +286,7 @@ export default function CertificationPage() {
                     key={asset}
                     className="inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-muted/50 px-3 py-1 text-xs"
                   >
-                    <BadgeCheck className="size-3 text-emerald-500" />
+                    <BadgeCheck className="size-3 text-success" />
                     {asset}
                   </span>
                 ))}
@@ -339,11 +339,6 @@ export default function CertificationPage() {
 
             {/* Actions */}
             <div className="flex justify-center gap-3 pt-2">
-              <Link href="/twin/documents/templates">
-                <Button variant="ghost" size="sm" className="gap-2 active:scale-[0.97] transition-transform duration-150">
-                  <FileText className="size-3.5" /> Generate Legal Document
-                </Button>
-              </Link>
               <Button variant="outline" size="sm" className="gap-2 active:scale-[0.97] transition-transform duration-150" onClick={handleDownloadPdf}>
                 <Download className="size-3.5" /> Download Certificate
               </Button>
@@ -372,7 +367,7 @@ export default function CertificationPage() {
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium capitalize">
-                      {log.action.replace(/_/g, " ")}
+                      {humanizeEnum(log.action)}
                     </p>
                     <span className="text-xs text-muted-foreground">
                       {new Date(log.created_at).toLocaleString()}

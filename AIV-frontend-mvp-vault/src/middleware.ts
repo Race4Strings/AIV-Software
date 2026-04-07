@@ -15,6 +15,7 @@ const publicRoutes = [
     '/calibration',           // Precision Tuning (has its own auth check)
     '/onboard',               // Onboarding (has its own auth check)
     '/admin',                 // Admin (has its own auth check)
+    '/licensing',             // Public licensing portal
 ]
 
 export function middleware(request: NextRequest) {

@@ -19,3 +19,12 @@ export async function fetchAuditLogs(twinId: string): Promise<AuditLog[]> {
     return [];
   }
 }
+
+export async function fetchAllAuditLogs(): Promise<AuditLog[]> {
+  try {
+    const res = await apiClient.get("/audit");
+    return res.data;
+  } catch {
+    return [];
+  }
+}

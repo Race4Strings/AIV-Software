@@ -32,7 +32,7 @@ async def upload_file(
         # Get user ID for per-user folder organization
         user_id = str(user.get('id', 'anonymous'))
         
-        # Upload based on folder type
+        # Upload based on folder type (generic endpoint — no category validation)
         if folder == "voice":
             result = storage.upload_voice(file_obj, file.filename, user_id=user_id)
         elif folder == "images":
@@ -56,13 +56,15 @@ async def upload_voice(
     user: dict = Depends(require_auth),
     storage: StorageService = Depends(get_storage_service)
 ):
-    """Upload a voice recording. Files organized by user."""
+    """Upload a voice recording. Files organized by user. Validates file type and size."""
     try:
         content = await file.read()
         import io
         file_obj = io.BytesIO(content)
         user_id = str(user.get('id', 'anonymous'))
-        return storage.upload_voice(file_obj, file.filename, user_id=user_id)
+        return storage.upload_voice(file_obj, file.filename, user_id=user_id, file_category="voice")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Voice upload failed: {str(e)}")
 
@@ -73,13 +75,15 @@ async def upload_image(
     user: dict = Depends(require_auth),
     storage: StorageService = Depends(get_storage_service)
 ):
-    """Upload an image file. Files organized by user."""
+    """Upload an image file. Files organized by user. Validates file type and size."""
     try:
         content = await file.read()
         import io
         file_obj = io.BytesIO(content)
         user_id = str(user.get('id', 'anonymous'))
-        return storage.upload_image(file_obj, file.filename, user_id=user_id)
+        return storage.upload_image(file_obj, file.filename, user_id=user_id, file_category="image")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")
 
@@ -90,12 +94,14 @@ async def upload_document(
     user: dict = Depends(require_auth),
     storage: StorageService = Depends(get_storage_service)
 ):
-    """Upload a knowledge document. Files organized by user."""
+    """Upload a knowledge document. Files organized by user. Validates file type and size."""
     try:
         content = await file.read()
         import io
         file_obj = io.BytesIO(content)
         user_id = str(user.get('id', 'anonymous'))
-        return storage.upload_document(file_obj, file.filename, user_id=user_id)
+        return storage.upload_document(file_obj, file.filename, user_id=user_id, file_category="document")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Document upload failed: {str(e)}")

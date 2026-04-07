@@ -6,6 +6,8 @@ import {
   CreditCard, FileText, ArrowUpRight, CheckCircle2,
   Clock, AlertTriangle, Loader2, Shield, TrendingUp,
 } from "lucide-react";
+import { Breadcrumb } from "@/components/shared/breadcrumb";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,12 +49,12 @@ interface BillingStatus {
 }
 
 const STATUS_STYLES: Record<string, { color: string; label: string }> = {
-  PENDING: { color: "text-yellow-500", label: "Pending" },
-  PAID: { color: "text-emerald-500", label: "Paid" },
-  OVERDUE: { color: "text-red-500", label: "Overdue" },
-  FAILED: { color: "text-red-500", label: "Failed" },
-  PROCESSING: { color: "text-blue-500", label: "Processing" },
-  COMPLETED: { color: "text-emerald-500", label: "Completed" },
+  PENDING: { color: "text-warning", label: "Pending" },
+  PAID: { color: "text-success", label: "Paid" },
+  OVERDUE: { color: "text-destructive", label: "Overdue" },
+  FAILED: { color: "text-destructive", label: "Failed" },
+  PROCESSING: { color: "text-primary", label: "Processing" },
+  COMPLETED: { color: "text-success", label: "Completed" },
 };
 
 export default function BillingPage() {
@@ -92,6 +94,7 @@ export default function BillingPage() {
 
   return (
     <div className="max-w-3xl space-y-8 p-6">
+      <Breadcrumb items={[{ label: "Settings", href: "/settings" }, { label: "Billing" }]} />
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Billing</h1>
         <p className="text-muted-foreground mt-1">Payment methods, invoices, and payout history.</p>
@@ -151,8 +154,8 @@ export default function BillingPage() {
           <CardContent className="py-5">
             {billing?.platform_fee_active ? (
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10">
-                  <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-success/10">
+                  <CheckCircle2 className="h-6 w-6 text-success" />
                 </div>
                 <div className="flex-1">
                   <p className="font-medium"><span className="font-mono tabular-nums">$997</span>/month — Active</p>
@@ -163,8 +166,8 @@ export default function BillingPage() {
               </div>
             ) : (
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10">
-                  <Shield className="h-6 w-6 text-blue-500" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                  <Shield className="h-6 w-6 text-primary" />
                 </div>
                 <div className="flex-1">
                   <p className="font-medium">Fee-Free Period</p>
@@ -244,12 +247,11 @@ export default function BillingPage() {
             })}
           </div>
         ) : (
-          <Card className="border-border/50">
-            <CardContent className="py-8 text-center">
-              <FileText className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">No invoices yet. Invoices are generated when deals execute or the platform fee activates.</p>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={FileText}
+            title="No invoices yet"
+            description="Invoices are generated when deals execute or the platform fee activates."
+          />
         )}
       </section>
 
@@ -263,7 +265,7 @@ export default function BillingPage() {
               return (
                 <Card key={p.id} className="border-border/50">
                   <CardContent className="flex items-center gap-4 py-4">
-                    <TrendingUp className="h-5 w-5 text-emerald-500 shrink-0" />
+                    <TrendingUp className="h-5 w-5 text-success shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-sm">Deal Payout</span>
@@ -274,19 +276,18 @@ export default function BillingPage() {
                         {p.processed_at ? ` · Processed ${new Date(p.processed_at).toLocaleDateString()}` : ""}
                       </div>
                     </div>
-                    <span className="font-semibold text-sm text-emerald-500 font-mono tabular-nums">${p.net_amount.toLocaleString()}</span>
+                    <span className="font-semibold text-sm text-success font-mono tabular-nums">${p.net_amount.toLocaleString()}</span>
                   </CardContent>
                 </Card>
               );
             })}
           </div>
         ) : (
-          <Card className="border-border/50">
-            <CardContent className="py-8 text-center">
-              <TrendingUp className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">No payouts yet. Payouts are processed when deal payments are received.</p>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={TrendingUp}
+            title="No payouts yet"
+            description="Payouts are processed when deal payments are received."
+          />
         )}
       </section>
 

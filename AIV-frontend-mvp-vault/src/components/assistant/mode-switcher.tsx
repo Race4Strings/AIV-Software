@@ -63,12 +63,12 @@ export function ModeSwitcher({ currentMode, onModeChange, disabled }: ModeSwitch
               )}
             >
               <Icon className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{config.label}</span>
+              <span>{config.label}</span>
             </button>
           );
         })}
       </div>
-      <p className="text-[10px] text-muted-foreground px-1">{activeConfig.description}</p>
+      <p className="text-xs text-muted-foreground px-1">{activeConfig.description}</p>
     </div>
   );
 }

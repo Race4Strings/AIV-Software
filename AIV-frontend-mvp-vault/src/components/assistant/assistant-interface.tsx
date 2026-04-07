@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Loader2, Plus, Upload, Sparkles } from "lucide-react";
+import { Send, Loader2, Plus, Upload, Sparkles, Link2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ModeSwitcher } from "./mode-switcher";
+import { humanizeEnum } from "@/lib/humanize";
 import { MessageBubble } from "./message-bubble";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -17,6 +20,7 @@ import {
   type AgentMessage,
 } from "@/lib/api/assistant";
 import { uploadApi } from "@/lib/api/upload";
+import { integrationsApi } from "@/lib/api/integrations";
 import { apiClient } from "@/lib/api/client";
 
 const MODE_PROMPTS: Record<string, string[]> = {
@@ -64,6 +68,9 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
   const [streamingContent, setStreamingContent] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [healthData, setHealthData] = useState<{cfs?: number; coverage?: number; confidence?: number; status?: string} | null>(null);
+  const [ingestOpen, setIngestOpen] = useState(false);
+  const [ingestUrl, setIngestUrl] = useState("");
+  const [ingesting, setIngesting] = useState(false);
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -150,7 +157,7 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
         {
           id: crypto.randomUUID(),
           role: "SYSTEM",
-          content: `Mode switched to ${mode.toLowerCase().replace("_", " ")}`,
+          content: `Mode switched to ${humanizeEnum(mode)}`,
           mode_at_time: mode,
         },
       ]);
@@ -223,6 +230,20 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
     e.target.value = "";
   }
 
+  async function handleIngest() {
+    if (!ingestUrl.trim() || ingesting || !twinId) return;
+    setIngesting(true);
+    try {
+      await integrationsApi.ingest(twinId, { url: ingestUrl.trim() });
+      toast.success("Content submitted for processing");
+      setIngestUrl("");
+      setIngestOpen(false);
+    } catch {
+      toast.error("Failed to ingest content");
+    }
+    setIngesting(false);
+  }
+
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -245,7 +266,7 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
       const firstUser = messages.find(m => m.role === "USER");
       if (firstUser) return firstUser.content.slice(0, 40) + (firstUser.content.length > 40 ? "..." : "");
     }
-    const mode = (s.current_mode || "ASSISTANT").toLowerCase().replace("_", " ");
+    const mode = humanizeEnum(s.current_mode || "ASSISTANT");
     return `${mode} session`;
   }
 
@@ -275,7 +296,7 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
               });
               return Object.entries(grouped).map(([label, groupSessions]) => (
                 <div key={label}>
-                  <p className="text-[10px] font-semibold text-muted-foreground/50 uppercase tracking-wider px-3 pt-2 pb-1">{label}</p>
+                  <p className="text-xs font-semibold text-muted-foreground/50 uppercase tracking-wider px-3 pt-2 pb-1">{label}</p>
                   {groupSessions.map((s, idx) => (
                     <button
                       key={s.id}
@@ -288,8 +309,8 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
                     >
                       <div className="text-xs font-medium truncate">{getSessionTitle(s, idx)}</div>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">{(s.current_mode || "ASSISTANT").toLowerCase().replace("_", " ")}</Badge>
-                        <span className="text-[10px] text-muted-foreground/60">
+                        <Badge variant="outline" className="text-xs px-1.5 py-0">{humanizeEnum(s.current_mode || "ASSISTANT")}</Badge>
+                        <span className="text-xs text-muted-foreground/60">
                           {new Date(s.started_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </span>
                       </div>
@@ -306,9 +327,9 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mode accent indicator */}
         <div className={`h-0.5 transition-colors ${
-          session?.current_mode === "DIGITAL_SELF" ? "bg-purple-500" :
-          session?.current_mode === "TRAINING" ? "bg-blue-500" :
-          session?.current_mode === "REFINEMENT" ? "bg-amber-500" :
+          session?.current_mode === "DIGITAL_SELF" ? "bg-accent" :
+          session?.current_mode === "TRAINING" ? "bg-primary" :
+          session?.current_mode === "REFINEMENT" ? "bg-warning" :
           "bg-primary"
         }`} />
         {/* Header: Mode switcher + session toggle */}
@@ -336,7 +357,7 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
 
       {/* Session Progress Indicator */}
       {messages.length > 0 && (
-        <div className="flex items-center gap-4 px-4 py-2 border-b border-border/30 text-[11px] text-muted-foreground">
+        <div className="flex items-center gap-4 px-4 py-2 border-b border-border/30 text-xs text-muted-foreground">
           <span>{messages.filter((m) => m.role === "USER").length} message{messages.filter((m) => m.role === "USER").length !== 1 ? "s" : ""}</span>
           <span className="h-3 w-px bg-border" />
           <span>{messages.filter((m) => m.role === "AGENT").length} response{messages.filter((m) => m.role === "AGENT").length !== 1 ? "s" : ""}</span>
@@ -454,6 +475,29 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
             rows={1}
             disabled={isStreaming}
           />
+          <Popover open={ingestOpen} onOpenChange={setIngestOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" title="Add content to train your twin">
+                <Link2 className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-80 p-3">
+              <p className="text-sm font-medium mb-2">Train your twin</p>
+              <p className="text-xs text-muted-foreground mb-3">Paste a URL (YouTube, article, podcast) to add to your twin&apos;s knowledge.</p>
+              <div className="flex gap-2">
+                <Input
+                  value={ingestUrl}
+                  onChange={(e) => setIngestUrl(e.target.value)}
+                  placeholder="https://youtube.com/watch?v=..."
+                  className="flex-1 text-sm"
+                  onKeyDown={(e) => { if (e.key === "Enter") handleIngest(); }}
+                />
+                <Button size="sm" onClick={handleIngest} disabled={!ingestUrl.trim() || ingesting}>
+                  {ingesting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Add"}
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
           <Button
             size="icon"
             onClick={handleSend}

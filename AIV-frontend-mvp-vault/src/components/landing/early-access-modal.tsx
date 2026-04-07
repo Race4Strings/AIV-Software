@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Loader2, CheckCircle2, ArrowLeft, ArrowRight, Eye, EyeOff, Mic, Users, Building2, TrendingUp, type LucideIcon } from 'lucide-react'
 import apiClient from "@/lib/api/client"
 import { authApi } from "@/lib/api"
+import { authStorage } from '@/lib/auth-storage'
 import { toast } from 'sonner'
 
 // -- Types --
@@ -344,7 +345,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
       const result = await authApi.verifyEmail({ email: signupEmail, otp })
       // Store user data and redirect
       if (result.data) {
-        localStorage.setItem('user', JSON.stringify(result.data))
+        authStorage.saveUser(result.data)
       }
       setStep(7) // Success
       toast.success('Email verified! Welcome to AIV.')
@@ -369,7 +370,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
     setSubmitting(true)
     try {
       const result = await authApi.signin({ identifier, password })
-      localStorage.setItem('user', JSON.stringify(result))
+      authStorage.saveUser(result.data || result)
       toast.success('Signed in successfully')
       window.location.href = '/dashboard'
     } catch (err: unknown) {
@@ -426,7 +427,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
         transition={{
           default: { type: "spring", damping: 25, stiffness: 300 },
           exit: { duration: 0.15, ease: "easeIn" },
-        }}
+        } as any}
       >
         <AnimatePresence mode="wait">
           {step === 0 && (
@@ -506,7 +507,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 <button
                   onClick={() => setStep(2)}
                   disabled={!requiredDetailsFilled}
-                  className="flex-1 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer"
+                  className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer"
                 >
                   Continue &rarr;
                 </button>
@@ -571,7 +572,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 <button
                   onClick={handleSubmit}
                   disabled={submitting || !fields.email?.trim()}
-                  className="flex-1 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none flex items-center justify-center gap-2"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Request Access <ArrowRight className="h-4 w-4" /></>}
                 </button>
@@ -604,7 +605,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
               </div>
               <button
                 onClick={handleClose}
-                className="w-full mt-5 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+                className="w-full mt-5 py-3 rounded-xl bg-primary text-white text-sm font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
               >
                 Done
               </button>
@@ -651,7 +652,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 <button
                   onClick={handleValidateCode}
                   disabled={validatingCode || !fields.code?.trim() || (fields.code?.trim().length || 0) < 6}
-                  className="flex-1 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none flex items-center justify-center gap-2"
                 >
                   {validatingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Verify &amp; Enter &rarr;</>}
                 </button>
@@ -754,7 +755,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 <button
                   onClick={handleSignup}
                   disabled={submitting || !fields.signupName?.trim() || !fields.signupUsername?.trim() || !fields.signupEmail?.trim() || !fields.signupPassword?.trim()}
-                  className="flex-1 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none flex items-center justify-center gap-2"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Create Account &rarr;</>}
                 </button>
@@ -799,7 +800,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
               <button
                 onClick={handleVerifyEmail}
                 disabled={submitting || (fields.otp?.length || 0) < 6}
-                className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-primary text-white text-sm font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none flex items-center justify-center gap-2"
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Verify &amp; Enter &rarr;</>}
               </button>
@@ -817,7 +818,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
               </div>
               <button
                 onClick={() => { window.location.href = '/onboard' }}
-                className="w-full mt-4 py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+                className="w-full mt-4 py-3 rounded-xl bg-primary text-white text-sm font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 transition-[transform,background-color,border-color] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
               >
                 Get Started &rarr;
               </button>
@@ -878,7 +879,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
               <button
                 onClick={handleSignin}
                 disabled={submitting || !fields.signinIdentifier?.trim() || !fields.signinPassword?.trim()}
-                className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-primary text-white text-sm font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none flex items-center justify-center gap-2"
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Sign In &rarr;</>}
               </button>
@@ -927,7 +928,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 <button
                   onClick={handleForgotPassword}
                   disabled={submitting || !fields.forgotEmail?.trim()}
-                  className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl bg-primary text-white text-sm font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none flex items-center justify-center gap-2"
                 >
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Send Reset Link &rarr;</>}
                 </button>

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { forwardRef, useMemo, useRef, useEffect } from 'react';
@@ -8,11 +9,16 @@ function useAnimationFrame(callback: () => void, enabled: boolean = true) {
     const callbackRef = useRef(callback);
     callbackRef.current = callback;
 
+    const frameCountRef = useRef(0);
+
     useEffect(() => {
         if (!enabled) return;
         let frameId: number;
         const loop = () => {
-            callbackRef.current();
+            frameCountRef.current++;
+            if (frameCountRef.current % 3 === 0) {
+                callbackRef.current();
+            }
             frameId = requestAnimationFrame(loop);
         };
         frameId = requestAnimationFrame(loop);

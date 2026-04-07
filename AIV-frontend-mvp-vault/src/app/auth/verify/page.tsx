@@ -3,6 +3,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { authStorage } from '@/lib/auth-storage'
 import { useRouter, useSearchParams } from 'next/navigation'
 import React, { Suspense, useState, useEffect, useRef, useCallback } from 'react'
 import { toast } from 'sonner'
@@ -33,7 +34,7 @@ function VerifyPageContent() {
     onSuccess: (data) => {
       toast.success('Email verified successfully!')
       if (data) {
-        localStorage.setItem('user', JSON.stringify(data))
+        authStorage.saveUser(data.data || data)
       }
       window.location.href = '/onboard'
     },
@@ -114,7 +115,7 @@ function VerifyPageContent() {
 
         <button
           type="submit"
-          className="w-full py-3 rounded-xl bg-primary text-white text-[15px] font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer flex items-center justify-center gap-2 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+          className="w-full py-3 rounded-xl bg-primary text-white text-sm font-medium shadow-lg shadow-primary/20 hover:bg-primary/80 disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color,box-shadow] duration-150 active:scale-[0.97] cursor-pointer flex items-center justify-center gap-2 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
           disabled={otp.length !== 6 || verifyMutation.isPending}
         >
           {verifyMutation.isPending && <Loader2 className="size-4 animate-spin" />}

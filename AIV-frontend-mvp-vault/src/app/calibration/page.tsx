@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { fetchTwins } from "@/lib/api/twins";
 import {
   startCalibration,
   saveResponses,
@@ -16,16 +17,35 @@ import {
 } from "@/lib/api/calibration";
 
 // ──────────────────────────────────────────────────────
-// Scale labels (shown once at top)
+// Scale labels
 // ──────────────────────────────────────────────────────
 
 const SCALE_LABELS = [
-  { value: 1, label: "Strongly Disagree", abbrev: "SD" },
-  { value: 2, label: "Disagree", abbrev: "D" },
-  { value: 3, label: "Neutral", abbrev: "N" },
-  { value: 4, label: "Agree", abbrev: "A" },
-  { value: 5, label: "Strongly Agree", abbrev: "SA" },
+  { value: 1, label: "Strongly Disagree" },
+  { value: 2, label: "Disagree" },
+  { value: 3, label: "Neutral" },
+  { value: 4, label: "Agree" },
+  { value: 5, label: "Strongly Agree" },
 ];
+
+// ──────────────────────────────────────────────────────
+// Domain framing map
+// ──────────────────────────────────────────────────────
+
+const DOMAIN_FRAMING: Record<string, string> = {
+  "Extraversion": "How you engage with people",
+  "Agreeableness": "How you relate to others",
+  "Conscientiousness": "How you approach work",
+  "Neuroticism": "How you handle pressure",
+  "Negative Emotionality": "How you handle pressure",
+  "Open-Mindedness": "How you explore ideas",
+  "Openness": "How you explore ideas",
+  "Openness to Experience": "How you explore ideas",
+};
+
+function getDomainFraming(domain: string): string {
+  return DOMAIN_FRAMING[domain] || domain;
+}
 
 // ──────────────────────────────────────────────────────
 // Component
@@ -46,17 +66,18 @@ export default function CalibrationPage() {
   const [loading, setLoading] = useState(true);
   const [direction, setDirection] = useState<"forward" | "back">("forward");
 
+  // All responses stored by item number
+  const [allResponses, setAllResponses] = useState<Record<number, number>>({});
+  // Track which button was just selected for highlight animation
+  const [justSelected, setJustSelected] = useState<number | null>(null);
+  const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Load user + twin from localStorage, check for existing calibration
   useEffect(() => {
     async function init() {
       try {
-        const userStr = localStorage.getItem("user");
-        if (!userStr) {
-          router.push("/auth/signin");
-          return;
-        }
-        const user = JSON.parse(userStr);
-        const tid = user.twin_id;
+        const twins = await fetchTwins();
+        const tid = twins?.[0]?.id;
         if (!tid) {
           router.push("/twin");
           return;
@@ -66,18 +87,15 @@ export default function CalibrationPage() {
         // Check for existing in-progress calibration
         const status = await getCalibrationStatus(tid);
         if (status.completed) {
-          // Already done — go to dashboard
           router.push("/dashboard");
           return;
         }
         if (status.has_calibration && status.calibration_id && status.progress > 0) {
-          // Resume existing session
           const result = await startCalibration(tid, "RESUME");
           if (result) {
             setItems(result.items);
             setCalId(status.calibration_id);
             setCurrentIndex(status.progress);
-            // Rebuild responses from progress (we'll re-fetch on save)
             setResponses([]);
             setPhase("tuning");
           }
@@ -90,6 +108,13 @@ export default function CalibrationPage() {
     }
     init();
   }, [router]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
+    };
+  }, []);
 
   // Start a fresh calibration session
   const handleStart = useCallback(async () => {
@@ -108,85 +133,28 @@ export default function CalibrationPage() {
     setLoading(false);
   }, [twinId]);
 
-  // Group items into pages of ~10 (by domain order: 12 items per domain → show 2 pages per domain, 6 items each — or 10 items per page across domains)
-  // Simple approach: chunk items into pages of 10
-  const ITEMS_PER_PAGE = 10;
-  const pages = items.reduce<CalibrationItem[][]>((acc, item, i) => {
-    const pageIdx = Math.floor(i / ITEMS_PER_PAGE);
-    if (!acc[pageIdx]) acc[pageIdx] = [];
-    acc[pageIdx].push(item);
-    return acc;
-  }, []);
-  const totalPages = pages.length;
+  const totalItems = items.length || 60;
+  const currentItem = items[currentIndex] || null;
 
-  // Track per-item responses as a map for the current page
-  const [pageResponses, setPageResponses] = useState<Record<number, number>>({});
-  // Persistent store: pageIndex → { itemNumber → value } — survives navigation
-  const [allResponses, setAllResponses] = useState<Record<number, Record<number, number>>>({});
-
-  // Keyboard shortcuts: press 1-5 to answer the next unanswered item
-  useEffect(() => {
-    if (phase !== "tuning") return;
-    const currentPage = pages[currentIndex];
-    if (!currentPage) return;
-
-    const handleKeyPress = (e: KeyboardEvent) => {
-      const num = parseInt(e.key, 10);
-      if (num < 1 || num > 5) return;
-      // Ignore if user is typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-
-      // Find the first unanswered item on the current page
-      const nextUnanswered = currentPage.find((item) => pageResponses[item.item] === undefined);
-      if (nextUnanswered) {
-        setPageResponses((prev) => ({ ...prev, [nextUnanswered.item]: num }));
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyPress);
-    return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [phase, pages, currentIndex, pageResponses]);
-
-  // Handle setting an answer for one item on the current page
-  const setItemResponse = useCallback((itemNum: number, value: number) => {
-    setPageResponses((prev) => ({ ...prev, [itemNum]: value }));
-  }, []);
-
-  // Handle submitting the current page (save + advance)
-  const handlePageSubmit = useCallback(async () => {
+  // Save responses and advance to next item (or complete)
+  const advanceToNext = useCallback(async (updatedResponses: Record<number, number>) => {
     if (!calId || !twinId) return;
-    const currentPage = pages[currentIndex];
-    if (!currentPage) return;
 
-    // Check all items on page are answered
-    const unanswered = currentPage.filter((item) => pageResponses[item.item] === undefined);
-    if (unanswered.length > 0) {
-      toast.error(`Please answer all ${currentPage.length} statements before continuing.`);
-      return;
+    const isLastItem = currentIndex >= items.length - 1;
+
+    // Build response list from all responses
+    const responseList: { item: number; value: number }[] = [];
+    for (const [itemNum, value] of Object.entries(updatedResponses)) {
+      responseList.push({ item: Number(itemNum), value });
     }
+    setResponses(responseList);
 
+    // Save every item (auto-save)
     setSaving(true);
-    // Build complete response list from allResponses (all pages) + current page
-    const merged = { ...allResponses, [currentIndex]: { ...pageResponses } };
-    const newResponses: { item: number; value: number }[] = [];
-    for (let p = 0; p <= currentIndex; p++) {
-      const pageData = merged[p];
-      if (pageData) {
-        for (const [itemNum, value] of Object.entries(pageData)) {
-          newResponses.push({ item: Number(itemNum), value });
-        }
-      }
-    }
-    setResponses(newResponses);
-    await saveResponses(twinId, calId, newResponses);
+    await saveResponses(twinId, calId, responseList);
     setSaving(false);
 
-    // Persist current page answers before navigating
-    setAllResponses((prev) => ({ ...prev, [currentIndex]: { ...pageResponses } }));
-
-    setDirection("forward");
-    if (currentIndex + 1 >= totalPages) {
-      // All pages done — trigger scoring
+    if (isLastItem) {
       setPhase("completing");
       const result = await completeCalibration(twinId, calId);
       if (result) {
@@ -196,15 +164,52 @@ export default function CalibrationPage() {
         router.push("/dashboard");
       }
     } else {
-      const nextIndex = currentIndex + 1;
-      setCurrentIndex(nextIndex);
-      // Restore next page's answers if they exist (user went forward, back, forward)
-      setAllResponses((prev) => {
-        setPageResponses(prev[nextIndex] ? { ...prev[nextIndex] } : {});
-        return prev;
-      });
+      setDirection("forward");
+      setCurrentIndex((i) => i + 1);
     }
-  }, [calId, twinId, pages, currentIndex, totalPages, pageResponses, allResponses, responses, router]);
+  }, [calId, twinId, currentIndex, items.length, router]);
+
+  // Handle selecting a response value
+  const handleSelect = useCallback((value: number) => {
+    if (!currentItem || saving) return;
+
+    // Clear any pending advance timer
+    if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
+
+    const updated = { ...allResponses, [currentItem.item]: value };
+    setAllResponses(updated);
+    setJustSelected(value);
+
+    // Auto-advance after 300ms highlight
+    advanceTimerRef.current = setTimeout(() => {
+      setJustSelected(null);
+      advanceToNext(updated);
+    }, 300);
+  }, [currentItem, saving, allResponses, advanceToNext]);
+
+  // Keyboard shortcuts: press 1-5
+  useEffect(() => {
+    if (phase !== "tuning" || !currentItem) return;
+
+    const handleKeyPress = (e: KeyboardEvent) => {
+      const num = parseInt(e.key, 10);
+      if (num < 1 || num > 5) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      handleSelect(num);
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [phase, currentItem, handleSelect]);
+
+  // Go back to previous item
+  const handleBack = useCallback(() => {
+    if (currentIndex <= 0 || saving) return;
+    if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
+    setJustSelected(null);
+    setDirection("back");
+    setCurrentIndex((i) => i - 1);
+  }, [currentIndex, saving]);
 
   const handleSkip = () => {
     router.push("/dashboard");
@@ -240,7 +245,7 @@ export default function CalibrationPage() {
           </div>
 
           <p className="text-sm text-muted-foreground">
-            60 quick statements across 6 pages. Takes about 5 minutes.
+            60 quick statements, one at a time. Takes about 5 minutes.
             Tap how strongly you agree or disagree.
             Your responses are saved automatically — you can pause and resume anytime.
           </p>
@@ -279,8 +284,8 @@ export default function CalibrationPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-6">
         <div className="max-w-lg text-center space-y-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-green-500/10">
-            <CheckCircle2 className="h-8 w-8 text-green-500" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-success/10">
+            <CheckCircle2 className="h-8 w-8 text-success" />
           </div>
 
           <div className="space-y-3">
@@ -310,14 +315,15 @@ export default function CalibrationPage() {
     );
   }
 
-  // ── TUNING SESSION (10 items per page) ──
-  const currentPage = pages[currentIndex] || [];
-  const answeredOnPage = currentPage.filter((item) => pageResponses[item.item] !== undefined).length;
-  // Per-item progress: all items from completed pages + answered items on current page
-  const completedItemsFromPrevPages = currentIndex * ITEMS_PER_PAGE;
-  const totalItems = items.length || 1;
-  const progress = ((completedItemsFromPrevPages + answeredOnPage) / totalItems) * 100;
-  const currentDomain = currentPage[0]?.domain_label || "";
+  // ── TUNING SESSION (one item per screen) ──
+  if (!currentItem) return null;
+
+  const progress = ((currentIndex + 1) / totalItems) * 100;
+  const itemsRemaining = totalItems - (currentIndex + 1);
+  const secondsRemaining = itemsRemaining * 5;
+  const minutesRemaining = Math.ceil(secondsRemaining / 60);
+  const domainFraming = getDomainFraming(currentItem.domain_label || "");
+  const selectedValue = allResponses[currentItem.item];
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -334,7 +340,10 @@ export default function CalibrationPage() {
       {/* Header */}
       <div className="flex items-center justify-between px-6 pt-4 pb-2">
         <div className="text-sm text-muted-foreground">
-          Page {currentIndex + 1} of {totalPages} &middot; {answeredOnPage}/{currentPage.length} answered
+          {currentIndex + 1} of {totalItems}
+          {itemsRemaining > 0 && (
+            <span> &middot; ~{minutesRemaining} min remaining</span>
+          )}
         </div>
         <button
           onClick={handleSkip}
@@ -344,9 +353,9 @@ export default function CalibrationPage() {
         </button>
       </div>
 
-      {/* Page content */}
-      <div className="flex-1 overflow-auto px-6 pb-6">
-        <div className="w-full max-w-2xl mx-auto">
+      {/* Item content */}
+      <div className="flex-1 flex items-center justify-center px-6 pb-6">
+        <div className="w-full max-w-lg">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentIndex}
@@ -354,106 +363,75 @@ export default function CalibrationPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: direction === "forward" ? -50 : 50 }}
               transition={{ duration: 0.25, ease: "easeInOut" }}
+              className="space-y-8"
             >
-              {/* Domain header */}
-              {currentDomain && (
-                <div className="text-center mb-6">
-                  <p className="text-xs text-primary font-medium uppercase tracking-widest">{currentDomain}</p>
+              {/* Domain framing */}
+              {domainFraming && (
+                <div className="text-center">
+                  <p className="text-xs text-primary uppercase tracking-widest font-medium">
+                    {domainFraming}
+                  </p>
                 </div>
               )}
 
-              {/* Scale legend */}
-              <div className="flex justify-between mb-4 text-[10px] text-muted-foreground">
-                {SCALE_LABELS.map(({ value, label, abbrev }) => (
-                  <span key={value} className="text-center flex-1">{value} = {label}</span>
-                ))}
+              {/* Statement */}
+              <div className="text-center px-4">
+                <p className="text-2xl leading-relaxed">
+                  <span className="text-muted-foreground">I am someone who </span>
+                  <span className="font-medium">{currentItem.text.toLowerCase()}</span>
+                </p>
               </div>
+
+              {/* Keyboard hint on first item (desktop only) */}
               {currentIndex === 0 && (
-                <p className="text-[10px] text-muted-foreground/60 text-center mt-1 mb-3 hidden sm:block">
+                <p className="text-xs text-muted-foreground/60 text-center hidden sm:block">
                   Tip: Press 1-5 on your keyboard to answer quickly
                 </p>
               )}
 
-              {/* Items list */}
-              <div className="space-y-3">
-                {currentPage.map((item) => {
-                  const selected = pageResponses[item.item];
+              {/* Response buttons */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                {SCALE_LABELS.map(({ value, label }) => {
+                  const isSelected = selectedValue === value;
+                  const isJustSelected = justSelected === value;
                   return (
-                    <div
-                      key={item.item}
-                      className={`rounded-lg border p-4 transition-colors ${
-                        selected !== undefined ? "border-primary/20 bg-primary/[0.02]" : "border-border"
-                      }`}
+                    <button
+                      key={value}
+                      onClick={() => handleSelect(value)}
+                      disabled={saving}
+                      className={`
+                        flex-1 min-h-[4rem] rounded-lg border text-sm font-medium
+                        transition-all duration-150
+                        flex items-center justify-center gap-2 px-4 py-3
+                        ${isJustSelected
+                          ? "border-primary bg-primary text-primary-foreground scale-[1.03]"
+                          : isSelected
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                        }
+                      `}
                     >
-                      <p className="text-sm mb-3">
-                        <span className="text-muted-foreground">I am someone who </span>
-                        <span className="font-medium">{item.text.toLowerCase()}</span>
-                      </p>
-                      <div className="flex gap-2">
-                        {SCALE_LABELS.map(({ value, label, abbrev }) => (
-                          <button
-                            key={value}
-                            onClick={() => setItemResponse(item.item, value)}
-                            className={`
-                              flex-1 min-h-[2.75rem] rounded-lg border text-sm font-medium transition-colors duration-150
-                              flex flex-col items-center justify-center gap-0.5 py-1
-                              ${selected === value
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground"
-                              }
-                            `}
-                            title={label}
-                          >
-                            <span>{value}</span>
-                            <span className="text-[9px] leading-none font-normal">{abbrev}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                      <span className="text-base font-semibold">{value}</span>
+                      <span className="text-sm">{label}</span>
+                    </button>
                   );
                 })}
               </div>
 
-              {/* Navigation buttons */}
-              <div className="mt-6 flex gap-3">
-                {currentIndex > 0 && (
+              {/* Back button */}
+              {currentIndex > 0 && (
+                <div className="flex justify-center">
                   <Button
-                    variant="outline"
-                    onClick={() => {
-                      setDirection("back");
-                      // Save current page answers before going back
-                      setAllResponses((prev) => {
-                        const updated = { ...prev, [currentIndex]: { ...pageResponses } };
-                        const prevIndex = currentIndex - 1;
-                        // Restore previous page's answers
-                        setPageResponses(updated[prevIndex] ? { ...updated[prevIndex] } : {});
-                        return updated;
-                      });
-                      setCurrentIndex((i) => i - 1);
-                    }}
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleBack}
                     disabled={saving}
-                    className="py-5 text-base px-6"
+                    className="text-muted-foreground"
                   >
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back
                   </Button>
-                )}
-                <Button
-                  onClick={handlePageSubmit}
-                  disabled={saving || answeredOnPage < currentPage.length}
-                  className="flex-1 py-5 text-base"
-                >
-                  {saving ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : null}
-                  {currentIndex + 1 >= totalPages ? "Complete Precision Tuning" : "Continue"}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-              {answeredOnPage < currentPage.length && (
-                <p className="text-xs text-muted-foreground text-center mt-2">
-                  Answer all {currentPage.length} statements to continue
-                </p>
+                </div>
               )}
             </motion.div>
           </AnimatePresence>

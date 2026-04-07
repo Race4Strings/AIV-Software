@@ -3,9 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/dashboard/app-sidebar";
-import { SiteHeader } from "@/components/dashboard/site-header";
+import { TopNav } from "@/components/dashboard/top-nav";
 import { useStoredUser } from "@/hooks/use-stored-user";
 
 export default function DashboardLayout({
@@ -31,14 +29,11 @@ export default function DashboardLayout({
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <SiteHeader user={{ name: user.name || "", email: user.email || "", avatar: user.avatar || "" }} />
-        <main id="main-content" className="flex-1 overflow-x-hidden">
-          <div className="mx-auto w-full max-w-6xl">{children}</div>
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+    <div className="flex min-h-screen flex-col">
+      <TopNav />
+      <main id="main-content" className="flex-1 overflow-x-hidden">
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6">{children}</div>
+      </main>
+    </div>
   );
 }

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { humanizeEnum } from "@/lib/humanize";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -27,6 +28,7 @@ export function ReviewStep({
   setStep,
   setLoading,
   setProfileDraft,
+  onSkipDiscovery,
 }: ReviewStepProps) {
   const health = discoveryResults?.health as Record<string, number> | undefined;
 
@@ -63,16 +65,16 @@ export function ReviewStep({
 
       {discoveryPolling && !isMockData ? (
         <Card>
-          <CardContent className="flex flex-col items-center gap-4 py-12">
+          <CardContent className="flex flex-col items-center gap-4 py-10">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <div className="space-y-1 text-center">
+            <div className="space-y-1.5 text-center">
               {DISCOVERY_STAGES.map((stage, i) => (
                 <p
                   key={stage}
                   className={`text-sm transition-[color,opacity] duration-500 ${
                     i === discoveryStage ? "text-foreground font-medium" :
-                    i < discoveryStage ? "text-emerald-500 line-through" :
-                    "text-muted-foreground/40"
+                    i < discoveryStage ? "text-success" :
+                    "text-muted-foreground/30"
                   }`}
                 >
                   {i < discoveryStage && <CheckCircle2 className="h-3.5 w-3.5 inline mr-1.5" />}
@@ -80,7 +82,25 @@ export function ReviewStep({
                 </p>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground">This typically takes 15–30 seconds</p>
+            <p className="text-xs text-muted-foreground mt-2">This typically takes 15–30 seconds. Your data stays private.</p>
+            {discoveryStage >= 2 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => onSkipDiscovery?.()}
+              >
+                Continue with what we have so far
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs text-muted-foreground/60"
+              onClick={() => setStep(0)}
+            >
+              <ArrowLeft className="h-3 w-3 mr-1" /> Back
+            </Button>
           </CardContent>
         </Card>
       ) : (
@@ -116,14 +136,15 @@ export function ReviewStep({
               </div>
 
               {/* Wikipedia summary */}
-              {(discoveryResults?.twin as Record<string, unknown>)?.wikipedia && (
-                <div className="pt-3 border-t border-border/30">
-                  <Label className="text-xs text-muted-foreground">Wikipedia</Label>
-                  <p className="text-sm text-muted-foreground mt-1 line-clamp-3">
-                    {((discoveryResults?.twin as Record<string, unknown>)?.wikipedia as Record<string, string>)?.extract}
-                  </p>
-                </div>
-              )}
+              {(() => {
+                const wiki = (discoveryResults?.twin as Record<string, unknown> | undefined)?.wikipedia as Record<string, string> | undefined;
+                return wiki?.extract ? (
+                  <div className="pt-3 border-t border-border/30">
+                    <Label className="text-xs text-muted-foreground">Wikipedia</Label>
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-3">{wiki.extract}</p>
+                  </div>
+                ) : null;
+              })()}
 
               {/* Gemini-synthesized profile */}
               {(discoveryResults?.twin as Record<string, unknown>)?.gemini_profile && (() => {
@@ -179,8 +200,8 @@ export function ReviewStep({
                     return (
                       <div key={key} className="text-center">
                         <div className="text-lg font-bold">{value ? `${Math.round(value * 100)}%` : "—"}</div>
-                        <div className="text-[10px] font-medium text-muted-foreground">{meta?.label || key}</div>
-                        <div className="text-[9px] text-muted-foreground/60 mt-0.5">{meta?.desc}</div>
+                        <div className="text-xs font-medium text-muted-foreground">{meta?.label || key}</div>
+                        <div className="text-xs text-muted-foreground/60 mt-0.5">{meta?.desc}</div>
                       </div>
                     );
                   })}
@@ -194,7 +215,7 @@ export function ReviewStep({
                   <div className="flex gap-1.5 mt-1.5 flex-wrap">
                     {(discoveryResults?.detected_categories as string[])?.map((cat: string) => (
                       <Badge key={cat} variant="secondary" className="text-xs">
-                        {cat.replace(/_/g, " ")}
+                        {humanizeEnum(cat)}
                       </Badge>
                     ))}
                   </div>
@@ -211,9 +232,9 @@ export function ReviewStep({
         <Button variant="outline" onClick={() => setStep(0)} disabled={loading || discoveryPolling}>
           <ArrowLeft className="h-4 w-4 mr-1" /> Back
         </Button>
-        <Button onClick={confirmProfile} disabled={loading || discoveryPolling} className="flex-1">
+        <Button onClick={confirmProfile} disabled={loading || discoveryPolling} variant="secondary" className="flex-1">
           {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-          Continue <ArrowRight className="h-4 w-4 ml-1" />
+          Confirm Profile
         </Button>
       </div>
     </div>

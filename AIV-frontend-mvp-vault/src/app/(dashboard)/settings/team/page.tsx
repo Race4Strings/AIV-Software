@@ -6,6 +6,7 @@ import {
   Users, UserPlus, Shield, CheckCircle2,
   Clock, Loader2, Crown, Eye, Trash2,
 } from "lucide-react";
+import { Breadcrumb } from "@/components/shared/breadcrumb";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,10 +15,11 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { organizationsApi, type OrgMember } from "@/lib/api/organizations";
+import { authApi } from "@/lib/api";
 
 const ROLE_CONFIG: Record<string, { label: string; icon: typeof Crown; color: string; desc: string }> = {
-  OWNER: { label: "Owner", icon: Crown, color: "text-amber-500", desc: "Full control over the organization and all identities" },
-  ADMIN: { label: "Admin", icon: Shield, color: "text-blue-500", desc: "Can manage identities, deals, and team settings" },
+  OWNER: { label: "Owner", icon: Crown, color: "text-warning", desc: "Full control over the organization and all identities" },
+  ADMIN: { label: "Admin", icon: Shield, color: "text-primary", desc: "Can manage identities, deals, and team settings" },
   MEMBER: { label: "Member", icon: Users, color: "text-foreground", desc: "Can view and contribute to identities and deals" },
   VIEWER: { label: "Viewer", icon: Eye, color: "text-muted-foreground", desc: "Read-only access to identities and deals" },
 };
@@ -34,21 +36,18 @@ export default function TeamPage() {
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
 
   useEffect(() => {
-    // Get org ID from user data
-    try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      const userData = user.data || user;
-      // The org ID would come from the user's organization membership
-      // For now, fetch from the API using the user's first org
-      if (userData.org_id) {
-        setOrgId(userData.org_id);
-        loadMembers(userData.org_id);
-      } else {
-        setLoading(false);
-      }
-    } catch {
-      setLoading(false);
-    }
+    // Get org ID from authenticated user profile
+    authApi.getMe()
+      .then((res) => {
+        const userData = res?.data || res;
+        if (userData?.org_id) {
+          setOrgId(userData.org_id);
+          loadMembers(userData.org_id);
+        } else {
+          setLoading(false);
+        }
+      })
+      .catch(() => setLoading(false));
   }, []);
 
   async function loadMembers(oid: string) {
@@ -88,6 +87,7 @@ export default function TeamPage() {
 
   return (
     <div className="max-w-3xl space-y-8 p-6">
+      <Breadcrumb items={[{ label: "Settings", href: "/settings" }, { label: "Team" }]} />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Team</h1>
@@ -171,7 +171,7 @@ export default function TeamPage() {
                           <option value="VIEWER">Viewer</option>
                         </select>
                       ) : (
-                        <Badge variant="outline" className="text-[10px]">
+                        <Badge variant="outline" className="text-xs">
                           <RoleIcon className={`h-3 w-3 mr-1 ${roleConfig.color}`} />
                           {roleConfig.label}
                         </Badge>
@@ -183,12 +183,12 @@ export default function TeamPage() {
                     <div className="text-xs text-muted-foreground mt-0.5">
                       {m.accepted_at ? (
                         <span className="flex items-center gap-1">
-                          <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                          <CheckCircle2 className="h-3 w-3 text-success" />
                           Joined {new Date(m.accepted_at).toLocaleDateString()}
                         </span>
                       ) : (
                         <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3 text-yellow-500" />
+                          <Clock className="h-3 w-3 text-warning" />
                           Invitation pending
                         </span>
                       )}

@@ -4,6 +4,7 @@ import { authStorage } from "../auth-storage";
 const apiClient = axios.create({
     baseURL: "/api/backend",
     withCredentials: true,
+    timeout: 30000,
     headers: { "Content-Type": "application/json" },
 });
 

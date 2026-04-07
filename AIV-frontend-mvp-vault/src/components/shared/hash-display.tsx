@@ -34,7 +34,7 @@ export function HashDisplay({ hash, className }: HashDisplayProps) {
     >
       <span>{truncated}</span>
       {copied ? (
-        <Check className="size-3 text-green-500" />
+        <Check className="size-3 text-success" />
       ) : (
         <Copy className="size-3" />
       )}

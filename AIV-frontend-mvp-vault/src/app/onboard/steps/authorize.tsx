@@ -61,10 +61,12 @@ export function AuthorizeStep({
 
           <div className="space-y-2 text-sm">
             <div className="grid grid-cols-2 gap-2">
-              <div><span className="text-muted-foreground">Name:</span> <strong>{profileDraft.display_name}</strong></div>
+              <div className="flex items-center gap-1">
+                <span className="text-muted-foreground">Name:</span> <strong>{profileDraft.display_name}</strong>
+                <button onClick={() => setStep(1)} className="text-xs text-primary hover:underline ml-1">edit</button>
+              </div>
               <div><span className="text-muted-foreground">Clone Type:</span> <strong>{CLONE_TYPES.find(ct => ct.key === cloneType)?.label || "Public Figure"}</strong></div>
-              <div><span className="text-muted-foreground">Files uploaded:</span> <strong>{files.length}</strong></div>
-              <div><span className="text-muted-foreground">Manager confirmed:</span> <strong className="text-emerald-500">Yes</strong></div>
+              <div><span className="text-muted-foreground">Manager confirmed:</span> <strong className="text-success">Yes</strong></div>
             </div>
             {profileDraft.bio && (
               <div className="pt-1">
@@ -79,12 +81,12 @@ export function AuthorizeStep({
             <div className="space-y-1">
               {ALL_CONSENTS.filter((c) => consents[c.key]).map((c) => (
                 <div key={c.key} className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                  <CheckCircle2 className="h-3.5 w-3.5 text-success" />
                   <span>{c.label}</span>
                 </div>
               ))}
               {grantedConsents.length === 0 && (
-                <div className="flex items-center gap-2 text-sm text-amber-500">
+                <div className="flex items-center gap-2 text-sm text-warning">
                   <AlertTriangle className="h-3.5 w-3.5" />
                   <span>No consents granted</span>
                 </div>
@@ -103,14 +105,14 @@ export function AuthorizeStep({
                   const below = pct < threshold;
                   return (
                     <div key={key} className="text-center">
-                      <div className={`text-sm font-bold ${below ? "text-amber-500" : "text-emerald-500"}`}>{pct}%</div>
-                      <div className="text-[10px] text-muted-foreground">{HEALTH_LABELS[key]?.label}</div>
-                      {below && <div className="text-[9px] text-amber-500/70">Target: {threshold}%</div>}
+                      <div className={`text-sm font-bold ${below ? "text-warning" : "text-success"}`}>{pct}%</div>
+                      <div className="text-xs text-muted-foreground">{HEALTH_LABELS[key]?.label}</div>
+                      {below && <div className="text-xs text-warning/70">Target: {threshold}%</div>}
                     </div>
                   );
                 })}
               </div>
-              <p className="text-[10px] text-muted-foreground mt-2">Scores will improve as you train your twin in the Training Area.</p>
+              <p className="text-xs text-muted-foreground mt-2">Scores will improve as you train your twin in the Training Area.</p>
             </div>
           )}
         </CardContent>
@@ -138,12 +140,12 @@ export function AuthorizeStep({
         <Button
           onClick={submitGate2}
           disabled={loading}
-          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-base font-semibold active:scale-[0.97] transition-[transform,background-color] duration-150"
+          className="w-full bg-success hover:bg-success/90 text-success-foreground py-3 text-base font-semibold active:scale-[0.97] transition-[transform,background-color] duration-150"
         >
           {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <UserCheck className="h-5 w-5 mr-2" />}
           I Authorize This Identity
         </Button>
-        <Button variant="ghost" onClick={() => setStep(3)} disabled={loading} className="w-full py-3 active:scale-[0.97] transition-transform duration-150">
+        <Button variant="ghost" onClick={() => setStep(1)} disabled={loading} className="w-full py-3 active:scale-[0.97] transition-transform duration-150">
           <ArrowLeft className="h-4 w-4 mr-1" /> Back
         </Button>
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { humanizeEnum } from "@/lib/humanize";
 import { Bot, User } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
@@ -56,8 +57,8 @@ export function MessageBubble({ role, content, modeAtTime, isStreaming }: Messag
           )}
         </div>
         {modeAtTime && !isUser && (
-          <span className="text-[10px] text-muted-foreground/60 px-1">
-            {modeAtTime.toLowerCase().replace(/_/g, " ")}
+          <span className="text-xs text-muted-foreground/60 px-1">
+            {humanizeEnum(modeAtTime)}
           </span>
         )}
       </div>

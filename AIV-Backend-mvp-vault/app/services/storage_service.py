@@ -16,10 +16,30 @@ from typing import Optional, BinaryIO
 from uuid import uuid4
 import mimetypes
 from functools import lru_cache
+from fastapi import HTTPException
 
 from ..config import get_settings
 
 logger = logging.getLogger(__name__)
+
+ALLOWED_TYPES = {
+    "voice": {
+        "mimetypes": ["audio/mpeg", "audio/wav", "audio/x-wav", "audio/mp4", "audio/m4a", "audio/webm"],
+        "max_size_mb": 500,
+    },
+    "image": {
+        "mimetypes": ["image/jpeg", "image/png", "image/webp", "image/gif"],
+        "max_size_mb": 50,
+    },
+    "document": {
+        "mimetypes": [
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ],
+        "max_size_mb": 100,
+    },
+}
 
 
 class StorageService:
@@ -84,21 +104,51 @@ class StorageService:
         filename: str,
         user_id: Optional[str] = None,
         content_type: Optional[str] = None,
-        folder: str = "uploads"
+        folder: str = "uploads",
+        file_category: Optional[str] = None,
     ) -> dict:
         """
         Upload a file to S3-compatible storage.
-        
+
         Args:
             file: File-like object to upload
             filename: Original filename
             user_id: User ID for organizing files per user
             content_type: MIME type (auto-detected if not provided)
             folder: Folder prefix in bucket (uploads, voice, images, documents)
-        
+            file_category: Optional category for validation (voice, image, document)
+
         Returns:
             dict with url, key, filename
         """
+        # Validate file category if provided
+        if file_category and file_category in ALLOWED_TYPES:
+            rules = ALLOWED_TYPES[file_category]
+
+            # Detect content type for validation
+            detected_type = content_type
+            if not detected_type:
+                detected_type, _ = mimetypes.guess_type(filename)
+                detected_type = detected_type or "application/octet-stream"
+
+            if detected_type not in rules["mimetypes"]:
+                allowed = ", ".join(rules["mimetypes"])
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"File type '{detected_type}' is not allowed for {file_category} uploads. Allowed types: {allowed}",
+                )
+
+            # Check file size
+            file.seek(0, 2)  # Seek to end
+            file_size_bytes = file.tell()
+            file.seek(0)  # Seek back to start
+            max_bytes = rules["max_size_mb"] * 1024 * 1024
+            if file_size_bytes > max_bytes:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"File size ({file_size_bytes // (1024 * 1024)}MB) exceeds the {rules['max_size_mb']}MB limit for {file_category} uploads.",
+                )
+
         # Generate unique key with user folder
         ext = filename.rsplit('.', 1)[-1] if '.' in filename else 'bin'
         unique_filename = f"{uuid4()}.{ext}"
@@ -140,17 +190,17 @@ class StorageService:
             "content_type": content_type
         }
     
-    def upload_voice(self, file: BinaryIO, filename: str, user_id: Optional[str] = None) -> dict:
+    def upload_voice(self, file: BinaryIO, filename: str, user_id: Optional[str] = None, file_category: Optional[str] = None) -> dict:
         """Upload voice recording."""
-        return self.upload_file(file, filename, user_id=user_id, folder="voice")
-    
-    def upload_image(self, file: BinaryIO, filename: str, user_id: Optional[str] = None) -> dict:
+        return self.upload_file(file, filename, user_id=user_id, folder="voice", file_category=file_category)
+
+    def upload_image(self, file: BinaryIO, filename: str, user_id: Optional[str] = None, file_category: Optional[str] = None) -> dict:
         """Upload image file."""
-        return self.upload_file(file, filename, user_id=user_id, folder="images")
-    
-    def upload_document(self, file: BinaryIO, filename: str, user_id: Optional[str] = None) -> dict:
+        return self.upload_file(file, filename, user_id=user_id, folder="images", file_category=file_category)
+
+    def upload_document(self, file: BinaryIO, filename: str, user_id: Optional[str] = None, file_category: Optional[str] = None) -> dict:
         """Upload knowledge document."""
-        return self.upload_file(file, filename, user_id=user_id, folder="documents")
+        return self.upload_file(file, filename, user_id=user_id, folder="documents", file_category=file_category)
     
     def get_presigned_url(self, key: str, expires_in: int = 3600) -> str:
         """

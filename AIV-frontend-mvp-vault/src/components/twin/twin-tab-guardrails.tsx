@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Shield, Pencil, Save, X } from "lucide-react";
+import { humanizeEnum } from "@/lib/humanize";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -38,9 +39,9 @@ export function TwinTabGuardrails({ twinId, guardrails, onGuardrailsChange }: Tw
         restricted_topics: Array.isArray(guardrails.restricted_topics) ? guardrails.restricted_topics : [],
         humor_permitted: guardrails.humor_permitted,
         require_ai_disclosure: guardrails.require_ai_disclosure,
-        language: (guardrails as Record<string, unknown>).language || "",
-        formality: (guardrails as Record<string, unknown>).formality || "neutral",
-        controversy_threshold: (guardrails as Record<string, unknown>).controversy_threshold || "low",
+        language: (guardrails as any).language || "",
+        formality: (guardrails as any).formality || "neutral",
+        controversy_threshold: (guardrails as any).controversy_threshold || "low",
       });
     } else {
       setDraft({
@@ -60,7 +61,7 @@ export function TwinTabGuardrails({ twinId, guardrails, onGuardrailsChange }: Tw
     setSaving(true);
     try {
       const result = await guardrailsApi.update(twinId, draft);
-      onGuardrailsChange(result.config || result);
+      onGuardrailsChange((result as any).config || result);
       setEditing(false);
       toast.success("Guardrails updated (new version created)");
     } catch {
@@ -160,7 +161,7 @@ export function TwinTabGuardrails({ twinId, guardrails, onGuardrailsChange }: Tw
                 const topics = guardrails!.restricted_topics;
                 const arr = Array.isArray(topics) ? topics : [];
                 return arr.length > 0
-                  ? arr.map((t: string) => <Badge key={t} variant="outline" className="border-amber-500/40 text-amber-600">{t}</Badge>)
+                  ? arr.map((t: string) => <Badge key={t} variant="outline" className="border-warning/40 text-warning">{t}</Badge>)
                   : <span className="text-sm text-muted-foreground italic">No restricted topics configured</span>;
               })()}
             </div>
@@ -183,7 +184,7 @@ export function TwinTabGuardrails({ twinId, guardrails, onGuardrailsChange }: Tw
             ) : (
               <div className="text-lg font-medium mt-2">{guardrails!.humor_permitted ? "Permitted" : "Restricted"}</div>
             )}
-            <p className="text-[10px] text-muted-foreground/60 mt-2 italic">
+            <p className="text-xs text-muted-foreground/60 mt-2 italic">
               {(editing ? draft.humor_permitted : guardrails!.humor_permitted)
                 ? "Your twin may use appropriate humor and wit in responses."
                 : "Your twin will maintain a professional, serious tone at all times."}
@@ -204,7 +205,7 @@ export function TwinTabGuardrails({ twinId, guardrails, onGuardrailsChange }: Tw
             ) : (
               <div className="text-lg font-medium mt-2">{guardrails!.require_ai_disclosure ? "Required" : "Optional"}</div>
             )}
-            <p className="text-[10px] text-muted-foreground/60 mt-2 italic">
+            <p className="text-xs text-muted-foreground/60 mt-2 italic">
               {(editing ? draft.require_ai_disclosure : guardrails!.require_ai_disclosure)
                 ? "Every response will include a note that it was AI-generated."
                 : "Responses will not include an AI-generation disclosure."}
@@ -235,8 +236,8 @@ export function TwinTabGuardrails({ twinId, guardrails, onGuardrailsChange }: Tw
               />
             ) : (
               <div className="text-lg font-medium mt-2">
-                {(guardrails as Record<string, unknown>)?.language
-                  ? String((guardrails as Record<string, unknown>).language)
+                {(guardrails as any)?.language
+                  ? String((guardrails as any).language)
                   : <span className="text-sm text-muted-foreground italic">Any</span>}
               </div>
             )}
@@ -265,7 +266,7 @@ export function TwinTabGuardrails({ twinId, guardrails, onGuardrailsChange }: Tw
               </Select>
             ) : (
               <div className="text-lg font-medium mt-2 capitalize">
-                {String((guardrails as Record<string, unknown>)?.formality || "neutral").replace(/_/g, " ")}
+                {humanizeEnum(String((guardrails as any)?.formality || "neutral"))}
               </div>
             )}
           </CardContent>
@@ -293,7 +294,7 @@ export function TwinTabGuardrails({ twinId, guardrails, onGuardrailsChange }: Tw
               </Select>
             ) : (
               <div className="text-lg font-medium mt-2 capitalize">
-                {String((guardrails as Record<string, unknown>)?.controversy_threshold || "low").replace(/_/g, " ")}
+                {humanizeEnum(String((guardrails as any)?.controversy_threshold || "low"))}
               </div>
             )}
           </CardContent>
