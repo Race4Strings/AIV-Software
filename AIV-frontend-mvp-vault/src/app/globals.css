@@ -235,3 +235,17 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* High contrast mode — increases borders, text contrast, removes glass effects */
+@media (prefers-contrast: more) {
+  :root, .dark {
+    --border: oklch(0.5 0.02 262);
+    --muted-foreground: oklch(0.80 0.01 262);
+    --ring: oklch(0.7 0.2 262);
+  }
+  .glass, .glass-sm, .glass-lg, .glass-solid {
+    backdrop-filter: none;
+    background: var(--card);
+    border: 1px solid var(--border);
+  }
+}
