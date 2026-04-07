@@ -17,7 +17,7 @@ from sqlalchemy import create_engine, text
 database_url = os.getenv("DATABASE_URL_SYNC")
 if not database_url:
     # Use psycopg3 driver (installed as psycopg[binary] in requirements.txt)
-    database_url = os.getenv("DATABASE_URL", "").replace("+asyncpg", "+psycopg").replace("postgresql+asyncpg", "postgresql+psycopg")
+    database_url = os.getenv("DATABASE_URL", "").replace("+asyncpg", "").replace("postgresql+asyncpg", "postgresql")
 
 engine = create_engine(database_url, echo=False)
 

@@ -36,7 +36,7 @@ from app.utils.password import hash_password
 # Use the sync database URL
 database_url = os.getenv("DATABASE_URL_SYNC")
 if not database_url:
-    database_url = os.getenv("DATABASE_URL", "").replace("+asyncpg", "+psycopg").replace("postgresql+asyncpg", "postgresql+psycopg")
+    database_url = os.getenv("DATABASE_URL", "").replace("+asyncpg", "").replace("postgresql+asyncpg", "postgresql")
 
 print(f"Connecting to database...")
 engine = create_engine(database_url, echo=False)
