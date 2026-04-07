@@ -1,8 +1,10 @@
 """Add missing columns to users table + seed demo data.
 
-Run with: python migrations/add_lockout_columns.py
+Handles both cases:
+- Table doesn't exist yet (skips ALTER, lets init_tables.py create it)
+- Table exists but missing columns (adds them)
 
-Safe to run multiple times — checks if columns/data exist before adding.
+Safe to run multiple times.
 """
 import os
 import sys
@@ -21,15 +23,26 @@ if not database_url:
 engine = create_engine(database_url, echo=False)
 
 with engine.connect() as conn:
-    # Get all existing columns on users table
+    # Check if users table exists at all
     result = conn.execute(text("""
-        SELECT column_name FROM information_schema.columns
-        WHERE table_name = 'users'
+        SELECT EXISTS (
+            SELECT FROM information_schema.tables WHERE table_name = 'users'
+        )
+    """))
+    table_exists = result.scalar()
+
+    if not table_exists:
+        print("Users table does not exist yet. Skipping migration (init_tables.py will create it).")
+        print("Migration complete (no-op).")
+        sys.exit(0)
+
+    # Table exists — check for missing columns
+    result = conn.execute(text("""
+        SELECT column_name FROM information_schema.columns WHERE table_name = 'users'
     """))
     existing = {row[0] for row in result}
-    print(f"Existing columns: {len(existing)}")
+    print(f"Existing columns: {existing}")
 
-    # Add any missing columns
     columns_to_add = {
         "failed_login_attempts": "INTEGER NOT NULL DEFAULT 0",
         "locked_until": "TIMESTAMPTZ",
@@ -40,17 +53,14 @@ with engine.connect() as conn:
 
     for col, col_type in columns_to_add.items():
         if col not in existing:
-            try:
-                conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {col_type}"))
-                print(f"Added: {col}")
-            except Exception as e:
-                print(f"Skipped {col}: {e}")
+            conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {col_type}"))
+            print(f"Added: {col}")
         else:
             print(f"Exists: {col}")
 
     conn.commit()
 
-    # Seed demo user if not exists
+    # Seed demo user
     result = conn.execute(text("SELECT id FROM users WHERE user_name = 'demo' LIMIT 1"))
     demo_user = result.fetchone()
 
@@ -67,21 +77,22 @@ with engine.connect() as conn:
         conn.commit()
         print("Demo user created: demo@vault.dev / VaultDemo#2026")
     else:
-        print(f"\nDemo user exists: {demo_user[0]}")
+        print(f"\nDemo user exists")
 
-    # Seed demo access code if not exists
-    result = conn.execute(text("SELECT 1 FROM access_codes WHERE code = 'DEMO-2026' LIMIT 1"))
-    if not result.fetchone():
-        try:
+    # Seed access code
+    result = conn.execute(text("""
+        SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'access_codes')
+    """))
+    if result.scalar():
+        result = conn.execute(text("SELECT 1 FROM access_codes WHERE code = 'DEMO-2026' LIMIT 1"))
+        if not result.fetchone():
             conn.execute(text("""
                 INSERT INTO access_codes (id, code, label, is_used, created_at)
                 VALUES (gen_random_uuid(), 'DEMO-2026', 'Demo', false, NOW())
             """))
             conn.commit()
             print("Demo access code created: DEMO-2026")
-        except Exception as e:
-            print(f"Skipped access code: {e}")
-    else:
-        print("Demo access code exists: DEMO-2026")
+        else:
+            print("Demo access code exists")
 
     print("\nMigration complete.")
