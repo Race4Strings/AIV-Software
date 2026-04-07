@@ -66,9 +66,8 @@ with engine.connect() as conn:
 
     if not demo_user:
         print("\nSeeding demo user...")
-        from passlib.context import CryptContext
-        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        hashed = pwd_context.hash("VaultDemo#2026")
+        import bcrypt
+        hashed = bcrypt.hashpw("VaultDemo#2026".encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
         conn.execute(text("""
             INSERT INTO user_table (id, name, email, user_name, password, is_verified, role, created_at, updated_at, failed_login_attempts)
