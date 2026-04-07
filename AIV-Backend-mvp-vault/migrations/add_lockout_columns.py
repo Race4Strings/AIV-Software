@@ -26,7 +26,7 @@ with engine.connect() as conn:
     # Check if users table exists at all
     result = conn.execute(text("""
         SELECT EXISTS (
-            SELECT FROM information_schema.tables WHERE table_name = 'users'
+            SELECT FROM information_schema.tables WHERE table_name = 'user_table'
         )
     """))
     table_exists = result.scalar()
@@ -38,7 +38,7 @@ with engine.connect() as conn:
 
     # Table exists — check for missing columns
     result = conn.execute(text("""
-        SELECT column_name FROM information_schema.columns WHERE table_name = 'users'
+        SELECT column_name FROM information_schema.columns WHERE table_name = 'user_table'
     """))
     existing = {row[0] for row in result}
     print(f"Existing columns: {existing}")
@@ -53,7 +53,7 @@ with engine.connect() as conn:
 
     for col, col_type in columns_to_add.items():
         if col not in existing:
-            conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {col_type}"))
+            conn.execute(text(f"ALTER TABLE user_table ADD COLUMN {col} {col_type}"))
             print(f"Added: {col}")
         else:
             print(f"Exists: {col}")
@@ -61,7 +61,7 @@ with engine.connect() as conn:
     conn.commit()
 
     # Seed demo user
-    result = conn.execute(text("SELECT id FROM users WHERE user_name = 'demo' LIMIT 1"))
+    result = conn.execute(text("SELECT id FROM user_table WHERE user_name = 'demo' LIMIT 1"))
     demo_user = result.fetchone()
 
     if not demo_user:
@@ -71,7 +71,7 @@ with engine.connect() as conn:
         hashed = pwd_context.hash("VaultDemo#2026")
 
         conn.execute(text("""
-            INSERT INTO users (id, name, email, user_name, password, is_verified, role, created_at, updated_at, failed_login_attempts)
+            INSERT INTO user_table (id, name, email, user_name, password, is_verified, role, created_at, updated_at, failed_login_attempts)
             VALUES (gen_random_uuid(), 'John Doe', 'demo@vault.dev', 'demo', :password, true, 'TALENT', NOW(), NOW(), 0)
         """), {"password": hashed})
         conn.commit()
