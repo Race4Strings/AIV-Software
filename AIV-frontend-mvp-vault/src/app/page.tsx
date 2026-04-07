@@ -25,7 +25,7 @@ export default function HomePage() {
   const { opacity: auroraOpacity, handleMouseMove, handleTouchStart, handleTouchEnd } = useShakeDetection();
 
   useEffect(() => {
-    try { const user = localStorage.getItem("user"); if (user && JSON.parse(user)?.name) router.replace("/dashboard"); } catch {}
+    try { const user = localStorage.getItem("user"); if (user && JSON.parse(user)?.name) router.replace("/dashboard"); } catch (e) { /* non-critical — localStorage unavailable in incognito */ }
   }, [router]);
 
   function handleRequestAccess() { setModalInitialStep(0); setModalOpen(true); }

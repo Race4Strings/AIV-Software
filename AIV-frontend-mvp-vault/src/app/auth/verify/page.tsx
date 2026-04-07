@@ -36,7 +36,7 @@ function VerifyPageContent() {
       if (data) {
         authStorage.saveUser(data.data || data)
       }
-      window.location.href = '/onboard'
+      router.push('/onboard')
     },
     onError: (error: any) => {
       const detail = error?.response?.data?.detail

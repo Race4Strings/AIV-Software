@@ -71,7 +71,7 @@ export function TopNav() {
         try {
           const data = JSON.parse(event.data);
           if (data.type === "notification") setNotifications((prev) => [data.notification, ...prev]);
-        } catch {}
+        } catch (e) { /* SSE parse error, non-critical */ }
       };
       eventSource.onerror = () => {
         eventSource?.close();

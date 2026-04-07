@@ -216,7 +216,7 @@ export default function CertificationPage() {
             </p>
 
             {/* Hash & Blockchain Seal */}
-            <div className="rounded-lg border-t border border-border/50 bg-muted/30 p-5 mt-2">
+            <div className="rounded-lg border-t border border-border/50 bg-muted/30 p-6 mt-2">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                   <ShieldCheck className="size-4 text-success" />
@@ -316,7 +316,7 @@ export default function CertificationPage() {
             )}
 
             {/* What This Means */}
-            <div className="rounded-lg border border-border/50 bg-muted/20 p-5 space-y-3">
+            <div className="rounded-lg border border-border/50 bg-muted/20 p-6 space-y-3">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 What This Certification Means
               </p>

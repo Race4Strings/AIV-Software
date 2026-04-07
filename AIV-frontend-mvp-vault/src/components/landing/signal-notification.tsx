@@ -177,9 +177,9 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
         <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg ${colors.bg}`}>
           <Icon className={`h-3 w-3 ${colors.text}`} />
         </div>
-        <span className="text-[11px] font-medium text-white/70 truncate">{signal.title}</span>
+        <span className="text-xs font-medium text-white/70 truncate">{signal.title}</span>
         {signal.badge && !isOpen && (
-          <span className={`ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${colors.badge} shrink-0`}>{signal.badge}</span>
+          <span className={`ml-auto text-xs font-semibold px-1.5 py-0.5 rounded-full ${colors.badge} shrink-0`}>{signal.badge}</span>
         )}
       </div>
       {/* Content: CSS grid-rows for instant, symmetric expand/collapse — no AnimatePresence */}
@@ -191,18 +191,18 @@ function SignalPill({ signal, onHover, onLeave }: { signal: Signal; onHover?: ()
         }}>
         <div className="overflow-hidden min-h-0">
           <div className="px-3 pb-3 pt-0.5">
-            <p className="text-[11px] text-white/50 leading-relaxed">{signal.description}</p>
+            <p className="text-xs text-white/50 leading-relaxed">{signal.description}</p>
             {signal.metric && (
               <div className="mt-2 flex items-baseline gap-2">
                 <span className="text-lg font-bold text-white font-mono tabular-nums">{metricDisplay}</span>
-                {signal.metricLabel && <span className="text-[9px] text-white/40 uppercase tracking-wider">{signal.metricLabel}</span>}
+                {signal.metricLabel && <span className="text-xs text-white/40 uppercase tracking-wider">{signal.metricLabel}</span>}
               </div>
             )}
             <div className="mt-2 h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
               <motion.div className={`h-full rounded-full ${colors.dot}`} style={{ width: barWidthStr }} />
             </div>
             {signal.badge && (
-              <span className={`mt-2 inline-block text-[9px] font-semibold px-2 py-0.5 rounded-full ${colors.badge}`}>{signal.badge}</span>
+              <span className={`mt-2 inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${colors.badge}`}>{signal.badge}</span>
             )}
           </div>
         </div>

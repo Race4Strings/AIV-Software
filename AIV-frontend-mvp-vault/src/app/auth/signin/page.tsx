@@ -51,7 +51,7 @@ export default function SigninPage() {
       </div>
 
       {/* Sign In Form */}
-      <form onSubmit={handleSubmit} className="grid gap-5">
+      <form onSubmit={handleSubmit} className="grid gap-4">
         <div className="grid gap-2">
           <label htmlFor="identifier" className="text-sm font-medium text-white/70">
             Email or Username

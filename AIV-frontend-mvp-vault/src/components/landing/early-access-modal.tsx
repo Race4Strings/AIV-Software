@@ -596,7 +596,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 <div className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">What happens next</div>
                 {successCopy.steps.map((s, i) => (
                   <div key={i} className="flex items-start gap-2.5 text-sm text-white/70 mb-2 last:mb-0">
-                    <span className="shrink-0 w-5 h-5 rounded-full bg-blue-500/15 text-blue-400 text-[10px] font-bold flex items-center justify-center mt-0.5">
+                    <span className="shrink-0 w-5 h-5 rounded-full bg-blue-500/15 text-blue-400 text-xs font-bold flex items-center justify-center mt-0.5">
                       {i + 1}
                     </span>
                     <span className="leading-relaxed">{s}</span>

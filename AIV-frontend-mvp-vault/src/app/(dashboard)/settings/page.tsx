@@ -54,11 +54,11 @@ export default function SettingsPage() {
       // Load notification prefs from localStorage
       const prefs = localStorage.getItem("notification_prefs");
       if (prefs) setNotifPrefs(JSON.parse(prefs));
-    } catch {}
+    } catch (e) { /* non-critical — localStorage/parse failure */ }
   }, []);
 
   const handleLogout = async () => {
-    try { await authApi.signout(); } catch {}
+    try { await authApi.signout(); } catch (e) { console.error("Logout API error:", e); }
     authStorage.clear();
     router.replace("/auth/signin");
   };
@@ -95,7 +95,7 @@ export default function SettingsPage() {
           <p className="text-sm text-muted-foreground">Your account and organization details.</p>
         </div>
         <Card className="border-border/50">
-          <CardContent className="p-5 space-y-4">
+          <CardContent className="p-6 space-y-4">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
                 <User className="h-6 w-6 text-primary" />
@@ -170,7 +170,7 @@ export default function SettingsPage() {
           <p className="text-sm text-muted-foreground">Control which alerts you receive.</p>
         </div>
         <Card className="border-border/50">
-          <CardContent className="p-5 space-y-4">
+          <CardContent className="p-6 space-y-4">
             {[
               { key: "deal_alerts", label: "Deal Alerts", desc: "New inquiries, status changes, contract updates" },
               { key: "pul_reminders", label: "PUL Reminders", desc: "Permitted Use Lifecycle submission deadlines" },
@@ -200,7 +200,7 @@ export default function SettingsPage() {
           <p className="text-sm text-muted-foreground">Payment methods, invoices, and payout history.</p>
         </div>
         <Card className="border-border/50">
-          <CardContent className="p-5">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">Manage billing</p>
@@ -223,7 +223,7 @@ export default function SettingsPage() {
           <p className="text-sm text-muted-foreground">Session and access management.</p>
         </div>
         <Card className="border-border/50">
-          <CardContent className="p-5">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">Sign out</p>
@@ -256,7 +256,7 @@ export default function SettingsPage() {
 
         {/* Change Password */}
         <Card className="border-border/50">
-          <CardContent className="p-5">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">Change password</p>

@@ -134,7 +134,7 @@ function HowItWorksCard({ item, index, autoFlash }: { item: typeof REVEAL_STEPS[
       onMouseLeave={() => setHovered(false)}
       onTouchStart={() => { touchedRef.current = true; }}
       onTouchEnd={(e) => { e.preventDefault(); setTapActive(true); setTimeout(() => setTapActive(false), 3000); setTimeout(() => { touchedRef.current = false; }, 500); }}>
-      <span className="absolute top-3 right-3 text-[10px] font-mono text-white/10 tracking-wider">{item.num}</span>
+      <span className="absolute top-3 right-3 text-xs font-mono text-white/10 tracking-wider">{item.num}</span>
       <div className="flex items-center gap-2.5 mb-2.5">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg transition-[transform,background-color] duration-300 ease-out"
           style={{ willChange: "transform", transformOrigin: "center center", transform: showColor ? "scale(1.2) rotate(8deg) translateY(-2px)" : "scale(1) rotate(0deg) translateY(0px)", backgroundColor: showColor ? `${item.color}15` : "rgba(255,255,255,0.04)" }}>
