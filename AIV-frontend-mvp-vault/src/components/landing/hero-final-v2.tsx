@@ -142,7 +142,7 @@ function HowItWorksCard({ item, index, autoFlash }: { item: typeof REVEAL_STEPS[
         </div>
         <span className="text-sm text-white/50 font-medium">{item.label}</span>
       </div>
-      <p className="text-[12px] text-white/30 leading-relaxed">{item.desc}</p>
+      <p className="text-xs text-white/30 leading-relaxed">{item.desc}</p>
     </motion.div>
   );
 }

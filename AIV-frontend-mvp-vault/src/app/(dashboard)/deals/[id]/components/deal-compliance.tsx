@@ -19,7 +19,7 @@ interface DealPulTabProps {
   onDealUpdate: (deal: Deal) => void;
 }
 
-export function DealPulTab({ deal, dealId, onDealUpdate }: PulTabProps) {
+export function DealPulTab({ deal, dealId, onDealUpdate }: DealPulTabProps) {
   const [showPulForm, setShowPulForm] = useState(false);
   const [pulForm, setPulForm] = useState({ record_type: "UPDATE", content_produced: "", platforms_used: "" });
 

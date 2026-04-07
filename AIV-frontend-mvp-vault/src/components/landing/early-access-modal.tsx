@@ -457,8 +457,8 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                     >
                       {/* No "Recommended" badge — any role could be viewing */}
                       <div className="mb-2"><r.icon className={`h-5 w-5 ${isCreator ? 'text-blue-300' : 'text-blue-400'}`} /></div>
-                      <div className="text-[13px] font-semibold text-white">{r.label}</div>
-                      <div className="text-[11px] text-white/40 mt-0.5">{r.hint}</div>
+                      <div className="text-sm font-semibold text-white">{r.label}</div>
+                      <div className="text-xs text-white/40 mt-0.5">{r.hint}</div>
                     </button>
                   )
                 })}
@@ -593,9 +593,9 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                 </span>
               </div>
               <div className="mt-5 rounded-xl bg-white/[0.04] border border-white/[0.08] p-4">
-                <div className="text-[11px] font-semibold text-white/40 uppercase tracking-wider mb-3">What happens next</div>
+                <div className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">What happens next</div>
                 {successCopy.steps.map((s, i) => (
-                  <div key={i} className="flex items-start gap-2.5 text-[13px] text-white/70 mb-2 last:mb-0">
+                  <div key={i} className="flex items-start gap-2.5 text-sm text-white/70 mb-2 last:mb-0">
                     <span className="shrink-0 w-5 h-5 rounded-full bg-blue-500/15 text-blue-400 text-[10px] font-bold flex items-center justify-center mt-0.5">
                       {i + 1}
                     </span>
@@ -639,10 +639,10 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                   onKeyDown={e => { if (e.key === 'Enter') handleValidateCode() }}
                 />
                 {codeError && (
-                  <p className="text-[12px] text-red-400 mt-1.5">{codeError}</p>
+                  <p className="text-xs text-red-400 mt-1.5">{codeError}</p>
                 )}
                 {!codeError && (
-                  <p className="text-[11px] text-white/30 mt-1.5">Codes are issued to investors, partners, and selected beta participants.</p>
+                  <p className="text-xs text-white/30 mt-1.5">Codes are issued to investors, partners, and selected beta participants.</p>
                 )}
               </div>
               <div className="flex gap-2.5">
@@ -792,7 +792,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                       toast.error('Failed to resend code')
                     }
                   }}
-                  className="text-[11px] text-blue-400 hover:underline mt-2 bg-transparent border-none p-0 cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none rounded"
+                  className="text-xs text-blue-400 hover:underline mt-2 bg-transparent border-none p-0 cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none rounded"
                 >
                   Didn&apos;t receive it? Resend code
                 </button>
@@ -850,7 +850,7 @@ export function EarlyAccessModal({ open, onClose, initialStep = 0 }: EarlyAccess
                     <label htmlFor="ea-signin-password" className="block text-xs text-white/70 font-medium">Password</label>
                     <button
                       onClick={() => { setForgotPasswordSent(false); setStep(9) }}
-                      className="text-[11px] text-blue-400 hover:underline bg-transparent border-none p-0 cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none rounded"
+                      className="text-xs text-blue-400 hover:underline bg-transparent border-none p-0 cursor-pointer focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none rounded"
                     >
                       Forgot password?
                     </button>
@@ -979,7 +979,7 @@ function ProgressDots({ current, total }: { current: number; total: number }) {
 function StepHeader({ label, title, description }: { label: string; title: string; description: string }) {
   return (
     <div className="mb-6">
-      <div className="text-[11px] font-semibold tracking-wider text-blue-400 uppercase mb-2.5">{label}</div>
+      <div className="text-xs font-semibold tracking-wider text-blue-400 uppercase mb-2.5">{label}</div>
       <h3 className="text-xl font-bold text-white font-[family-name:var(--font-syne)] mb-2">{title}</h3>
       <p className="text-sm text-white/60 leading-relaxed">{description}</p>
     </div>

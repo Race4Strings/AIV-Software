@@ -46,7 +46,7 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const [password, setPassword] = useState("");
 
-  const canConfirm = !requirePassword || password.length >= 1;
+  const canConfirm = !requirePassword || password.length >= 8;
 
   async function handleConfirm() {
     await onConfirm(requirePassword ? password : undefined);
