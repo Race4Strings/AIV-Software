@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Loader2, Fingerprint, Shield, DollarSign, Activity,
   Bot, CheckCircle2, AlertTriangle, AlertCircle,
-  Lock, Unlock, Volume2,
+  Lock, Unlock, Volume2, HelpCircle,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -193,6 +193,14 @@ export default function TwinPage() {
               </TooltipContent></Tooltip>
               <span className={`flex items-center gap-1 text-sm ${healthCfg.color}`}>
                 <HealthIcon className="h-4 w-4" /> {healthCfg.label}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs text-xs">
+                    Your twin&apos;s health reflects data accuracy, personality coverage, and model confidence. Train your twin to improve these scores.
+                  </TooltipContent>
+                </Tooltip>
               </span>
               {twin.talent_authorization_at && (
                 <Badge variant="outline" className="bg-success/10 text-success">Identity Verified & Protected</Badge>

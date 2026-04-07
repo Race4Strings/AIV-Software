@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   CreditCard, FileText, ArrowUpRight, CheckCircle2,
-  Clock, AlertTriangle, Loader2, Shield, TrendingUp,
+  Clock, AlertTriangle, Loader2, Shield, TrendingUp, HelpCircle,
 } from "lucide-react";
 import { Breadcrumb } from "@/components/shared/breadcrumb";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { licensingApi } from "@/lib/api/licensing";
 import { paymentsApi } from "@/lib/api/payments";
 import { toast } from "sonner";
@@ -170,7 +171,19 @@ export default function BillingPage() {
                   <Shield className="h-6 w-6 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-medium">Fee-Free Period</p>
+                  <p className="font-medium flex items-center gap-1.5">
+                    Fee-Free Period
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs text-xs">
+                          Your first 90 days are free. The $997/month platform partnership fee activates when your first deal executes or this window expires.
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </p>
                   <p className="text-sm text-muted-foreground">
                     {feeFreeDaysLeft !== null && feeFreeDaysLeft > 0
                       ? `${feeFreeDaysLeft} day${feeFreeDaysLeft !== 1 ? "s" : ""} remaining. The $997/month platform partnership fee activates when your first deal closes or your fee-free period ends.`

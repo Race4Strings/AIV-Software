@@ -66,7 +66,7 @@ export default function SigninPage() {
               onChange={(e) => setIdentifier(e.target.value)}
               disabled={signinMutation.isPending}
               className="w-full px-3.5 py-3 rounded-xl bg-white/[0.06] border border-white/[0.12] text-white text-sm placeholder:text-white/30 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none focus:outline-none focus:border-blue-500 transition-colors duration-150 pl-11"
-              autoComplete="email"
+              autoComplete="username"
               autoFocus
             />
           </div>

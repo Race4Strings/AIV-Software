@@ -20,7 +20,7 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
         return (
           <span key={i} className="flex items-center gap-1.5">
             {i > 0 && (
-              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-hidden="true" />
             )}
             {item.href && !isLast ? (
               <Link

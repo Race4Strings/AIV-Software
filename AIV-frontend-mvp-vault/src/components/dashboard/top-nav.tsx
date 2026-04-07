@@ -62,11 +62,37 @@ export function TopNav() {
 
   useEffect(() => {
     notificationsApi.list().then(setNotifications).catch(() => {});
-    const interval = setInterval(() => {
-      notificationsApi.list().then(setNotifications).catch(() => {});
-    }, 30000);
-    return () => clearInterval(interval);
+    let eventSource: EventSource | null = null;
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
+    try {
+      eventSource = new EventSource("/api/backend/notifications/stream");
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "notification") setNotifications((prev) => [data.notification, ...prev]);
+        } catch {}
+      };
+      eventSource.onerror = () => {
+        eventSource?.close();
+        eventSource = null;
+        pollInterval = setInterval(() => {
+          notificationsApi.list().then(setNotifications).catch(() => {});
+        }, 30000);
+      };
+    } catch {
+      pollInterval = setInterval(() => {
+        notificationsApi.list().then(setNotifications).catch(() => {});
+      }, 30000);
+    }
+    return () => { eventSource?.close(); if (pollInterval) clearInterval(pollInterval); };
   }, []);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setMobileOpen(false); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [mobileOpen]);
 
   const handleMarkAllRead = async () => {
     await notificationsApi.markAllRead().catch(() => {});
@@ -96,7 +122,7 @@ export function TopNav() {
         {/* Left: Logo + Org */}
         <div className="flex items-center gap-3 mr-6">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <ShieldCheck className="h-6 w-6 text-primary" />
+            <ShieldCheck className="h-6 w-6 text-primary" aria-hidden="true" />
             <span className="font-semibold text-sm hidden sm:inline">AIV</span>
           </Link>
           <span className="text-xs text-muted-foreground hidden md:inline truncate max-w-[140px]">
@@ -120,7 +146,7 @@ export function TopNav() {
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-4 w-4" aria-hidden="true" />
                 {item.title}
               </Link>
             );

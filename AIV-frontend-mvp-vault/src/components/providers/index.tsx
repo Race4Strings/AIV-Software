@@ -30,7 +30,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       >
         <TooltipProvider>
           {children}
-          <Toaster position="top-center" richColors />
+          <div role="status" aria-live="polite">
+            <Toaster position="top-center" richColors />
+          </div>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

@@ -128,6 +128,7 @@ function SignupForm() {
             <input
               id="signup-name"
               type="text"
+              autoComplete="name"
               value={name}
               onChange={(e) => { setName(e.target.value); if (touched.name) validateField('name', e.target.value); }}
               onBlur={(e) => handleBlur('name', e.target.value)}
@@ -144,6 +145,7 @@ function SignupForm() {
             <input
               id="signup-username"
               type="text"
+              autoComplete="username"
               value={username}
               onChange={(e) => { const v = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''); setUsername(v); if (touched.username) validateField('username', v); }}
               onBlur={(e) => handleBlur('username', e.target.value)}
@@ -162,6 +164,7 @@ function SignupForm() {
           <input
             id="signup-email"
             type="email"
+            autoComplete="email"
             value={email}
             onChange={(e) => { setEmail(e.target.value); if (touched.email) validateField('email', e.target.value); }}
             onBlur={(e) => handleBlur('email', e.target.value)}
@@ -180,6 +183,7 @@ function SignupForm() {
             <input
               id="signup-password"
               type={showPassword ? 'text' : 'password'}
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Min 8 characters"
@@ -204,6 +208,7 @@ function SignupForm() {
           <input
             id="signup-password-confirm"
             type="password"
+            autoComplete="new-password"
             value={passwordConfirm}
             onChange={(e) => setPasswordConfirm(e.target.value)}
             placeholder="Confirm your password"

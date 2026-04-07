@@ -25,13 +25,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+// Select imports removed — form now uses native <select> for simplicity
 
 export default function TrainingPage() {
   const [twin, setTwin] = useState<Twin | null>(null);
@@ -41,37 +35,43 @@ export default function TrainingPage() {
   const [openDialog, setOpenDialog] = useState(false);
   const [submittingData, setSubmittingData] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [formData, setFormData] = useState({
-    category: "commercial",
+  const [formData, setFormData] = useState<{
+    category: string;
+    change_description: string;
+    description: string;
+    content: string;
+    source: string;
+    target_fields: string[];
+  }>({
+    category: "personality",
     change_description: "",
-    target_fields: "",
+    description: "",
     content: "",
+    source: "",
+    target_fields: [],
   });
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!twin || !formData.change_description.trim() || !formData.content.trim()) {
+    if (!twin || !formData.description.trim() || !formData.content.trim()) {
       toast.error("Please fill in all required fields.");
       return;
     }
 
     setSubmittingData(true);
     try {
-      let parsedContent = {};
-      try {
-        parsedContent = JSON.parse(formData.content);
-      } catch {
-        parsedContent = { raw_data: formData.content };
-      }
-
-      const targetFieldsArray = formData.target_fields.split(",").map(f => f.trim()).filter(Boolean);
-
-      await trainingApi.createSubmission(twin.id, {
+      const payload = {
         category: formData.category,
-        change_description: formData.change_description,
-        target_fields: targetFieldsArray,
-        content: parsedContent
-      });
+        change_description: formData.description,
+        target_fields: formData.target_fields,
+        content: {
+          description: formData.description,
+          data: formData.content,
+          source: formData.source || undefined,
+        },
+      };
+
+      await trainingApi.createSubmission(twin.id, payload);
 
       toast.success("Submission created successfully");
       setShowSuccess(true);
@@ -79,7 +79,7 @@ export default function TrainingPage() {
       
       setTimeout(() => {
         setOpenDialog(false);
-        setFormData({ category: "commercial", change_description: "", target_fields: "", content: "" });
+        setFormData({ category: "personality", change_description: "", description: "", content: "", source: "", target_fields: [] });
         setShowSuccess(false);
       }, 1500);
     } catch (err: unknown) {
@@ -225,50 +225,82 @@ export default function TrainingPage() {
               </div>
             ) : (
             <form onSubmit={handleCreateSubmit} className="space-y-4 pt-4">
-              <div className="space-y-2">
+              {/* Category */}
+              <div className="space-y-1.5">
                 <Label>Category</Label>
-                <Select
+                <select
                   value={formData.category}
-                  onValueChange={(val) => setFormData({ ...formData, category: val })}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="identity">Identity</SelectItem>
-                    <SelectItem value="commercial">Commercial</SelectItem>
-                    <SelectItem value="governance">Governance</SelectItem>
-                    <SelectItem value="knowledge">Knowledge</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <option value="personality">Personality &amp; Style</option>
+                  <option value="knowledge">Knowledge &amp; Expertise</option>
+                  <option value="voice">Voice &amp; Speech</option>
+                  <option value="visual">Visual &amp; Appearance</option>
+                  <option value="behavioral">Behavioral Patterns</option>
+                  <option value="correction">Correction / Fix</option>
+                </select>
               </div>
-              <div className="space-y-2">
-                <Label>Change Description <span className="text-destructive">*</span></Label>
+
+              {/* Description */}
+              <div className="space-y-1.5">
+                <Label>What changed? <span className="text-destructive">*</span></Label>
                 <Input
-                  value={formData.change_description}
-                  onChange={(e) => setFormData({ ...formData, change_description: e.target.value })}
-                  placeholder="e.g., Update standard hourly rate to $200"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="e.g., Updated stance on AI regulation"
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Target Fields (Comma-separated)</Label>
-                <Input
-                  value={formData.target_fields}
-                  onChange={(e) => setFormData({ ...formData, target_fields: e.target.value })}
-                  placeholder="e.g., base_rate, terms"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Content (JSON or Text) <span className="text-destructive">*</span></Label>
+
+              {/* Content */}
+              <div className="space-y-1.5">
+                <Label>New information <span className="text-destructive">*</span></Label>
                 <Textarea
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  placeholder="Paste the new data or JSON payload to apply"
+                  placeholder="Enter the actual content, quote, position, or information to add..."
                   rows={4}
                   required
                 />
               </div>
+
+              {/* Source */}
+              <div className="space-y-1.5">
+                <Label>Source (optional)</Label>
+                <Input
+                  value={formData.source}
+                  onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                  placeholder="Interview, article, personal knowledge..."
+                />
+              </div>
+
+              {/* Target fields as checkboxes */}
+              <div className="space-y-1.5">
+                <Label>What should this update?</Label>
+                <div className="flex flex-wrap gap-2">
+                  {["personality", "knowledge", "voice", "communication_style", "opinions"].map((field) => (
+                    <label key={field} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.target_fields.includes(field)}
+                        onChange={(e) => {
+                          const fields = formData.target_fields;
+                          setFormData({
+                            ...formData,
+                            target_fields: e.target.checked
+                              ? [...fields, field]
+                              : fields.filter((f: string) => f !== field),
+                          });
+                        }}
+                        className="rounded border-border"
+                      />
+                      {humanizeEnum(field)}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
               <DialogFooter className="pt-2">
                 <Button type="submit" disabled={submittingData}>
                   {submittingData ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}

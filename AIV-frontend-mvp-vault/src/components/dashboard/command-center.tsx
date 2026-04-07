@@ -18,6 +18,7 @@ import { getCalibrationStatus, getComparison, type CalibrationStatus, type Compa
 import { formatDistanceToNow } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { humanizeEnum } from "@/lib/humanize";
+import { GettingStarted } from "./getting-started";
 
 // ── Health status config ──────────────────────────────
 const HEALTH_CONFIG: Record<string, { color: string; bgColor: string; icon: typeof CheckCircle2; label: string; description: string }> = {
@@ -368,6 +369,15 @@ export function CommandCenter() {
           }} />
         )}
 
+        {/* Getting Started checklist */}
+        <GettingStarted
+          twinExists={!!twin}
+          twinHealthy={healthStatus === "HEALTHY"}
+          calibrationDone={calibrationStatus?.completed === true}
+          certified={!!twin?.certified_at}
+          hasDeal={deals.length > 0}
+        />
+
         {/* Row 1: Three KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Identity Status */}
@@ -581,6 +591,15 @@ export function CommandCenter() {
           localStorage.setItem("aiv_dashboard_seen", "1");
         }} />
       )}
+
+      {/* Getting Started checklist */}
+      <GettingStarted
+        twinExists={!!twin}
+        twinHealthy={healthStatus === "HEALTHY"}
+        calibrationDone={calibrationStatus?.completed === true}
+        certified={!!twin?.certified_at}
+        hasDeal={deals.length > 0}
+      />
 
       {/* Fee-Free Window Countdown */}
       {twin.fee_free_window_expires && (() => {
