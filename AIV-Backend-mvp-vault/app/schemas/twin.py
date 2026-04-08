@@ -59,6 +59,7 @@ class TwinResponse(BaseModel):
 class TwinListResponse(BaseModel):
     """Compact twin for list views."""
     id: UUID
+    organization_id: Optional[UUID] = None
     display_name: Optional[str] = None
     public_name: Optional[str] = None
     identity_category: Optional[List[str]] = None
