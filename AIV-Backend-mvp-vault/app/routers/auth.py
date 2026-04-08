@@ -124,6 +124,12 @@ async def signup(
         return response_data
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        # Catch database IntegrityError (duplicate email/username race condition)
+        error_str = str(e).lower()
+        if "unique" in error_str or "duplicate" in error_str or "integrity" in error_str:
+            raise HTTPException(status_code=400, detail="An account with this email or username already exists.")
+        raise
 
 
 @router.post("/verify-email", response_model=MessageResponse)
@@ -209,7 +215,7 @@ async def resend_otp(
 
 
 @router.post("/signin", response_model=SigninResponse)
-@limiter.limit("5/minute")
+@limiter.limit("3/minute")
 async def signin(
     request: Request,
     data: SigninRequest,
@@ -230,15 +236,17 @@ async def signin(
         from sqlalchemy import select as sa_select
         from ..models.organization import Organization, OrganizationUser
         org_name = "My Organization"
+        org_id = None
         try:
             org_result = await db.execute(
-                sa_select(Organization.name).join(
+                sa_select(Organization.id, Organization.name).join(
                     OrganizationUser, OrganizationUser.organization_id == Organization.id
                 ).where(OrganizationUser.user_id == user.id).limit(1)
             )
-            org_row = org_result.scalar_one_or_none()
+            org_row = org_result.first()
             if org_row:
-                org_name = org_row
+                org_id = str(org_row[0])
+                org_name = org_row[1]
         except Exception as e:
             logger.warning(f"Non-critical auth operation failed: {e}")
 
@@ -252,6 +260,7 @@ async def signin(
             "user_name": user.user_name,
             "is_verified": user.is_verified,
             "role": getattr(user, "role", "TALENT"),
+            "org_id": org_id,
             "org_name": org_name,
         }
 
@@ -325,10 +334,31 @@ async def forgot_password(
     
     An OTP will be sent to the user's email if the account exists.
     """
+    # Per-email rate limiting (max 3 per hour)
+    import redis.asyncio as redis_client
+    settings = get_settings()
+    r = redis_client.from_url(settings.redis_url, decode_responses=True)
+    try:
+        key = f"password_reset:{data.email.lower().strip()}"
+        count = await r.incr(key)
+        if count == 1:
+            await r.expire(key, 3600)  # 1 hour window
+        if count > 3:
+            await r.close()
+            # Still return same message to prevent enumeration
+            return MessageResponse(
+                state="success",
+                message="If an account exists with this email, a reset code has been sent",
+            )
+    except Exception:
+        pass  # Redis failure shouldn't block password reset
+    finally:
+        await r.close()
+
     service = AuthService(db)
     await service.forgot_password(data.email)
-    
-    # Always return success for security
+
+    # Always return success for security (timing attack mitigation)
     return MessageResponse(
         state="success",
         message="If an account exists with this email, a reset code has been sent",

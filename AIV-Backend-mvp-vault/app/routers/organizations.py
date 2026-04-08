@@ -16,6 +16,10 @@ from ..services.notification_service import NotificationService
 router = APIRouter(prefix="/organizations", tags=["Organizations"])
 
 
+class UpdateOrganizationRequest(BaseModel):
+    name: str
+
+
 class InviteRequest(BaseModel):
     email: str
     role: str = "MEMBER"  # OWNER|ADMIN|MEMBER|VIEWER
@@ -35,6 +39,24 @@ async def get_organization(
     org = result.scalar_one_or_none()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
+    return {
+        "id": str(org.id), "name": org.name, "type": org.type,
+        "created_at": org.created_at.isoformat() if org.created_at else None,
+    }
+
+
+@router.put("/{org_id}")
+async def update_organization(
+    org_id: str, req: UpdateOrganizationRequest,
+    user: dict = Depends(require_role("ADMIN")), db: AsyncSession = Depends(get_db),
+):
+    """Update organization details. Requires ADMIN or OWNER role."""
+    result = await db.execute(select(Organization).where(Organization.id == UUID(org_id)))
+    org = result.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    org.name = req.name.strip()
+    await db.flush()
     return {
         "id": str(org.id), "name": org.name, "type": org.type,
         "created_at": org.created_at.isoformat() if org.created_at else None,

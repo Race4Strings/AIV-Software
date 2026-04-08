@@ -21,6 +21,10 @@ export const organizationsApi = {
     const { data } = await apiClient.get(`/organizations/${orgId}`);
     return data;
   },
+  async update(orgId: string, name: string): Promise<Organization> {
+    const { data } = await apiClient.put(`/organizations/${orgId}`, { name });
+    return data;
+  },
   async getMembers(orgId: string): Promise<OrgMember[]> {
     const { data } = await apiClient.get(`/organizations/${orgId}/members`);
     return data;

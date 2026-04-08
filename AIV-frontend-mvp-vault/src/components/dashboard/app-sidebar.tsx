@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   Home,
   Fingerprint,
@@ -36,6 +37,8 @@ import {
 import { useSidebar } from "@/hooks/use-sidebar";
 import { useStoredUser } from "@/hooks/use-stored-user";
 import { assistantApi } from "@/lib/api/assistant";
+import { organizationsApi } from "@/lib/api/organizations";
+import { authStorage } from "@/lib/auth-storage";
 import { humanizeEnum } from "@/lib/humanize";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
@@ -85,12 +88,51 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
   const [trainingOpen, setTrainingOpen] = useState(
     pathname.startsWith("/twin/training-area")
   );
+  const [editingOrg, setEditingOrg] = useState(false);
+  const [orgNameDraft, setOrgNameDraft] = useState("");
+  const [savingOrg, setSavingOrg] = useState(false);
+  const orgInputRef = useRef<HTMLInputElement>(null);
 
+  const orgId = (user as Record<string, unknown>)?.org_id as string | undefined;
   const orgName =
     (user as Record<string, unknown>)?.org_name as string ||
     "My Organization";
+  const userRole = user?.role?.toUpperCase();
+  const canEditOrg = orgId && (userRole === "OWNER" || userRole === "ADMIN" || userRole === "MANAGER");
 
   const trainingActive = pathname.startsWith("/twin/training-area");
+
+  function startEditingOrg() {
+    if (!canEditOrg) return;
+    setOrgNameDraft(orgName);
+    setEditingOrg(true);
+    setTimeout(() => orgInputRef.current?.focus(), 0);
+  }
+
+  async function saveOrgName() {
+    const trimmed = orgNameDraft.trim();
+    if (!trimmed || trimmed === orgName || !orgId) {
+      setEditingOrg(false);
+      return;
+    }
+    setSavingOrg(true);
+    try {
+      await organizationsApi.update(orgId, trimmed);
+      // Update localStorage so sidebar reflects immediately
+      const current = authStorage.getUser();
+      if (current) {
+        authStorage.saveUser({ ...current, org_name: trimmed, org_id: orgId });
+      }
+      toast.success("Organization renamed");
+      // Force re-render by reloading stored user
+      window.dispatchEvent(new StorageEvent("storage", { key: "user" }));
+    } catch {
+      toast.error("Failed to rename organization");
+    } finally {
+      setSavingOrg(false);
+      setEditingOrg(false);
+    }
+  }
 
   async function handleNewSession() {
     try {
@@ -149,13 +191,35 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
       <div className="shrink-0 px-4 pt-4 pb-3 border-b border-sidebar-border">
         {/* AIV Logo + Org */}
         <div className="flex items-center gap-2 mb-3">
-          <Link href="/dashboard" onClick={handleNavClick} className="flex items-center gap-2">
+          <Link href="/dashboard" onClick={handleNavClick} className="flex items-center gap-2 shrink-0">
             <ShieldCheck className="h-5 w-5 text-sidebar-primary" />
             <span className="text-sm font-semibold text-sidebar-foreground">AIV</span>
           </Link>
-          <span className="text-xs text-sidebar-foreground/40 truncate">
-            {orgName}
-          </span>
+          {editingOrg ? (
+            <input
+              ref={orgInputRef}
+              value={orgNameDraft}
+              onChange={(e) => setOrgNameDraft(e.target.value)}
+              onBlur={saveOrgName}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") saveOrgName();
+                if (e.key === "Escape") setEditingOrg(false);
+              }}
+              disabled={savingOrg}
+              className="text-xs text-sidebar-foreground bg-sidebar-accent/50 rounded px-1.5 py-0.5 outline-none ring-1 ring-sidebar-primary/50 truncate min-w-0 flex-1"
+            />
+          ) : (
+            <button
+              onClick={canEditOrg ? startEditingOrg : undefined}
+              className={cn(
+                "text-xs text-sidebar-foreground/40 truncate min-w-0",
+                canEditOrg && "hover:text-sidebar-foreground/70 cursor-pointer"
+              )}
+              title={canEditOrg ? "Click to rename" : orgName}
+            >
+              {orgName}
+            </button>
+          )}
         </div>
 
         {/* Twin Switcher */}
