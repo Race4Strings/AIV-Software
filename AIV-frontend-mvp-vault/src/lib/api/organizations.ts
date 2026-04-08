@@ -4,6 +4,8 @@ export interface Organization {
   id: string;
   name: string;
   type: string;
+  role?: string;
+  created_at?: string | null;
 }
 
 export interface OrgMember {
@@ -17,6 +19,14 @@ export interface OrgMember {
 }
 
 export const organizationsApi = {
+  async listMyOrgs(): Promise<Organization[]> {
+    const { data } = await apiClient.get("/organizations");
+    return data;
+  },
+  async createOrg(name: string): Promise<Organization> {
+    const { data } = await apiClient.post("/organizations", { name });
+    return data;
+  },
   async getMyOrg(): Promise<Organization> {
     const { data } = await apiClient.get("/organizations/me");
     return data;

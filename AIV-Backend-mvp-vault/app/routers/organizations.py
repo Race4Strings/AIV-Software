@@ -16,6 +16,10 @@ from ..services.notification_service import NotificationService
 router = APIRouter(prefix="/organizations", tags=["Organizations"])
 
 
+class CreateOrganizationRequest(BaseModel):
+    name: str
+
+
 class UpdateOrganizationRequest(BaseModel):
     name: str
 
@@ -29,6 +33,93 @@ class InviteRequest(BaseModel):
 class UpdateMemberRequest(BaseModel):
     role: Optional[str] = None
     permissions: Optional[dict] = None
+
+
+@router.get("")
+async def list_user_organizations(
+    user: dict = Depends(require_auth), db: AsyncSession = Depends(get_db),
+):
+    """List all organizations the user belongs to."""
+    orgs = []
+    seen_ids = set()
+
+    # Try OrganizationUser table
+    try:
+        result = await db.execute(
+            select(Organization, OrganizationUser.role).join(
+                OrganizationUser, OrganizationUser.organization_id == Organization.id
+            ).where(OrganizationUser.user_id == UUID(user["id"]))
+        )
+        for org, role in result.all():
+            if org.id not in seen_ids:
+                seen_ids.add(org.id)
+                orgs.append({
+                    "id": str(org.id), "name": org.name, "type": org.type,
+                    "role": role or "member",
+                    "created_at": org.created_at.isoformat() if org.created_at else None,
+                })
+    except Exception:
+        pass
+
+    # Also check OrganizationMembership
+    try:
+        result = await db.execute(
+            select(Organization, OrganizationMembership.role).join(
+                OrganizationMembership, OrganizationMembership.organization_id == Organization.id
+            ).where(OrganizationMembership.user_id == UUID(user["id"]))
+        )
+        for org, role in result.all():
+            if org.id not in seen_ids:
+                seen_ids.add(org.id)
+                orgs.append({
+                    "id": str(org.id), "name": org.name, "type": org.type,
+                    "role": role or "MEMBER",
+                    "created_at": org.created_at.isoformat() if org.created_at else None,
+                })
+    except Exception:
+        pass
+
+    return orgs
+
+
+@router.post("")
+async def create_organization(
+    req: CreateOrganizationRequest,
+    user: dict = Depends(require_auth), db: AsyncSession = Depends(get_db),
+):
+    """Create a new organization and link the user as OWNER."""
+    org = Organization(name=req.name.strip(), type="TALENT_TEAM")
+    db.add(org)
+    await db.flush()
+
+    # Link via OrganizationUser (legacy)
+    try:
+        db.add(OrganizationUser(
+            user_id=UUID(user["id"]),
+            organization_id=org.id,
+            role="owner",
+        ))
+        await db.flush()
+    except Exception:
+        pass
+
+    # Link via OrganizationMembership (new)
+    try:
+        db.add(OrganizationMembership(
+            organization_id=org.id,
+            user_id=UUID(user["id"]),
+            role="OWNER",
+            permissions={"manage_team": True, "manage_deals": True, "manage_twins": True},
+        ))
+        await db.flush()
+    except Exception:
+        pass
+
+    return {
+        "id": str(org.id), "name": org.name, "type": org.type,
+        "role": "OWNER",
+        "created_at": org.created_at.isoformat() if org.created_at else None,
+    }
 
 
 @router.get("/me")

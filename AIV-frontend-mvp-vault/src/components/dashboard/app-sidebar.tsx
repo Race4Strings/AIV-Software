@@ -34,8 +34,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Check } from "lucide-react";
 import { useSidebar } from "@/hooks/use-sidebar";
-import { useStoredUser } from "@/hooks/use-stored-user";
 import { assistantApi } from "@/lib/api/assistant";
 import { organizationsApi } from "@/lib/api/organizations";
 import { humanizeEnum } from "@/lib/humanize";
@@ -71,10 +71,11 @@ interface AppSidebarProps {
 export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useStoredUser();
   const {
-    org,
-    setOrg,
+    orgs,
+    activeOrg,
+    setActiveOrg,
+    addOrg,
     twins,
     activeTwin,
     setActiveTwin,
@@ -89,40 +90,28 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
   const [trainingOpen, setTrainingOpen] = useState(
     pathname.startsWith("/twin/training-area")
   );
-  const [editingOrg, setEditingOrg] = useState(false);
-  const [orgNameDraft, setOrgNameDraft] = useState("");
-  const [savingOrg, setSavingOrg] = useState(false);
-  const orgInputRef = useRef<HTMLInputElement>(null);
+  const [creatingOrg, setCreatingOrg] = useState(false);
+  const [newOrgName, setNewOrgName] = useState("");
+  const newOrgInputRef = useRef<HTMLInputElement>(null);
 
-  const orgName = org?.name || "My Organization";
-  const userRole = user?.role?.toUpperCase();
-  const canEditOrg = org?.id && (userRole === "OWNER" || userRole === "ADMIN" || userRole === "MANAGER");
-
+  const orgName = activeOrg?.name || "My Organization";
   const trainingActive = pathname.startsWith("/twin/training-area");
 
-  function startEditingOrg() {
-    if (!canEditOrg) return;
-    setOrgNameDraft(orgName);
-    setEditingOrg(true);
-    setTimeout(() => orgInputRef.current?.focus(), 0);
-  }
-
-  async function saveOrgName() {
-    const trimmed = orgNameDraft.trim();
-    if (!trimmed || trimmed === orgName || !org?.id) {
-      setEditingOrg(false);
+  async function handleCreateOrg() {
+    const trimmed = newOrgName.trim();
+    if (!trimmed) {
+      setCreatingOrg(false);
       return;
     }
-    setSavingOrg(true);
     try {
-      const updated = await organizationsApi.update(org.id, trimmed);
-      setOrg(updated);
-      toast.success("Organization renamed");
+      const newOrg = await organizationsApi.createOrg(trimmed);
+      addOrg(newOrg);
+      toast.success(`Created "${trimmed}"`);
     } catch {
-      toast.error("Failed to rename organization");
+      toast.error("Failed to create organization");
     } finally {
-      setSavingOrg(false);
-      setEditingOrg(false);
+      setCreatingOrg(false);
+      setNewOrgName("");
     }
   }
 
@@ -187,34 +176,50 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
           <span className="text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider">AIV</span>
         </Link>
 
-        {/* Organization — the workspace */}
-        <div className="mb-2">
-          {editingOrg ? (
-            <input
-              ref={orgInputRef}
-              value={orgNameDraft}
-              onChange={(e) => setOrgNameDraft(e.target.value)}
-              onBlur={saveOrgName}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") saveOrgName();
-                if (e.key === "Escape") setEditingOrg(false);
-              }}
-              disabled={savingOrg}
-              className="w-full text-sm font-semibold text-sidebar-foreground bg-sidebar-accent/50 rounded px-2 py-1 outline-none ring-1 ring-sidebar-primary/50"
-            />
-          ) : (
-            <button
-              onClick={canEditOrg ? startEditingOrg : undefined}
-              className={cn(
-                "text-sm font-semibold text-sidebar-foreground truncate block w-full text-left",
-                canEditOrg && "hover:text-sidebar-primary cursor-pointer"
-              )}
-              title={canEditOrg ? "Click to rename" : orgName}
-            >
-              {orgName}
+        {/* Organization selector */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-semibold text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors mb-2">
+              <span className="truncate flex-1 text-left">{orgName}</span>
+              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/50" />
             </button>
-          )}
-        </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-52">
+            {orgs.map((o) => (
+              <DropdownMenuItem
+                key={o.id || o.name}
+                onClick={() => setActiveOrg(o)}
+              >
+                {o.id === activeOrg?.id && <Check className="mr-2 h-4 w-4" />}
+                {o.id !== activeOrg?.id && <div className="mr-2 h-4 w-4" />}
+                <span className="truncate">{o.name}</span>
+              </DropdownMenuItem>
+            ))}
+            {orgs.length > 0 && <DropdownMenuSeparator />}
+            {creatingOrg ? (
+              <div className="px-2 py-1.5">
+                <input
+                  ref={newOrgInputRef}
+                  value={newOrgName}
+                  onChange={(e) => setNewOrgName(e.target.value)}
+                  onBlur={handleCreateOrg}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleCreateOrg();
+                    if (e.key === "Escape") { setCreatingOrg(false); setNewOrgName(""); }
+                  }}
+                  placeholder="Organization name"
+                  className="w-full text-sm bg-sidebar-accent/50 text-sidebar-foreground rounded px-2 py-1 outline-none ring-1 ring-sidebar-primary/50"
+                  autoFocus
+                />
+              </div>
+            ) : (
+              <DropdownMenuItem onClick={() => { setCreatingOrg(true); setTimeout(() => newOrgInputRef.current?.focus(), 0); }}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Organization
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Twin Switcher */}
         <DropdownMenu>

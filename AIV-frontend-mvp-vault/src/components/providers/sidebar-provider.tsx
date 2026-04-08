@@ -11,11 +11,15 @@ import { fetchTwins, type Twin } from "@/lib/api/twins";
 import { assistantApi, type AgentSession } from "@/lib/api/assistant";
 import { organizationsApi, type Organization } from "@/lib/api/organizations";
 
+const ACTIVE_ORG_KEY = "aiv_active_org";
+
 export interface SidebarContextValue {
-  /* Organization */
-  org: Organization | null;
-  setOrg: (org: Organization) => void;
-  isLoadingOrg: boolean;
+  /* Organizations */
+  orgs: Organization[];
+  activeOrg: Organization | null;
+  setActiveOrg: (org: Organization) => void;
+  addOrg: (org: Organization) => void;
+  isLoadingOrgs: boolean;
 
   /* Twins */
   twins: Twin[];
@@ -35,8 +39,9 @@ export interface SidebarContextValue {
 export const SidebarContext = createContext<SidebarContextValue | null>(null);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
-  const [org, setOrg] = useState<Organization | null>(null);
-  const [isLoadingOrg, setIsLoadingOrg] = useState(true);
+  const [orgs, setOrgs] = useState<Organization[]>([]);
+  const [activeOrg, setActiveOrgState] = useState<Organization | null>(null);
+  const [isLoadingOrgs, setIsLoadingOrgs] = useState(true);
 
   const [twins, setTwins] = useState<Twin[]>([]);
   const [activeTwin, setActiveTwin] = useState<Twin | null>(null);
@@ -46,25 +51,51 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
 
-  // Fetch org — fallback to synthetic org from localStorage if API fails
+  // Fetch all orgs on mount
   useEffect(() => {
-    organizationsApi.getMyOrg()
-      .then((data) => {
-        setOrg(data);
+    organizationsApi.listMyOrgs()
+      .then((list) => {
+        setOrgs(list);
+        // Restore active org from localStorage or pick first
+        const savedId = localStorage.getItem(ACTIVE_ORG_KEY);
+        const saved = savedId ? list.find((o) => o.id === savedId) : null;
+        setActiveOrgState(saved || list[0] || null);
       })
       .catch(() => {
-        // API failed — build org name from localStorage user data
-        try {
-          const stored = localStorage.getItem("user");
-          if (stored) {
-            const u = JSON.parse(stored);
-            const name = u.org_name || u.name || "Organization";
-            setOrg({ id: "", name: name.includes("Organization") ? name : `${name}'s Organization`, type: "TALENT_TEAM" });
-          }
-        } catch { /* ignore */ }
+        // Fallback: try getMyOrg or build from localStorage
+        organizationsApi.getMyOrg()
+          .then((org) => {
+            setOrgs([org]);
+            setActiveOrgState(org);
+          })
+          .catch(() => {
+            try {
+              const stored = localStorage.getItem("user");
+              if (stored) {
+                const u = JSON.parse(stored);
+                const name = u.org_name || u.name || "Organization";
+                const fallback: Organization = {
+                  id: "", name: name.includes("Organization") ? name : `${name}'s Organization`,
+                  type: "TALENT_TEAM",
+                };
+                setOrgs([fallback]);
+                setActiveOrgState(fallback);
+              }
+            } catch { /* ignore */ }
+          });
       })
-      .finally(() => setIsLoadingOrg(false));
+      .finally(() => setIsLoadingOrgs(false));
   }, []);
+
+  function setActiveOrg(org: Organization) {
+    setActiveOrgState(org);
+    localStorage.setItem(ACTIVE_ORG_KEY, org.id);
+  }
+
+  function addOrg(org: Organization) {
+    setOrgs((prev) => [...prev, org]);
+    setActiveOrg(org);
+  }
 
   // Fetch twins on mount
   useEffect(() => {
@@ -102,9 +133,11 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   return (
     <SidebarContext.Provider
       value={{
-        org,
-        setOrg,
-        isLoadingOrg,
+        orgs,
+        activeOrg,
+        setActiveOrg,
+        addOrg,
+        isLoadingOrgs,
         twins,
         activeTwin,
         setActiveTwin,
