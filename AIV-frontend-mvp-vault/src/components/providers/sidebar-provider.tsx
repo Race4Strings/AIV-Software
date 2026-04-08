@@ -25,6 +25,7 @@ export interface SidebarContextValue {
   twins: Twin[];
   activeTwin: Twin | null;
   setActiveTwin: (twin: Twin) => void;
+  refreshTwins: () => Promise<void>;
   isLoadingTwins: boolean;
 
   /* Sessions */
@@ -42,9 +43,10 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [activeOrg, setActiveOrgState] = useState<Organization | null>(null);
   const [isLoadingOrgs, setIsLoadingOrgs] = useState(true);
+  const [orgReady, setOrgReady] = useState(false);
 
   const [twins, setTwins] = useState<Twin[]>([]);
-  const [activeTwin, setActiveTwin] = useState<Twin | null>(null);
+  const [activeTwin, setActiveTwinState] = useState<Twin | null>(null);
   const [isLoadingTwins, setIsLoadingTwins] = useState(true);
 
   const [sessions, setSessions] = useState<AgentSession[]>([]);
@@ -56,13 +58,11 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     organizationsApi.listMyOrgs()
       .then((list) => {
         setOrgs(list);
-        // Restore active org from localStorage or pick first
         const savedId = localStorage.getItem(ACTIVE_ORG_KEY);
         const saved = savedId ? list.find((o) => o.id === savedId) : null;
         setActiveOrgState(saved || list[0] || null);
       })
       .catch(() => {
-        // Fallback: try getMyOrg or build from localStorage
         organizationsApi.getMyOrg()
           .then((org) => {
             setOrgs([org]);
@@ -84,7 +84,10 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
             } catch { /* ignore */ }
           });
       })
-      .finally(() => setIsLoadingOrgs(false));
+      .finally(() => {
+        setIsLoadingOrgs(false);
+        setOrgReady(true);
+      });
   }, []);
 
   function setActiveOrg(org: Organization) {
@@ -97,33 +100,45 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     setActiveOrg(org);
   }
 
-  // Fetch twins on mount
-  useEffect(() => {
-    fetchTwins()
-      .then((list) => {
-        setTwins(list);
-        if (list.length > 0) setActiveTwin(list[0]);
-      })
-      .catch(() => {})
-      .finally(() => setIsLoadingTwins(false));
+  // Fetch twins — runs on mount and when active org changes
+  const refreshTwins = useCallback(async () => {
+    setIsLoadingTwins(true);
+    try {
+      const list = await fetchTwins();
+      setTwins(list);
+      setActiveTwinState(list.length > 0 ? list[0] : null);
+    } catch {
+      setTwins([]);
+      setActiveTwinState(null);
+    } finally {
+      setIsLoadingTwins(false);
+    }
   }, []);
 
-  // Fetch sessions on mount
+  useEffect(() => {
+    if (orgReady) refreshTwins();
+  }, [orgReady, activeOrg, refreshTwins]);
+
+  // Fetch sessions — runs on mount and when active org changes
   const refreshSessions = useCallback(async () => {
     setIsLoadingSessions(true);
     try {
       const list = await assistantApi.listSessions();
       setSessions(list);
     } catch {
-      /* silent */
+      setSessions([]);
     } finally {
       setIsLoadingSessions(false);
     }
   }, []);
 
   useEffect(() => {
-    refreshSessions();
-  }, [refreshSessions]);
+    if (orgReady) refreshSessions();
+  }, [orgReady, activeOrg, refreshSessions]);
+
+  function setActiveTwin(twin: Twin) {
+    setActiveTwinState(twin);
+  }
 
   const addSession = useCallback((session: AgentSession) => {
     setSessions((prev) => [session, ...prev]);
@@ -141,6 +156,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
         twins,
         activeTwin,
         setActiveTwin,
+        refreshTwins,
         isLoadingTwins,
         sessions,
         activeSessionId,

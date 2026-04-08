@@ -217,7 +217,13 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
             {orgs.map((o) => (
               <DropdownMenuItem
                 key={o.id || o.name}
-                onClick={() => setActiveOrg(o)}
+                onClick={() => {
+                  if (o.id !== activeOrg?.id) {
+                    setActiveOrg(o);
+                    router.push("/dashboard");
+                    onNavigate?.();
+                  }
+                }}
                 className="flex items-center justify-between"
               >
                 <div className="flex items-center gap-2 min-w-0">
