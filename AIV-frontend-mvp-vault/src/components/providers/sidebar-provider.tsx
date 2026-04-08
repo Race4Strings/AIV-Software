@@ -9,10 +9,14 @@ import {
 } from "react";
 import { fetchTwins, type Twin } from "@/lib/api/twins";
 import { assistantApi, type AgentSession } from "@/lib/api/assistant";
-import { authApi } from "@/lib/api/auth";
-import { authStorage } from "@/lib/auth-storage";
+import { organizationsApi, type Organization } from "@/lib/api/organizations";
 
 export interface SidebarContextValue {
+  /* Organization */
+  org: Organization | null;
+  setOrg: (org: Organization) => void;
+  isLoadingOrg: boolean;
+
   /* Twins */
   twins: Twin[];
   activeTwin: Twin | null;
@@ -31,6 +35,9 @@ export interface SidebarContextValue {
 export const SidebarContext = createContext<SidebarContextValue | null>(null);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
+  const [org, setOrg] = useState<Organization | null>(null);
+  const [isLoadingOrg, setIsLoadingOrg] = useState(true);
+
   const [twins, setTwins] = useState<Twin[]>([]);
   const [activeTwin, setActiveTwin] = useState<Twin | null>(null);
   const [isLoadingTwins, setIsLoadingTwins] = useState(true);
@@ -39,37 +46,30 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
 
-  // Backfill org data from /auth/me if localStorage is missing it
-  useEffect(() => {
-    const stored = authStorage.getUser();
-    if (stored && !stored.org_id) {
-      authApi.getMe().then((me) => {
-        const orgId = (me as Record<string, unknown>).org_id as string | undefined;
-        const orgName = (me as Record<string, unknown>).org_name as string | undefined;
-        const role = (me as Record<string, unknown>).role as string | undefined;
-        if (orgId || orgName || role) {
-          authStorage.saveUser({
-            ...stored,
-            org_id: orgId || stored.org_id,
-            org_name: orgName || stored.org_name,
-            role: role || stored.role,
-          });
-          // Trigger re-render for components reading from storage
-          window.dispatchEvent(new StorageEvent("storage", { key: "user" }));
-        }
-      }).catch(() => {});
-    }
-  }, []);
-
-  // Fetch twins on mount
+  // Fetch twins on mount, then fetch org from twin's organization_id
   useEffect(() => {
     fetchTwins()
-      .then((list) => {
+      .then(async (list) => {
         setTwins(list);
-        if (list.length > 0) setActiveTwin(list[0]);
+        if (list.length > 0) {
+          setActiveTwin(list[0]);
+          // Fetch org from twin's organization_id
+          const orgId = list[0].organization_id;
+          if (orgId) {
+            try {
+              const orgData = await organizationsApi.get(orgId);
+              setOrg(orgData);
+            } catch {
+              /* org fetch failed — non-critical */
+            }
+          }
+        }
       })
       .catch(() => {})
-      .finally(() => setIsLoadingTwins(false));
+      .finally(() => {
+        setIsLoadingTwins(false);
+        setIsLoadingOrg(false);
+      });
   }, []);
 
   // Fetch sessions on mount
@@ -97,6 +97,9 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   return (
     <SidebarContext.Provider
       value={{
+        org,
+        setOrg,
+        isLoadingOrg,
         twins,
         activeTwin,
         setActiveTwin,

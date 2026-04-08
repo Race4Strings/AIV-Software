@@ -38,7 +38,6 @@ import { useSidebar } from "@/hooks/use-sidebar";
 import { useStoredUser } from "@/hooks/use-stored-user";
 import { assistantApi } from "@/lib/api/assistant";
 import { organizationsApi } from "@/lib/api/organizations";
-import { authStorage } from "@/lib/auth-storage";
 import { humanizeEnum } from "@/lib/humanize";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
@@ -74,6 +73,8 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
   const router = useRouter();
   const { user } = useStoredUser();
   const {
+    org,
+    setOrg,
     twins,
     activeTwin,
     setActiveTwin,
@@ -93,12 +94,9 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
   const [savingOrg, setSavingOrg] = useState(false);
   const orgInputRef = useRef<HTMLInputElement>(null);
 
-  const orgId = (user as Record<string, unknown>)?.org_id as string | undefined;
-  const orgName =
-    (user as Record<string, unknown>)?.org_name as string ||
-    "My Organization";
+  const orgName = org?.name || "My Organization";
   const userRole = user?.role?.toUpperCase();
-  const canEditOrg = orgId && (userRole === "OWNER" || userRole === "ADMIN" || userRole === "MANAGER");
+  const canEditOrg = org?.id && (userRole === "OWNER" || userRole === "ADMIN" || userRole === "MANAGER");
 
   const trainingActive = pathname.startsWith("/twin/training-area");
 
@@ -111,21 +109,15 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
 
   async function saveOrgName() {
     const trimmed = orgNameDraft.trim();
-    if (!trimmed || trimmed === orgName || !orgId) {
+    if (!trimmed || trimmed === orgName || !org?.id) {
       setEditingOrg(false);
       return;
     }
     setSavingOrg(true);
     try {
-      await organizationsApi.update(orgId, trimmed);
-      // Update localStorage so sidebar reflects immediately
-      const current = authStorage.getUser();
-      if (current) {
-        authStorage.saveUser({ ...current, org_name: trimmed, org_id: orgId });
-      }
+      const updated = await organizationsApi.update(org.id, trimmed);
+      setOrg(updated);
       toast.success("Organization renamed");
-      // Force re-render by reloading stored user
-      window.dispatchEvent(new StorageEvent("storage", { key: "user" }));
     } catch {
       toast.error("Failed to rename organization");
     } finally {
