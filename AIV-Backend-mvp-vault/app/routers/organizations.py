@@ -35,9 +35,10 @@ class UpdateMemberRequest(BaseModel):
 async def get_my_organization(
     user: dict = Depends(require_auth), db: AsyncSession = Depends(get_db),
 ):
-    """Get the authenticated user's organization. Tries OrganizationUser first, then OrganizationMembership."""
+    """Get the authenticated user's organization. Creates one if missing."""
     org = None
-    # Try legacy OrganizationUser table first
+
+    # Try OrganizationUser table
     try:
         result = await db.execute(
             select(Organization).join(
@@ -46,7 +47,7 @@ async def get_my_organization(
         )
         org = result.scalar_one_or_none()
     except Exception:
-        pass  # Table may not exist
+        pass
 
     # Fallback: try OrganizationMembership
     if not org:
@@ -60,8 +61,32 @@ async def get_my_organization(
         except Exception:
             pass
 
+    # Last resort: create org + link for this user
     if not org:
-        raise HTTPException(status_code=404, detail="No organization found")
+        user_name = user.get("name", user.get("user_name", "User"))
+        org = Organization(name=f"{user_name}'s Organization")
+        db.add(org)
+        await db.flush()
+        # Link via both tables for maximum compatibility
+        try:
+            db.add(OrganizationUser(
+                user_id=UUID(user["id"]),
+                organization_id=org.id,
+                role="owner",
+            ))
+        except Exception:
+            pass
+        try:
+            db.add(OrganizationMembership(
+                organization_id=org.id,
+                user_id=UUID(user["id"]),
+                role="OWNER",
+                permissions={"manage_team": True, "manage_deals": True, "manage_twins": True},
+            ))
+        except Exception:
+            pass
+        await db.flush()
+
     return {
         "id": str(org.id), "name": org.name, "type": org.type,
         "created_at": org.created_at.isoformat() if org.created_at else None,
