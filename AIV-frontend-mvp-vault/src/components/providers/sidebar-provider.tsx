@@ -13,8 +13,13 @@ import { organizationsApi, type Organization } from "@/lib/api/organizations";
 import { licensingApi } from "@/lib/api/licensing";
 
 const ACTIVE_ORG_KEY = "aiv_active_org";
+const COLLAPSE_KEY = "aiv_sidebar_collapsed";
 
 export interface SidebarContextValue {
+  /* Layout */
+  collapsed: boolean;
+  toggleCollapse: () => void;
+
   /* Organizations */
   orgs: Organization[];
   activeOrg: Organization | null;
@@ -44,6 +49,19 @@ export interface SidebarContextValue {
 export const SidebarContext = createContext<SidebarContextValue | null>(null);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(COLLAPSE_KEY) === "true";
+  });
+
+  function toggleCollapse() {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem(COLLAPSE_KEY, String(next));
+      return next;
+    });
+  }
+
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [activeOrg, setActiveOrgState] = useState<Organization | null>(null);
   const [isLoadingOrgs, setIsLoadingOrgs] = useState(true);
@@ -161,6 +179,8 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   return (
     <SidebarContext.Provider
       value={{
+        collapsed,
+        toggleCollapse,
         orgs,
         activeOrg,
         setActiveOrg,

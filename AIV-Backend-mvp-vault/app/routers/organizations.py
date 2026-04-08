@@ -92,18 +92,8 @@ async def create_organization(
     db.add(org)
     await db.flush()
 
-    # Link via OrganizationUser (legacy)
-    try:
-        db.add(OrganizationUser(
-            user_id=UUID(user["id"]),
-            organization_id=org.id,
-            role="owner",
-        ))
-        await db.flush()
-    except Exception:
-        pass
-
-    # Link via OrganizationMembership (new)
+    # Link user as OWNER — membership is required, legacy is optional
+    linked = False
     try:
         db.add(OrganizationMembership(
             organization_id=org.id,
@@ -112,8 +102,24 @@ async def create_organization(
             permissions={"manage_team": True, "manage_deals": True, "manage_twins": True},
         ))
         await db.flush()
+        linked = True
     except Exception:
         pass
+
+    # Also link via legacy OrganizationUser for backward compat
+    try:
+        db.add(OrganizationUser(
+            user_id=UUID(user["id"]),
+            organization_id=org.id,
+            role="owner",
+        ))
+        await db.flush()
+        linked = True
+    except Exception:
+        pass
+
+    if not linked:
+        raise HTTPException(status_code=500, detail="Failed to link user to organization")
 
     return {
         "id": str(org.id), "name": org.name, "type": org.type,
@@ -268,7 +274,7 @@ async def invite_member(
 @router.put("/{org_id}/members/{user_id}")
 async def update_member(
     org_id: str, user_id: str, req: UpdateMemberRequest,
-    user: dict = Depends(require_auth), db: AsyncSession = Depends(get_db),
+    user: dict = Depends(require_role("ADMIN")), db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
         select(OrganizationMembership).where(

@@ -54,8 +54,6 @@ const NAV_ITEMS = [
   { title: t("nav.protection"), href: "/protection", icon: ShieldCheck },
 ];
 
-const COLLAPSE_KEY = "aiv_sidebar_collapsed";
-
 function isActive(pathname: string, href: string): boolean {
   if (href === "/dashboard") return pathname === "/dashboard";
   if (href === "/twin")
@@ -110,12 +108,15 @@ function getDateLabel(d: Date, now: Date): string {
 interface AppSidebarProps {
   className?: string;
   onNavigate?: () => void;
+  forceExpanded?: boolean;
 }
 
-export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
+export function AppSidebar({ className, onNavigate, forceExpanded }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const {
+    collapsed,
+    toggleCollapse,
     orgs,
     activeOrg,
     setActiveOrg,
@@ -132,10 +133,7 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
     pendingDealCount,
   } = useSidebar();
 
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem(COLLAPSE_KEY) === "true";
-  });
+  const isCollapsed = forceExpanded ? false : collapsed;
   const [trainingOpen, setTrainingOpen] = useState(
     pathname.startsWith("/twin/training-area")
   );
@@ -148,12 +146,6 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
 
   const orgName = activeOrg?.name || "My Organization";
   const trainingActive = pathname.startsWith("/twin/training-area");
-
-  function toggleCollapse() {
-    const next = !collapsed;
-    setCollapsed(next);
-    localStorage.setItem(COLLAPSE_KEY, String(next));
-  }
 
   async function handleCreateOrg() {
     const trimmed = newOrgName.trim();
@@ -225,7 +217,7 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
   }
 
   // ─── Collapsed (icon-only) mode ─────────────────────────────────
-  if (collapsed) {
+  if (isCollapsed) {
     return (
       <aside
         className={cn(
@@ -397,9 +389,9 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
                   ref={renameOrgInputRef}
                   value={renameOrgDraft}
                   onChange={(e) => setRenameOrgDraft(e.target.value)}
-                  onBlur={handleRenameOrg}
+                  onBlur={() => setRenamingOrg(false)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") handleRenameOrg();
+                    if (e.key === "Enter") { e.preventDefault(); handleRenameOrg(); }
                     if (e.key === "Escape") setRenamingOrg(false);
                   }}
                   placeholder="New name"
@@ -428,9 +420,9 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
                   ref={newOrgInputRef}
                   value={newOrgName}
                   onChange={(e) => setNewOrgName(e.target.value)}
-                  onBlur={handleCreateOrg}
+                  onBlur={() => { setCreatingOrg(false); setNewOrgName(""); }}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") handleCreateOrg();
+                    if (e.key === "Enter") { e.preventDefault(); handleCreateOrg(); }
                     if (e.key === "Escape") { setCreatingOrg(false); setNewOrgName(""); }
                   }}
                   placeholder="Organization name"
@@ -575,12 +567,12 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
                 ) : sessions.length > 0 ? (
                   <>
                     {Object.entries(groupSessions()).map(
-                      ([label, groupSessions]) => (
+                      ([label, sessionsInGroup]) => (
                         <div key={label}>
                           <p className="text-xs text-sidebar-foreground/30 uppercase tracking-wider px-2 pt-2 pb-1">
                             {label}
                           </p>
-                          {groupSessions.map((s) => (
+                          {sessionsInGroup.map((s) => (
                             <Link
                               key={s.id}
                               href={`/twin/training-area?session=${s.id}`}

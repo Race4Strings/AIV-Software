@@ -62,12 +62,13 @@ class SwitchModeRequest(BaseModel):
     mode: str
 
 
-def _session_to_response(session) -> dict:
+def _session_to_response(session, title: str | None = None) -> dict:
     return {
         "id": str(session.id),
         "user_id": str(session.user_id),
         "twin_id": str(session.twin_id) if session.twin_id else None,
         "current_mode": session.current_mode,
+        "title": title,
         "started_at": session.started_at.isoformat() if session.started_at else "",
         "last_activity_at": session.last_activity_at.isoformat() if session.last_activity_at else "",
         "auth_expires_at": session.auth_expires_at.isoformat() if session.auth_expires_at else "",
@@ -149,9 +150,7 @@ async def list_sessions(
 
     response = []
     for s in sessions:
-        data = _session_to_response(s)
-        data["title"] = titles.get(str(s.id))
-        response.append(data)
+        response.append(_session_to_response(s, title=titles.get(str(s.id))))
     return response
 
 
