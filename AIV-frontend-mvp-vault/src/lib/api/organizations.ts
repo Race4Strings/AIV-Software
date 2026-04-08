@@ -17,6 +17,10 @@ export interface OrgMember {
 }
 
 export const organizationsApi = {
+  async getMyOrg(): Promise<Organization> {
+    const { data } = await apiClient.get("/organizations/me");
+    return data;
+  },
   async get(orgId: string): Promise<Organization> {
     const { data } = await apiClient.get(`/organizations/${orgId}`);
     return data;

@@ -46,30 +46,23 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
 
-  // Fetch twins on mount, then fetch org from twin's organization_id
+  // Fetch org directly from user's membership
+  useEffect(() => {
+    organizationsApi.getMyOrg()
+      .then(setOrg)
+      .catch(() => {})
+      .finally(() => setIsLoadingOrg(false));
+  }, []);
+
+  // Fetch twins on mount
   useEffect(() => {
     fetchTwins()
-      .then(async (list) => {
+      .then((list) => {
         setTwins(list);
-        if (list.length > 0) {
-          setActiveTwin(list[0]);
-          // Fetch org from twin's organization_id
-          const orgId = list[0].organization_id;
-          if (orgId) {
-            try {
-              const orgData = await organizationsApi.get(orgId);
-              setOrg(orgData);
-            } catch {
-              /* org fetch failed — non-critical */
-            }
-          }
-        }
+        if (list.length > 0) setActiveTwin(list[0]);
       })
       .catch(() => {})
-      .finally(() => {
-        setIsLoadingTwins(false);
-        setIsLoadingOrg(false);
-      });
+      .finally(() => setIsLoadingTwins(false));
   }, []);
 
   // Fetch sessions on mount

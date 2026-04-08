@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..database import get_db
 from ..middleware import require_auth
 from ..middleware.permissions import require_role
-from ..models.organization import Organization, OrganizationMembership
+from ..models.organization import Organization, OrganizationMembership, OrganizationUser
 from ..models.user import User
 from ..services.notification_service import NotificationService
 
@@ -29,6 +29,25 @@ class InviteRequest(BaseModel):
 class UpdateMemberRequest(BaseModel):
     role: Optional[str] = None
     permissions: Optional[dict] = None
+
+
+@router.get("/me")
+async def get_my_organization(
+    user: dict = Depends(require_auth), db: AsyncSession = Depends(get_db),
+):
+    """Get the authenticated user's organization."""
+    result = await db.execute(
+        select(Organization).join(
+            OrganizationUser, OrganizationUser.organization_id == Organization.id
+        ).where(OrganizationUser.user_id == UUID(user["id"])).limit(1)
+    )
+    org = result.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="No organization found")
+    return {
+        "id": str(org.id), "name": org.name, "type": org.type,
+        "created_at": org.created_at.isoformat() if org.created_at else None,
+    }
 
 
 @router.get("/{org_id}")
