@@ -21,6 +21,17 @@ export default function DashboardLayout({
   const router = useRouter();
   const { user, isLoading } = useStoredUser();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Sync with sidebar collapse state
+  useEffect(() => {
+    setSidebarCollapsed(localStorage.getItem("aiv_sidebar_collapsed") === "true");
+    const handler = () => setSidebarCollapsed(localStorage.getItem("aiv_sidebar_collapsed") === "true");
+    window.addEventListener("storage", handler);
+    // Also poll for same-tab changes
+    const interval = setInterval(handler, 300);
+    return () => { window.removeEventListener("storage", handler); clearInterval(interval); };
+  }, []);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -54,7 +65,7 @@ export default function DashboardLayout({
         </Sheet>
 
         {/* Content area */}
-        <div className="flex flex-1 flex-col md:ml-60">
+        <div className={`flex flex-1 flex-col transition-[margin] duration-200 ${sidebarCollapsed ? "md:ml-12" : "md:ml-60"}`}>
           <TopHeader onMobileMenuToggle={() => setMobileOpen(true)} />
           <main id="main-content" className="flex-1 overflow-x-hidden">
             <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
