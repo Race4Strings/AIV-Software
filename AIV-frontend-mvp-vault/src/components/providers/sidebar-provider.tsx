@@ -46,15 +46,22 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
 
-  // Fetch org directly from user's membership
+  // Fetch org — fallback to synthetic org from localStorage if API fails
   useEffect(() => {
     organizationsApi.getMyOrg()
       .then((data) => {
-        console.log("[SidebarProvider] org loaded:", data);
         setOrg(data);
       })
-      .catch((err) => {
-        console.error("[SidebarProvider] org fetch failed:", err?.response?.status, err?.message);
+      .catch(() => {
+        // API failed — build org name from localStorage user data
+        try {
+          const stored = localStorage.getItem("user");
+          if (stored) {
+            const u = JSON.parse(stored);
+            const name = u.org_name || u.name || "Organization";
+            setOrg({ id: "", name: name.includes("Organization") ? name : `${name}'s Organization`, type: "TALENT_TEAM" });
+          }
+        } catch { /* ignore */ }
       })
       .finally(() => setIsLoadingOrg(false));
   }, []);
