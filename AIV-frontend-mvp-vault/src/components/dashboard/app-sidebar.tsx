@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -40,6 +40,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { useSidebar } from "@/hooks/use-sidebar";
 import { assistantApi } from "@/lib/api/assistant";
 import { organizationsApi } from "@/lib/api/organizations";
@@ -137,22 +144,17 @@ export function AppSidebar({ className, onNavigate, forceExpanded }: AppSidebarP
   const [trainingOpen, setTrainingOpen] = useState(
     pathname.startsWith("/twin/training-area")
   );
-  const [creatingOrg, setCreatingOrg] = useState(false);
+  const [createOrgOpen, setCreateOrgOpen] = useState(false);
   const [newOrgName, setNewOrgName] = useState("");
-  const [renamingOrg, setRenamingOrg] = useState(false);
+  const [renameOrgOpen, setRenameOrgOpen] = useState(false);
   const [renameOrgDraft, setRenameOrgDraft] = useState("");
-  const newOrgInputRef = useRef<HTMLInputElement>(null);
-  const renameOrgInputRef = useRef<HTMLInputElement>(null);
 
   const orgName = activeOrg?.name || "My Organization";
   const trainingActive = pathname.startsWith("/twin/training-area");
 
   async function handleCreateOrg() {
     const trimmed = newOrgName.trim();
-    if (!trimmed) {
-      setCreatingOrg(false);
-      return;
-    }
+    if (!trimmed) return;
     try {
       const newOrg = await organizationsApi.createOrg(trimmed);
       addOrg(newOrg);
@@ -160,17 +162,14 @@ export function AppSidebar({ className, onNavigate, forceExpanded }: AppSidebarP
     } catch {
       toast.error("Failed to create organization");
     } finally {
-      setCreatingOrg(false);
+      setCreateOrgOpen(false);
       setNewOrgName("");
     }
   }
 
   async function handleRenameOrg() {
     const trimmed = renameOrgDraft.trim();
-    if (!trimmed || trimmed === orgName || !activeOrg?.id) {
-      setRenamingOrg(false);
-      return;
-    }
+    if (!trimmed || trimmed === orgName || !activeOrg?.id) return;
     try {
       const updated = await organizationsApi.update(activeOrg.id, trimmed);
       setActiveOrg({ ...activeOrg, name: updated.name });
@@ -178,7 +177,7 @@ export function AppSidebar({ className, onNavigate, forceExpanded }: AppSidebarP
     } catch {
       toast.error("Failed to rename");
     } finally {
-      setRenamingOrg(false);
+      setRenameOrgOpen(false);
     }
   }
 
@@ -383,28 +382,10 @@ export function AppSidebar({ className, onNavigate, forceExpanded }: AppSidebarP
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            {renamingOrg ? (
-              <div className="px-2 py-1.5">
-                <input
-                  ref={renameOrgInputRef}
-                  value={renameOrgDraft}
-                  onChange={(e) => setRenameOrgDraft(e.target.value)}
-                  onBlur={() => setRenamingOrg(false)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") { e.preventDefault(); handleRenameOrg(); }
-                    if (e.key === "Escape") setRenamingOrg(false);
-                  }}
-                  placeholder="New name"
-                  className="w-full text-sm bg-sidebar-accent/50 text-sidebar-foreground rounded px-2 py-1 outline-none ring-1 ring-sidebar-primary/50"
-                  autoFocus
-                />
-              </div>
-            ) : (
-              <DropdownMenuItem onClick={() => { setRenameOrgDraft(orgName); setRenamingOrg(true); }}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Rename
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuItem onClick={() => { setRenameOrgDraft(orgName); setRenameOrgOpen(true); }}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Rename
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => { router.push("/settings/team"); onNavigate?.(); }}>
               <Users className="mr-2 h-4 w-4" />
               Manage Team
@@ -414,30 +395,54 @@ export function AppSidebar({ className, onNavigate, forceExpanded }: AppSidebarP
               Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            {creatingOrg ? (
-              <div className="px-2 py-1.5">
-                <input
-                  ref={newOrgInputRef}
-                  value={newOrgName}
-                  onChange={(e) => setNewOrgName(e.target.value)}
-                  onBlur={() => { setCreatingOrg(false); setNewOrgName(""); }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") { e.preventDefault(); handleCreateOrg(); }
-                    if (e.key === "Escape") { setCreatingOrg(false); setNewOrgName(""); }
-                  }}
-                  placeholder="Organization name"
-                  className="w-full text-sm bg-sidebar-accent/50 text-sidebar-foreground rounded px-2 py-1 outline-none ring-1 ring-sidebar-primary/50"
-                  autoFocus
-                />
-              </div>
-            ) : (
-              <DropdownMenuItem onClick={() => { setCreatingOrg(true); setTimeout(() => newOrgInputRef.current?.focus(), 0); }}>
-                <Plus className="mr-2 h-4 w-4" />
-                New Organization
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuItem onClick={() => setCreateOrgOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Organization
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Rename org dialog */}
+        <Dialog open={renameOrgOpen} onOpenChange={setRenameOrgOpen}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Rename Organization</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={(e) => { e.preventDefault(); handleRenameOrg(); }} className="flex flex-col gap-3">
+              <Input
+                value={renameOrgDraft}
+                onChange={(e) => setRenameOrgDraft(e.target.value)}
+                placeholder="Organization name"
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" type="button" onClick={() => setRenameOrgOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={!renameOrgDraft.trim() || renameOrgDraft.trim() === orgName}>Save</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Create org dialog */}
+        <Dialog open={createOrgOpen} onOpenChange={setCreateOrgOpen}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>New Organization</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={(e) => { e.preventDefault(); handleCreateOrg(); }} className="flex flex-col gap-3">
+              <Input
+                value={newOrgName}
+                onChange={(e) => setNewOrgName(e.target.value)}
+                placeholder="Organization name"
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" type="button" onClick={() => { setCreateOrgOpen(false); setNewOrgName(""); }}>Cancel</Button>
+                <Button type="submit" disabled={!newOrgName.trim()}>Create</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         {/* Twin Switcher with status dots */}
         <DropdownMenu>
