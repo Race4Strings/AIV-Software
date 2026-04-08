@@ -61,31 +61,15 @@ async def get_my_organization(
         except Exception:
             pass
 
-    # Last resort: create org + link for this user
+    # No org found — return user's name as org name
+    # This guarantees the frontend always gets a valid response
     if not org:
-        user_name = user.get("name", user.get("user_name", "User"))
-        org = Organization(name=f"{user_name}'s Organization")
-        db.add(org)
-        await db.flush()
-        # Link via both tables for maximum compatibility
-        try:
-            db.add(OrganizationUser(
-                user_id=UUID(user["id"]),
-                organization_id=org.id,
-                role="owner",
-            ))
-        except Exception:
-            pass
-        try:
-            db.add(OrganizationMembership(
-                organization_id=org.id,
-                user_id=UUID(user["id"]),
-                role="OWNER",
-                permissions={"manage_team": True, "manage_deals": True, "manage_twins": True},
-            ))
-        except Exception:
-            pass
-        await db.flush()
+        return {
+            "id": user["id"],
+            "name": f"{user.get('name', 'User')}'s Organization",
+            "type": "TALENT_TEAM",
+            "created_at": None,
+        }
 
     return {
         "id": str(org.id), "name": org.name, "type": org.type,
