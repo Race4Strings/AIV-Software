@@ -181,12 +181,14 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
     >
       {/* Header: Logo + Org + Twin Switcher */}
       <div className="shrink-0 px-4 pt-4 pb-3 border-b border-sidebar-border">
-        {/* AIV Logo + Org */}
-        <div className="flex items-center gap-2 mb-3">
-          <Link href="/dashboard" onClick={handleNavClick} className="flex items-center gap-2 shrink-0">
-            <ShieldCheck className="h-5 w-5 text-sidebar-primary" />
-            <span className="text-sm font-semibold text-sidebar-foreground">AIV</span>
-          </Link>
+        {/* AIV Logo */}
+        <Link href="/dashboard" onClick={handleNavClick} className="flex items-center gap-2 mb-3">
+          <ShieldCheck className="h-4 w-4 text-sidebar-primary" />
+          <span className="text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider">AIV</span>
+        </Link>
+
+        {/* Organization — the workspace */}
+        <div className="mb-2">
           {editingOrg ? (
             <input
               ref={orgInputRef}
@@ -198,14 +200,14 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
                 if (e.key === "Escape") setEditingOrg(false);
               }}
               disabled={savingOrg}
-              className="text-xs text-sidebar-foreground bg-sidebar-accent/50 rounded px-1.5 py-0.5 outline-none ring-1 ring-sidebar-primary/50 truncate min-w-0 flex-1"
+              className="w-full text-sm font-semibold text-sidebar-foreground bg-sidebar-accent/50 rounded px-2 py-1 outline-none ring-1 ring-sidebar-primary/50"
             />
           ) : (
             <button
               onClick={canEditOrg ? startEditingOrg : undefined}
               className={cn(
-                "text-xs text-sidebar-foreground/40 truncate min-w-0",
-                canEditOrg && "hover:text-sidebar-foreground/70 cursor-pointer"
+                "text-sm font-semibold text-sidebar-foreground truncate block w-full text-left",
+                canEditOrg && "hover:text-sidebar-primary cursor-pointer"
               )}
               title={canEditOrg ? "Click to rename" : orgName}
             >
