@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Bot, Activity, Fingerprint, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,9 @@ import { fetchTwins, fetchTwinHealth } from "@/lib/api/twins";
 import { humanizeEnum } from "@/lib/humanize";
 
 export default function TrainingAreaPage() {
+  const searchParams = useSearchParams();
+  const sessionParam = searchParams.get("session") || undefined;
+
   const [twinId, setTwinId] = useState<string | undefined>();
   const [twinName, setTwinName] = useState("");
   const [twinStatus, setTwinStatus] = useState("");
@@ -24,7 +28,6 @@ export default function TrainingAreaPage() {
           setTwinId(t.id as string);
           setTwinName((t.display_name as string) || (t.name as string) || "Your Twin");
           setTwinStatus((t.health_status as string) || "BUILDING");
-          // Check ALCM availability via health endpoint
           const health = await fetchTwinHealth(t.id as string);
           if (!health || (health as Record<string, unknown>)._alcm_unavailable) {
             setAlcmAvailable(false);
@@ -86,7 +89,7 @@ export default function TrainingAreaPage() {
 
       {/* Assistant */}
       <div className="flex-1 min-h-0">
-        <AssistantInterface twinId={twinId} />
+        <AssistantInterface twinId={twinId} initialSessionId={sessionParam} />
       </div>
     </div>
   );

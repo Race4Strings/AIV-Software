@@ -28,6 +28,12 @@ export const en = {
     settings: "Settings",
     notifications: "Notifications",
     signOut: "Log out",
+    newSession: "New Session",
+    addIdentity: "Add New Identity",
+    switchIdentity: "Switch Identity",
+    noSessions: "No sessions yet",
+    noIdentity: "No identity yet",
+    startTraining: "Start Training",
   },
   auth: {
     signin: {

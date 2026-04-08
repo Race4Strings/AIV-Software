@@ -1,10 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { TopNav } from "@/components/dashboard/top-nav";
+import { AppSidebar } from "@/components/dashboard/app-sidebar";
+import { TopHeader } from "@/components/dashboard/top-header";
+import { SidebarProvider } from "@/components/providers/sidebar-provider";
 import { useStoredUser } from "@/hooks/use-stored-user";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 export default function DashboardLayout({
   children,
@@ -13,6 +20,7 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const { user, isLoading } = useStoredUser();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -29,11 +37,32 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <TopNav />
-      <main id="main-content" className="flex-1 overflow-x-hidden">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6">{children}</div>
-      </main>
-    </div>
+    <SidebarProvider>
+      <div className="flex min-h-screen">
+        {/* Desktop sidebar */}
+        <AppSidebar className="hidden md:flex" />
+
+        {/* Mobile sidebar sheet */}
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <SheetContent side="left" className="w-[280px] p-0 bg-sidebar border-sidebar-border">
+            <SheetTitle className="sr-only">Navigation</SheetTitle>
+            <AppSidebar
+              className="relative w-full"
+              onNavigate={() => setMobileOpen(false)}
+            />
+          </SheetContent>
+        </Sheet>
+
+        {/* Content area */}
+        <div className="flex flex-1 flex-col md:ml-60">
+          <TopHeader onMobileMenuToggle={() => setMobileOpen(true)} />
+          <main id="main-content" className="flex-1 overflow-x-hidden">
+            <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+              {children}
+            </div>
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 }

@@ -12,7 +12,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ModeSwitcher } from "./mode-switcher";
 import { humanizeEnum } from "@/lib/humanize";
 import { MessageBubble } from "./message-bubble";
-import { useIsMobile } from "@/hooks/use-mobile";
 import {
   assistantApi,
   streamMessage,
@@ -22,6 +21,7 @@ import {
 import { uploadApi } from "@/lib/api/upload";
 import { integrationsApi } from "@/lib/api/integrations";
 import { apiClient } from "@/lib/api/client";
+import { useSidebar } from "@/hooks/use-sidebar";
 
 const MODE_PROMPTS: Record<string, string[]> = {
   ASSISTANT: [
@@ -57,11 +57,12 @@ interface DisplayMessage {
 
 interface AssistantInterfaceProps {
   twinId?: string;
+  initialSessionId?: string;
 }
 
-export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
+export function AssistantInterface({ twinId, initialSessionId }: AssistantInterfaceProps) {
+  const { sessions, activeSessionId, setActiveSessionId, addSession } = useSidebar();
   const [session, setSession] = useState<AgentSession | null>(null);
-  const [sessions, setSessions] = useState<AgentSession[]>([]);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -71,8 +72,6 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
   const [ingestOpen, setIngestOpen] = useState(false);
   const [ingestUrl, setIngestUrl] = useState("");
   const [ingesting, setIngesting] = useState(false);
-  const isMobile = useIsMobile();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -84,10 +83,20 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
 
   useEffect(() => scrollToBottom(), [messages, streamingContent, scrollToBottom]);
 
-  // Load sessions on mount
+  // Initialize: select session from URL param, context, or create new
   useEffect(() => {
-    loadSessions();
+    initSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Respond to external session selection (from sidebar)
+  useEffect(() => {
+    if (activeSessionId && activeSessionId !== session?.id) {
+      const found = sessions.find((s) => s.id === activeSessionId);
+      if (found) selectSession(found);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSessionId]);
 
   // Load twin health for coverage indicator
   useEffect(() => {
@@ -97,12 +106,19 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
     }).catch(() => {});
   }, [twinId]);
 
-  async function loadSessions() {
+  async function initSession() {
     try {
-      const list = await assistantApi.listSessions();
-      setSessions(list);
-      if (list.length > 0) {
-        await selectSession(list[0]);
+      // Priority: URL param > first session > create new
+      const targetId = initialSessionId || (sessions.length > 0 ? sessions[0].id : null);
+      if (targetId) {
+        const found = sessions.find((s) => s.id === targetId);
+        if (found) {
+          await selectSession(found);
+          setActiveSessionId(found.id);
+        } else {
+          // Session ID from URL doesn't exist in list — try loading directly or create new
+          await createNewSession();
+        }
       } else {
         await createNewSession();
       }
@@ -114,7 +130,6 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
   }
 
   async function createNewSession() {
-    // Show session summary if there were messages in the current session
     if (messages.length > 0) {
       const userMsgs = messages.filter((m) => m.role === "USER").length;
       const agentMsgs = messages.filter((m) => m.role === "AGENT").length;
@@ -124,8 +139,8 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
       const newSession = await assistantApi.createSession(twinId);
       setSession(newSession);
       setMessages([]);
-      setSessions((prev) => [newSession, ...prev]);
-    } catch (err) {
+      addSession(newSession);
+    } catch {
       toast.error("Failed to create session");
     }
   }
@@ -172,7 +187,6 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
     const content = input.trim();
     setInput("");
 
-    // Add user message immediately
     const userMsg: DisplayMessage = {
       id: crypto.randomUUID(),
       role: "USER",
@@ -181,7 +195,6 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
     };
     setMessages((prev) => [...prev, userMsg]);
 
-    // Stream response
     setIsStreaming(true);
     setStreamingContent("");
     const controller = new AbortController();
@@ -194,7 +207,6 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
         setStreamingContent(fullResponse);
       }
 
-      // Add completed agent message
       setMessages((prev) => [
         ...prev,
         {
@@ -259,101 +271,27 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
     );
   }
 
-  // Derive session title from first user message or mode
-  function getSessionTitle(s: AgentSession, _idx: number): string {
-    // If this is the active session and we have messages, use first user message
-    if (s.id === session?.id && messages.length > 0) {
-      const firstUser = messages.find(m => m.role === "USER");
-      if (firstUser) return firstUser.content.slice(0, 40) + (firstUser.content.length > 40 ? "..." : "");
-    }
-    const mode = humanizeEnum(s.current_mode || "ASSISTANT");
-    return `${mode} session`;
-  }
-
   return (
-    <div className="flex h-full">
-      {/* Session sidebar */}
-      {!isMobile && sidebarOpen && sessions.length > 0 && (
-        <div className="w-60 shrink-0 border-r flex flex-col bg-muted/20">
-          <div className="flex items-center justify-between p-3 border-b">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Sessions</span>
-            <Button variant="ghost" size="sm" onClick={createNewSession} disabled={isStreaming} className="h-7 px-2 text-xs">
-              <Plus className="h-3.5 w-3.5 mr-1" /> New
-            </Button>
-          </div>
-          <div className="flex-1 overflow-y-auto p-2 space-y-1">
-            {(() => {
-              const grouped: Record<string, typeof sessions> = {};
-              sessions.slice(0, 15).forEach((s, idx) => {
-                const d = new Date(s.started_at);
-                const today = new Date();
-                const isToday = d.toDateString() === today.toDateString();
-                const isYesterday = d.toDateString() === new Date(today.getTime() - 86400000).toDateString();
-                const weekAgo = new Date(today.getTime() - 7 * 86400000);
-                const label = isToday ? "Today" : isYesterday ? "Yesterday" : d > weekAgo ? "This Week" : "Earlier";
-                if (!grouped[label]) grouped[label] = [];
-                grouped[label].push(s);
-              });
-              return Object.entries(grouped).map(([label, groupSessions]) => (
-                <div key={label}>
-                  <p className="text-xs font-semibold text-muted-foreground/50 uppercase tracking-wider px-3 pt-2 pb-1">{label}</p>
-                  {groupSessions.map((s, idx) => (
-                    <button
-                      key={s.id}
-                      onClick={() => selectSession(s)}
-                      className={`w-full text-left rounded-lg px-3 py-2.5 transition-colors ${
-                        s.id === session?.id
-                          ? "bg-primary/10 text-foreground border border-primary/20"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                      }`}
-                    >
-                      <div className="text-xs font-medium truncate">{getSessionTitle(s, idx)}</div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="text-xs px-1.5 py-0">{humanizeEnum(s.current_mode || "ASSISTANT")}</Badge>
-                        <span className="text-xs text-muted-foreground/60">
-                          {new Date(s.started_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              ));
-            })()}
-          </div>
-        </div>
-      )}
+    <div className="flex h-full flex-col">
+      {/* Mode accent indicator */}
+      <div className={`h-0.5 transition-colors ${
+        session?.current_mode === "DIGITAL_SELF" ? "bg-accent" :
+        session?.current_mode === "TRAINING" ? "bg-primary" :
+        session?.current_mode === "REFINEMENT" ? "bg-warning" :
+        "bg-primary"
+      }`} />
 
-      {/* Main chat area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Mode accent indicator */}
-        <div className={`h-0.5 transition-colors ${
-          session?.current_mode === "DIGITAL_SELF" ? "bg-accent" :
-          session?.current_mode === "TRAINING" ? "bg-primary" :
-          session?.current_mode === "REFINEMENT" ? "bg-warning" :
-          "bg-primary"
-        }`} />
-        {/* Header: Mode switcher + session toggle */}
-        <div className="flex items-center justify-between border-b px-4 py-3">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-muted transition-colors text-muted-foreground"
-              aria-label={sidebarOpen ? "Hide sessions" : "Show sessions"}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>
-            </button>
-            <ModeSwitcher
-              currentMode={(session?.current_mode as Mode) || "ASSISTANT"}
-              onModeChange={handleModeChange}
-              disabled={isStreaming}
-            />
-          </div>
-          {!sidebarOpen && (
-            <Button variant="ghost" size="sm" onClick={createNewSession} disabled={isStreaming} aria-label="New session">
-              <Plus className="h-4 w-4 mr-1" /> New
-            </Button>
-          )}
-        </div>
+      {/* Header: Mode switcher */}
+      <div className="flex items-center justify-between border-b px-4 py-3">
+        <ModeSwitcher
+          currentMode={(session?.current_mode as Mode) || "ASSISTANT"}
+          onModeChange={handleModeChange}
+          disabled={isStreaming}
+        />
+        <Button variant="ghost" size="sm" onClick={createNewSession} disabled={isStreaming} aria-label="New session">
+          <Plus className="h-4 w-4 mr-1" /> New
+        </Button>
+      </div>
 
       {/* Session Progress Indicator */}
       {messages.length > 0 && (
@@ -391,7 +329,6 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
               Start with a message below. The more you interact, the stronger your identity profile becomes.
             </p>
 
-            {/* Building status — activity encouragement (replaces ALCM metrics) */}
             {healthData && healthData.status === "BUILDING" && (
               <div className="mt-4 rounded-lg border border-border/50 bg-muted/30 px-4 py-3 text-left max-w-sm w-full">
                 <p className="text-xs font-medium text-muted-foreground mb-1">Identity Status: Building</p>
@@ -401,7 +338,6 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
               </div>
             )}
 
-            {/* Guided prompts */}
             <div className="mt-5 flex flex-wrap justify-center gap-2 max-w-lg">
               {(MODE_PROMPTS[session?.current_mode || "ASSISTANT"] || []).map((prompt) => (
                 <button
@@ -512,7 +448,6 @@ export function AssistantInterface({ twinId }: AssistantInterfaceProps) {
           </Button>
         </div>
       </div>
-      </div>{/* close main chat area */}
     </div>
   );
 }
