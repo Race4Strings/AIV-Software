@@ -10,6 +10,7 @@ import {
 import { fetchTwins, type Twin } from "@/lib/api/twins";
 import { assistantApi, type AgentSession } from "@/lib/api/assistant";
 import { organizationsApi, type Organization } from "@/lib/api/organizations";
+import { licensingApi } from "@/lib/api/licensing";
 
 const ACTIVE_ORG_KEY = "aiv_active_org";
 
@@ -35,6 +36,9 @@ export interface SidebarContextValue {
   addSession: (session: AgentSession) => void;
   refreshSessions: () => Promise<void>;
   isLoadingSessions: boolean;
+
+  /* Deals */
+  pendingDealCount: number;
 }
 
 export const SidebarContext = createContext<SidebarContextValue | null>(null);
@@ -52,6 +56,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   const [sessions, setSessions] = useState<AgentSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
+  const [pendingDealCount, setPendingDealCount] = useState(0);
 
   // Fetch all orgs on mount
   useEffect(() => {
@@ -136,6 +141,14 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     if (orgReady) refreshSessions();
   }, [orgReady, activeOrg, refreshSessions]);
 
+  // Fetch pending deal count
+  useEffect(() => {
+    if (!orgReady) return;
+    licensingApi.getDeals(undefined, "SUBMITTED")
+      .then((deals) => setPendingDealCount(deals.length))
+      .catch(() => setPendingDealCount(0));
+  }, [orgReady, activeOrg]);
+
   function setActiveTwin(twin: Twin) {
     setActiveTwinState(twin);
   }
@@ -164,6 +177,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
         addSession,
         refreshSessions,
         isLoadingSessions,
+        pendingDealCount,
       }}
     >
       {children}

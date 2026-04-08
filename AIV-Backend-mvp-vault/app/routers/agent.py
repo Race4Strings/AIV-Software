@@ -109,10 +109,50 @@ async def list_sessions(
     user: dict = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ):
-    """List user's sessions (last 10)."""
+    """List user's sessions (last 10) with titles from first user message."""
+    from sqlalchemy import select, func
+    from ..models.agent_message import AgentMessage
+
     service = AgentService(db)
     sessions = await service.get_active_sessions(UUID(user["id"]))
-    return [_session_to_response(s) for s in sessions]
+
+    # Batch-fetch first user message per session for titles
+    session_ids = [s.id for s in sessions]
+    titles: dict[str, str] = {}
+    if session_ids:
+        try:
+            # Subquery: min created_at per session for USER messages
+            first_msg_sq = (
+                select(
+                    AgentMessage.session_id,
+                    func.min(AgentMessage.created_at).label("first_at"),
+                )
+                .where(AgentMessage.session_id.in_(session_ids))
+                .where(AgentMessage.role == "USER")
+                .group_by(AgentMessage.session_id)
+                .subquery()
+            )
+            result = await db.execute(
+                select(AgentMessage.session_id, AgentMessage.content)
+                .join(
+                    first_msg_sq,
+                    (AgentMessage.session_id == first_msg_sq.c.session_id)
+                    & (AgentMessage.created_at == first_msg_sq.c.first_at),
+                )
+                .where(AgentMessage.role == "USER")
+            )
+            for sid, content in result.all():
+                text = (content or "").strip()
+                titles[str(sid)] = text[:60] + ("..." if len(text) > 60 else "")
+        except Exception:
+            pass  # Non-critical — sessions still work without titles
+
+    response = []
+    for s in sessions:
+        data = _session_to_response(s)
+        data["title"] = titles.get(str(s.id))
+        response.append(data)
+    return response
 
 
 # ------------------------------------------------------------------

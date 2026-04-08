@@ -16,6 +16,7 @@ export interface AgentSession {
   user_id: string;
   twin_id: string | null;
   current_mode: "ASSISTANT" | "DIGITAL_SELF" | "TRAINING" | "REFINEMENT";
+  title?: string | null;
   started_at: string;
   last_activity_at: string;
   auth_expires_at: string;

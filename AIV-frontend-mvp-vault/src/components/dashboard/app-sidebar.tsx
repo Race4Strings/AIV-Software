@@ -94,6 +94,7 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
     setActiveSessionId,
     addSession,
     isLoadingSessions,
+    pendingDealCount,
   } = useSidebar();
 
   const [trainingOpen, setTrainingOpen] = useState(
@@ -186,6 +187,7 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
   }
 
   function getSessionTitle(s: typeof sessions[0]): string {
+    if (s.title) return s.title;
     const mode = humanizeEnum(s.current_mode || "ASSISTANT");
     return `${mode} session`;
   }
@@ -492,6 +494,7 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
           {NAV_ITEMS.slice(2).map((item) => {
             const active = isActive(pathname, item.href);
             const Icon = item.icon;
+            const isDeals = item.href === "/deals";
             return (
               <Link
                 key={item.href}
@@ -505,7 +508,12 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                {item.title}
+                <span className="flex-1">{item.title}</span>
+                {isDeals && pendingDealCount > 0 && (
+                  <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-xs font-bold text-primary-foreground">
+                    {pendingDealCount}
+                  </span>
+                )}
               </Link>
             );
           })}
