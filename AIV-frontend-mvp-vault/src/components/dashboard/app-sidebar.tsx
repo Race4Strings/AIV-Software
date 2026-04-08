@@ -14,6 +14,10 @@ import {
   ChevronRight,
   Plus,
   MessageSquare,
+  Check,
+  Pencil,
+  Users,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -29,12 +33,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Check } from "lucide-react";
 import { useSidebar } from "@/hooks/use-sidebar";
 import { assistantApi } from "@/lib/api/assistant";
 import { organizationsApi } from "@/lib/api/organizations";
@@ -61,6 +59,17 @@ function isActive(pathname: string, href: string): boolean {
   if (href === "/deals") return pathname.startsWith("/deals");
   if (href === "/protection") return pathname.startsWith("/protection");
   return false;
+}
+
+/** Status dot color for twin health */
+function twinStatusColor(status?: string): string {
+  switch (status?.toUpperCase()) {
+    case "ACTIVE": return "bg-success";
+    case "BUILDING": case "INITIALIZING": return "bg-warning";
+    case "LOCKED": case "PROTECTED_HOLD": return "bg-destructive";
+    case "ARCHIVED": return "bg-muted-foreground/30";
+    default: return "bg-muted-foreground/30";
+  }
 }
 
 interface AppSidebarProps {
@@ -92,7 +101,10 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
   );
   const [creatingOrg, setCreatingOrg] = useState(false);
   const [newOrgName, setNewOrgName] = useState("");
+  const [renamingOrg, setRenamingOrg] = useState(false);
+  const [renameOrgDraft, setRenameOrgDraft] = useState("");
   const newOrgInputRef = useRef<HTMLInputElement>(null);
+  const renameOrgInputRef = useRef<HTMLInputElement>(null);
 
   const orgName = activeOrg?.name || "My Organization";
   const trainingActive = pathname.startsWith("/twin/training-area");
@@ -112,6 +124,23 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
     } finally {
       setCreatingOrg(false);
       setNewOrgName("");
+    }
+  }
+
+  async function handleRenameOrg() {
+    const trimmed = renameOrgDraft.trim();
+    if (!trimmed || trimmed === orgName || !activeOrg?.id) {
+      setRenamingOrg(false);
+      return;
+    }
+    try {
+      const updated = await organizationsApi.update(activeOrg.id, trimmed);
+      setActiveOrg({ ...activeOrg, name: updated.name });
+      toast.success("Organization renamed");
+    } catch {
+      toast.error("Failed to rename");
+    } finally {
+      setRenamingOrg(false);
     }
   }
 
@@ -184,18 +213,64 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
               <ChevronDown className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/50" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-52">
+          <DropdownMenuContent align="start" className="w-56">
             {orgs.map((o) => (
               <DropdownMenuItem
                 key={o.id || o.name}
                 onClick={() => setActiveOrg(o)}
+                className="flex items-center justify-between"
               >
-                {o.id === activeOrg?.id && <Check className="mr-2 h-4 w-4" />}
-                {o.id !== activeOrg?.id && <div className="mr-2 h-4 w-4" />}
-                <span className="truncate">{o.name}</span>
+                <div className="flex items-center gap-2 min-w-0">
+                  {o.id === activeOrg?.id ? (
+                    <Check className="h-4 w-4 shrink-0 text-sidebar-primary" />
+                  ) : (
+                    <div className="h-4 w-4 shrink-0" />
+                  )}
+                  <span className="truncate">{o.name}</span>
+                </div>
+                {o.role && (
+                  <span className="text-xs text-muted-foreground ml-2 shrink-0">
+                    {o.role.charAt(0) + o.role.slice(1).toLowerCase()}
+                  </span>
+                )}
               </DropdownMenuItem>
             ))}
-            {orgs.length > 0 && <DropdownMenuSeparator />}
+            <DropdownMenuSeparator />
+            {/* Rename current org */}
+            {renamingOrg ? (
+              <div className="px-2 py-1.5">
+                <input
+                  ref={renameOrgInputRef}
+                  value={renameOrgDraft}
+                  onChange={(e) => setRenameOrgDraft(e.target.value)}
+                  onBlur={handleRenameOrg}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleRenameOrg();
+                    if (e.key === "Escape") setRenamingOrg(false);
+                  }}
+                  placeholder="New name"
+                  className="w-full text-sm bg-sidebar-accent/50 text-sidebar-foreground rounded px-2 py-1 outline-none ring-1 ring-sidebar-primary/50"
+                  autoFocus
+                />
+              </div>
+            ) : (
+              <DropdownMenuItem onClick={() => { setRenameOrgDraft(orgName); setRenamingOrg(true); }}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Rename
+              </DropdownMenuItem>
+            )}
+            {/* Manage team */}
+            <DropdownMenuItem onClick={() => { router.push("/settings/team"); onNavigate?.(); }}>
+              <Users className="mr-2 h-4 w-4" />
+              Manage Team
+            </DropdownMenuItem>
+            {/* Org settings */}
+            <DropdownMenuItem onClick={() => { router.push("/settings"); onNavigate?.(); }}>
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {/* Create new org */}
             {creatingOrg ? (
               <div className="px-2 py-1.5">
                 <input
@@ -221,7 +296,7 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Twin Switcher */}
+        {/* Twin Switcher with status dots */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm font-medium hover:bg-sidebar-accent/50 transition-colors">
@@ -229,17 +304,16 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
                 <div className="h-4 w-32 rounded bg-sidebar-accent/30 animate-shimmer" />
               ) : activeTwin ? (
                 <>
-                  <Fingerprint className="h-4 w-4 shrink-0 text-sidebar-primary" />
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="truncate flex-1 text-left">
-                        {activeTwin.display_name || activeTwin.name || "Unnamed"}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">
-                      {activeTwin.display_name || activeTwin.name}
-                    </TooltipContent>
-                  </Tooltip>
+                  <div className="relative shrink-0">
+                    <Fingerprint className="h-4 w-4 text-sidebar-primary" />
+                    <span className={cn(
+                      "absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-sidebar",
+                      twinStatusColor(activeTwin.health_status || activeTwin.status)
+                    )} />
+                  </div>
+                  <span className="truncate flex-1 text-left">
+                    {activeTwin.display_name || activeTwin.name || "Unnamed"}
+                  </span>
                   <ChevronDown className="h-3.5 w-3.5 shrink-0 text-sidebar-foreground/50" />
                 </>
               ) : (
@@ -259,12 +333,20 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
                 key={tw.id}
                 onClick={() => setActiveTwin(tw)}
                 className={cn(
+                  "flex items-center gap-2",
                   tw.id === activeTwin?.id && "bg-accent"
                 )}
               >
-                <Fingerprint className="mr-2 h-4 w-4" />
-                <span className="truncate">
-                  {tw.display_name || tw.name || "Unnamed"}
+                <div className="relative shrink-0">
+                  <Fingerprint className="h-4 w-4" />
+                  <span className={cn(
+                    "absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-popover",
+                    twinStatusColor(tw.health_status || tw.status)
+                  )} />
+                </div>
+                <span className="truncate flex-1">{tw.display_name || tw.name || "Unnamed"}</span>
+                <span className="text-xs text-muted-foreground shrink-0">
+                  {humanizeEnum(tw.status || "BUILDING")}
                 </span>
               </DropdownMenuItem>
             ))}
@@ -330,21 +412,6 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="ml-4 mt-1 flex flex-col gap-0.5 border-l border-sidebar-border pl-3">
-                {/* Training area link */}
-                <Link
-                  href="/twin/training-area"
-                  onClick={handleNavClick}
-                  className={cn(
-                    "flex items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
-                    pathname === "/twin/training-area" && !activeSessionId
-                      ? "text-sidebar-primary"
-                      : "text-sidebar-foreground/60 hover:text-sidebar-foreground"
-                  )}
-                >
-                  <Brain className="h-3 w-3 shrink-0" />
-                  {t("nav.training")}
-                </Link>
-
                 {/* Session list */}
                 {isLoadingSessions ? (
                   <div className="space-y-2 px-2 py-1">
@@ -392,9 +459,13 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
                     )}
                   </>
                 ) : (
-                  <p className="px-2 py-2 text-xs text-sidebar-foreground/40">
-                    {t("nav.noSessions")}
-                  </p>
+                  <Link
+                    href="/twin/training-area"
+                    onClick={handleNavClick}
+                    className="px-2 py-2 text-xs text-sidebar-foreground/40 hover:text-sidebar-foreground transition-colors"
+                  >
+                    {t("nav.startTraining")}
+                  </Link>
                 )}
 
                 {/* New session button */}
