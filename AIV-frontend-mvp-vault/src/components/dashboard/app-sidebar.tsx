@@ -14,7 +14,6 @@ import {
   Plus,
   MessageSquare,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -146,12 +145,18 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
         className
       )}
     >
-      {/* Header: Org + Twin Switcher */}
+      {/* Header: Logo + Org + Twin Switcher */}
       <div className="shrink-0 px-4 pt-4 pb-3 border-b border-sidebar-border">
-        {/* Org name */}
-        <p className="text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider mb-3 truncate">
-          {orgName}
-        </p>
+        {/* AIV Logo + Org */}
+        <div className="flex items-center gap-2 mb-3">
+          <Link href="/dashboard" onClick={handleNavClick} className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-sidebar-primary" />
+            <span className="text-sm font-semibold text-sidebar-foreground">AIV</span>
+          </Link>
+          <span className="text-xs text-sidebar-foreground/40 truncate">
+            {orgName}
+          </span>
+        </div>
 
         {/* Twin Switcher */}
         <DropdownMenu>
@@ -304,29 +309,19 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
                                 handleNavClick();
                               }}
                               className={cn(
-                                "flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors group",
+                                "flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors",
                                 s.id === activeSessionId
                                   ? "bg-sidebar-accent/60 text-sidebar-accent-foreground"
                                   : "text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/30"
                               )}
                             >
                               <MessageSquare className="h-3 w-3 shrink-0" />
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="truncate flex-1">
-                                    {getSessionTitle(s)}
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent side="right">
-                                  {getSessionTitle(s)}
-                                </TooltipContent>
-                              </Tooltip>
-                              <Badge
-                                variant="outline"
-                                className="text-xs px-1 py-0 shrink-0 opacity-60 group-hover:opacity-100"
-                              >
-                                {humanizeEnum(s.current_mode || "ASSISTANT")}
-                              </Badge>
+                              <span className="truncate flex-1">
+                                {getSessionTitle(s)}
+                              </span>
+                              <span className="text-xs text-sidebar-foreground/30 shrink-0">
+                                {new Date(s.started_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </span>
                             </Link>
                           ))}
                         </div>
@@ -377,17 +372,6 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
         </nav>
       </ScrollArea>
 
-      {/* Footer */}
-      <div className="shrink-0 border-t border-sidebar-border px-4 py-3">
-        <Link
-          href="/dashboard"
-          onClick={handleNavClick}
-          className="flex items-center gap-2"
-        >
-          <ShieldCheck className="h-4 w-4 text-sidebar-primary" />
-          <span className="text-xs font-semibold text-sidebar-foreground/70">AIV</span>
-        </Link>
-      </div>
     </aside>
   );
 }
