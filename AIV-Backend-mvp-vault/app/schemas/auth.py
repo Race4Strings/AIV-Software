@@ -73,7 +73,10 @@ class UserResponse(BaseModel):
     user_name: str
     is_verified: bool
     created_at: datetime
-    
+    role: Optional[str] = None
+    org_id: Optional[str] = None
+    org_name: Optional[str] = None
+
     class Config:
         from_attributes = True
 

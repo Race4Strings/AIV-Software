@@ -281,10 +281,15 @@ async def signin(
             path="/",
         )
 
+        user_response = UserResponse.model_validate(user)
+        user_response.role = getattr(user, "role", "TALENT")
+        user_response.org_id = org_id
+        user_response.org_name = org_name
+
         return SigninResponse(
             state="success",
             message="Signed in successfully",
-            data=UserResponse.model_validate(user),
+            data=user_response,
         )
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
