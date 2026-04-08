@@ -9,6 +9,8 @@ import {
 } from "react";
 import { fetchTwins, type Twin } from "@/lib/api/twins";
 import { assistantApi, type AgentSession } from "@/lib/api/assistant";
+import { authApi } from "@/lib/api/auth";
+import { authStorage } from "@/lib/auth-storage";
 
 export interface SidebarContextValue {
   /* Twins */
@@ -36,6 +38,28 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   const [sessions, setSessions] = useState<AgentSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
+
+  // Backfill org data from /auth/me if localStorage is missing it
+  useEffect(() => {
+    const stored = authStorage.getUser();
+    if (stored && !stored.org_id) {
+      authApi.getMe().then((me) => {
+        const orgId = (me as Record<string, unknown>).org_id as string | undefined;
+        const orgName = (me as Record<string, unknown>).org_name as string | undefined;
+        const role = (me as Record<string, unknown>).role as string | undefined;
+        if (orgId || orgName || role) {
+          authStorage.saveUser({
+            ...stored,
+            org_id: orgId || stored.org_id,
+            org_name: orgName || stored.org_name,
+            role: role || stored.role,
+          });
+          // Trigger re-render for components reading from storage
+          window.dispatchEvent(new StorageEvent("storage", { key: "user" }));
+        }
+      }).catch(() => {});
+    }
+  }, []);
 
   // Fetch twins on mount
   useEffect(() => {
