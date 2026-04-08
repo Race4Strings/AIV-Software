@@ -47,6 +47,7 @@ with engine.connect() as conn:
         "failed_login_attempts": "INTEGER NOT NULL DEFAULT 0",
         "locked_until": "TIMESTAMPTZ",
         "is_verified": "BOOLEAN NOT NULL DEFAULT false",
+        "role": "VARCHAR(50) NOT NULL DEFAULT 'TALENT'",
         "stripe_customer_id": "VARCHAR(255)",
         "notification_preferences": "JSONB DEFAULT '{}'::jsonb",
     }
