@@ -49,8 +49,13 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   // Fetch org directly from user's membership
   useEffect(() => {
     organizationsApi.getMyOrg()
-      .then(setOrg)
-      .catch(() => {})
+      .then((data) => {
+        console.log("[SidebarProvider] org loaded:", data);
+        setOrg(data);
+      })
+      .catch((err) => {
+        console.error("[SidebarProvider] org fetch failed:", err?.response?.status, err?.message);
+      })
       .finally(() => setIsLoadingOrg(false));
   }, []);
 

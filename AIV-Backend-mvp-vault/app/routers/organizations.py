@@ -35,13 +35,31 @@ class UpdateMemberRequest(BaseModel):
 async def get_my_organization(
     user: dict = Depends(require_auth), db: AsyncSession = Depends(get_db),
 ):
-    """Get the authenticated user's organization."""
-    result = await db.execute(
-        select(Organization).join(
-            OrganizationUser, OrganizationUser.organization_id == Organization.id
-        ).where(OrganizationUser.user_id == UUID(user["id"])).limit(1)
-    )
-    org = result.scalar_one_or_none()
+    """Get the authenticated user's organization. Tries OrganizationUser first, then OrganizationMembership."""
+    org = None
+    # Try legacy OrganizationUser table first
+    try:
+        result = await db.execute(
+            select(Organization).join(
+                OrganizationUser, OrganizationUser.organization_id == Organization.id
+            ).where(OrganizationUser.user_id == UUID(user["id"])).limit(1)
+        )
+        org = result.scalar_one_or_none()
+    except Exception:
+        pass  # Table may not exist
+
+    # Fallback: try OrganizationMembership
+    if not org:
+        try:
+            result = await db.execute(
+                select(Organization).join(
+                    OrganizationMembership, OrganizationMembership.organization_id == Organization.id
+                ).where(OrganizationMembership.user_id == UUID(user["id"])).limit(1)
+            )
+            org = result.scalar_one_or_none()
+        except Exception:
+            pass
+
     if not org:
         raise HTTPException(status_code=404, detail="No organization found")
     return {
