@@ -520,7 +520,7 @@ export function CommandCenter() {
             <CardContent>
               {auditLogs.length > 0 ? (
                 <div className="space-y-2">
-                  {auditLogs.slice(0, 6).map((log) => (
+                  {auditLogs.slice(0, 8).map((log) => (
                     <div key={log.id} className="flex items-start gap-2 text-xs">
                       <div className="h-1.5 w-1.5 rounded-full bg-primary/40 shrink-0 mt-1.5" />
                       <div className="flex-1 min-w-0">

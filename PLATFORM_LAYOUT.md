@@ -117,7 +117,7 @@
 | `/settings` | Settings | Yes | Sidebar + Header |
 | `/settings/billing` | Billing | Yes | Sidebar + Header |
 | `/settings/team` | Team Management | Yes | Sidebar + Header |
-| `/admin` | Admin Dashboard | Yes | Sidebar + Header (note: duplicate route exists at `app/admin/` — dashboard version takes precedence) |
+| `/admin` | Admin Dashboard | Yes | Sidebar + Header |
 | `/help` | Help Center | Yes | Sidebar + Header |
 | `/licensing/[twinId]` | Licensing Portal | No | Full-screen (public) |
 | `/verify/[certId]` | Certificate Verify | No | Full-screen (public) |
@@ -290,7 +290,7 @@
 | Identity Health | {icon} {label} | Health description |
 | Training Progress | {count} sessions | "Keep training to improve" |
 
-**Pipeline (2/3) + Activity (1/3):** Deals by stage · Recent audit log entries (up to 6)
+**Pipeline (2/3) + Activity (1/3):** Deals by stage · Recent audit log entries (up to 8)
 
 **Quick Actions:** Training Area, Deals, Certification, Start Precision Tuning (if incomplete)
 
